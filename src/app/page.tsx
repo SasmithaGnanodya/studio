@@ -6,9 +6,14 @@ import { Header } from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Upload, Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Field } from '@/types';
+import { useAuth, useFirestore, useUser } from '@/firebase';
+import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 
 const PdfWorkspace = dynamic(() => import('@/components/pdf-workspace').then(mod => mod.PdfWorkspace), {
   ssr: false,
@@ -41,6 +46,9 @@ export default function Home() {
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   
   const { toast } = useToast();
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,6 +77,8 @@ export default function Home() {
       width: 25,
       height: 4,
       value: '',
+      type: 'text',
+      isRequired: false,
     };
     setFields((prev) => [...prev, newField]);
     setSelectedFieldId(newField.id);
@@ -87,6 +97,66 @@ export default function Home() {
     }
   };
 
+  const handleSaveToCloud = async () => {
+    if (!pdfFile) {
+        toast({ title: 'No PDF loaded', description: 'Please upload a PDF file first.', variant: 'destructive' });
+        return;
+    }
+    
+    let currentUserId = user?.uid;
+    
+    if (!currentUserId && !isUserLoading) {
+        try {
+            await initiateAnonymousSignIn(auth);
+            // Re-check user after sign-in attempt
+            currentUserId = auth.currentUser?.uid;
+            if(!currentUserId) {
+                toast({ title: 'Authentication Failed', description: 'Could not sign in anonymously to save data.', variant: 'destructive' });
+                return;
+            }
+        } catch (error) {
+            toast({ title: 'Authentication Error', description: 'An error occurred during anonymous sign-in.', variant: 'destructive' });
+            return;
+        }
+    }
+    
+    if (!currentUserId) {
+        toast({ title: 'Please wait', description: 'User authentication is in progress. Please try again shortly.', variant: 'destructive' });
+        return;
+    }
+
+
+    const formTemplateRef = doc(collection(firestore, `users/${currentUserId}/formTemplates`));
+    const formTemplateData = {
+        id: formTemplateRef.id,
+        name: pdfFile.name,
+        pdfUrl: '', // URL will be handled by backend storage, empty for now
+        userId: currentUserId,
+        createdAt: serverTimestamp(),
+    };
+    
+    setDocumentNonBlocking(formTemplateRef, formTemplateData, { merge: true });
+
+    for (const field of fields) {
+        const inputFieldRef = doc(collection(firestore, `users/${currentUserId}/formTemplates/${formTemplateRef.id}/inputFields`));
+        const { x, y, width, height, type, isRequired } = field;
+        const inputFieldData = {
+            id: inputFieldRef.id,
+            formTemplateId: formTemplateRef.id,
+            xPosition: x,
+            yPosition: y,
+            width,
+            height,
+            type,
+            isRequired,
+        };
+        addDocumentNonBlocking(collection(firestore, `users/${currentUserId}/formTemplates/${formTemplateRef.id}/inputFields`), inputFieldData);
+    }
+
+    toast({ title: 'Success!', description: 'Your form template has been saved to the cloud.' });
+  };
+
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
@@ -94,9 +164,15 @@ export default function Home() {
         <aside className="w-full md:w-80 lg:w-96 flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Upload className="h-5 w-5" />
-                <span>1. Upload Template</span>
+              <CardTitle className="flex items-center justify-between text-base">
+                <div className="flex items-center gap-2">
+                  <Upload className="h-5 w-5" />
+                  <span>1. Upload Template</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleSaveToCloud} disabled={!pdfFile}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save to Cloud
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>

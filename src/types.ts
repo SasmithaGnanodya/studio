@@ -6,4 +6,6 @@ export type Field = {
   width: number; // percentage
   height: number; // percentage
   value: string;
+  type: string;
+  isRequired: boolean;
 };
