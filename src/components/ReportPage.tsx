@@ -5,7 +5,7 @@ import type { SubField } from '@/lib/types';
 
 type PrintField = {
   id: string;
-  value: string;
+  value: string | React.ReactNode;
   x: number;
   y: number;
   width: number;
@@ -14,7 +14,7 @@ type PrintField = {
 };
 
 type ReportPageProps = {
-  fields: (SubField & { value: string })[];
+  fields: (SubField & { value: string | React.ReactNode })[];
   staticLabels: PrintField[];
   isCalibrating: boolean;
 };
@@ -28,6 +28,7 @@ const renderField = (field: PrintField) => (
       left: `${field.x}mm`,
       width: `${field.width}mm`,
       height: `${field.height}mm`,
+      whiteSpace: 'pre-wrap', // Allows rendering of \n
     }}
   >
     {field.value}

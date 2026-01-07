@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Trash, X, PlusCircle, CheckCircle } from 'lucide-react';
 import type { FieldLayout, SubField } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -32,6 +33,12 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
     onUpdate(field.id, { subFields: newSubFields });
   };
 
+  const handleSubFieldSelectChange = (subFieldIndex: number, value: 'inline' | 'block') => {
+    const newSubFields = [...field.subFields];
+    newSubFields[subFieldIndex].displayMode = value;
+    onUpdate(field.id, { subFields: newSubFields });
+  }
+
   const handleAddSubField = () => {
     const newSubField: SubField = {
       id: `${field.id}_sub_${Date.now()}`,
@@ -40,6 +47,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
       y: (field.subFields.length * 5), // Position new field below last one
       width: field.width,
       height: 5,
+      displayMode: 'inline',
     };
     onUpdate(field.id, { subFields: [...field.subFields, newSubField] });
   };
@@ -98,6 +106,18 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                        <div className="space-y-2">
                            <Label htmlFor={`sub-label-${index}`}>Label</Label>
                            <Input id={`sub-label-${index}`} name="label" value={sub.label} onChange={(e) => handleSubFieldChange(index, e)} />
+                       </div>
+                       <div className="space-y-2">
+                          <Label htmlFor={`sub-display-mode-${index}`}>Display Mode</Label>
+                          <Select value={sub.displayMode || 'inline'} onValueChange={(value: 'inline' | 'block') => handleSubFieldSelectChange(index, value)}>
+                            <SelectTrigger id={`sub-display-mode-${index}`}>
+                              <SelectValue placeholder="Select display mode" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="inline">Inline (next to label)</SelectItem>
+                              <SelectItem value="block">Block (next line)</SelectItem>
+                            </SelectContent>
+                          </Select>
                        </div>
                        <div className="grid grid-cols-2 gap-2">
                            <div className="space-y-2">

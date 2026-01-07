@@ -13,7 +13,7 @@ import { initialReportState, initialLayout } from '@/lib/initialReportState';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import type { FieldLayout } from '@/lib/types';
+import type { FieldLayout, SubField } from '@/lib/types';
 import { DataForm } from '@/components/DataForm';
 
 
@@ -66,9 +66,11 @@ export default function Home() {
     const fieldsWithData = layout.flatMap(field =>
       field.subFields ? field.subFields.map(sub => {
         const value = reportData[sub.id as keyof typeof reportData] || '';
+        const separator = sub.displayMode === 'block' ? ':\n' : ': ';
+        const displayValue = sub.label ? `${sub.label}${separator}${value}` : value;
         return {
           ...sub,
-          value: `${sub.label}: ${value}`, // Combine label and value
+          value: displayValue,
           // Position sub-field relative to parent container
           x: field.x + (sub.x || 0),
           y: field.y + (sub.y || 0),
