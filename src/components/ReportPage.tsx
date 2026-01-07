@@ -1,6 +1,7 @@
 
 // src/components/ReportPage.tsx
 import React from 'react';
+import type { ImageData } from '@/lib/types';
 
 export type PrintField = {
   id: string;
@@ -13,10 +14,20 @@ export type PrintField = {
   color?: string;
 };
 
+export type PrintImageField = {
+  id: string;
+  value: ImageData;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
+}
+
 type ReportPageProps = {
   staticLabels: PrintField[];
   dynamicValues: PrintField[];
-  imageValues: PrintField[];
+  imageValues: PrintImageField[];
   isCalibrating: boolean;
 };
 
@@ -42,18 +53,27 @@ const renderTextField = (field: PrintField) => {
   );
 };
 
-const renderImageField = (field: PrintField) => {
-  const style: React.CSSProperties = {
+const renderImageField = (field: PrintImageField) => {
+  const containerStyle: React.CSSProperties = {
     top: `${field.y}mm`,
     left: `${field.x}mm`,
     width: `${field.width}mm`,
     height: `${field.height}mm`,
     position: 'absolute',
+    overflow: 'hidden',
+  };
+
+  const imageStyle: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+    objectFit: field.objectFit || 'cover',
+    transform: `scale(${field.value.scale}) translateX(${field.value.x}px) translateY(${field.value.y}px)`,
+    transition: 'transform 0.1s ease-out',
   };
 
   return (
-    <div key={field.id} style={style}>
-      <img src={field.value as string} alt={`report-image-${field.id}`} className="w-full h-full object-cover" />
+    <div key={field.id} style={containerStyle}>
+      {field.value.url && <img src={field.value.url} alt={`report-image-${field.id}`} style={imageStyle} />}
     </div>
   );
 };

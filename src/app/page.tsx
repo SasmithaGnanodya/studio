@@ -13,7 +13,7 @@ import { initialReportState, initialLayout } from '@/lib/initialReportState';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import type { FieldLayout, FieldPart } from '@/lib/types';
+import type { FieldLayout, FieldPart, ImageData } from '@/lib/types';
 import { DataForm } from '@/components/DataForm';
 
 const validateAndCleanFieldPart = (part: any): FieldPart => {
@@ -26,7 +26,8 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     isBold: false,
     color: '#000000',
     inputType: 'text',
-    options: []
+    options: [],
+    objectFit: 'cover'
   };
 
   if (typeof part !== 'object' || part === null) {
@@ -42,7 +43,8 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     isBold: part.isBold || false,
     color: part.color || '#000000',
     inputType: part.inputType || 'text',
-    options: part.options || []
+    options: part.options || [],
+    objectFit: part.objectFit || 'cover'
   };
 };
 
@@ -78,14 +80,9 @@ export default function Home() {
     }
   }, [user, firestore]);
 
-  const handleDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+  const handleDataChange = (name: string, value: string | ImageData) => {
     setReportData(prev => ({ ...prev, [name]: value }));
   };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setReportData(prev => ({...prev, [name]: value}));
-  }
 
   const handlePrint = () => {
     window.print();
@@ -112,20 +109,21 @@ export default function Home() {
         y: field.value.y,
         width: field.value.width,
         height: field.value.height,
-        isBold: field.value.isBold,
+isBold: field.value.isBold,
         color: field.value.color,
       };
     });
 
     const imageValues = layout.filter(f => f.fieldType === 'image').map(field => {
-        const imageUrl = reportData[field.fieldId] || "https://placehold.co/600x400?text=No+Image";
+        const imageData = reportData[field.fieldId] || { url: '', scale: 1, x: 0, y: 0 };
         return {
             id: `image-${field.id}`,
-            value: imageUrl,
+            value: imageData,
             x: field.placeholder!.x,
             y: field.placeholder!.y,
             width: field.placeholder!.width,
             height: field.placeholder!.height,
+            objectFit: field.placeholder!.objectFit
         };
     });
 
@@ -139,7 +137,7 @@ export default function Home() {
       <main className="flex flex-1 flex-col md:flex-row gap-4 p-4 lg:gap-6 lg:p-6 no-print">
         <Card className="w-full md:w-1/3 lg:w-1/4 h-fit sticky top-6">
             <CardContent className="pt-6">
-                <DataForm layout={layout} data={reportData} onChange={handleDataChange} onSelectChange={handleSelectChange} />
+                <DataForm layout={layout} data={reportData} onDataChange={handleDataChange} />
             </CardContent>
         </Card>
         

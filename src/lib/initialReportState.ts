@@ -1,5 +1,5 @@
 
-import type { FieldLayout } from './types';
+import type { FieldLayout, ImageData } from './types';
 
 // src/lib/initialReportState.ts
 
@@ -90,9 +90,9 @@ export const initialReportState: { [key: string]: any } = {
   marketValueText: "Three Million Five Hundred Thousand Rupees",
   
   // --- Images (URLs from Firebase Storage) ---
-  image1: 'https://picsum.photos/seed/1/600/400',
-  imgFront: null,
-  imgRear: null,
+  image1: { url: 'https://picsum.photos/seed/1/600/400', scale: 1, x: 0, y: 0 } as ImageData,
+  imgFront: { url: '', scale: 1, x: 0, y: 0 } as ImageData,
+  imgRear: { url: '', scale: 1, x: 0, y: 0 } as ImageData,
 };
 
 
@@ -122,7 +122,7 @@ export const initialLayout: FieldLayout[] = [
       id: 'image1-layout',
       fieldId: 'image1',
       fieldType: 'image',
-      placeholder: { text: 'image1', x: 10, y: 150, width: 90, height: 60, color: '#0000FF' },
+      placeholder: { text: 'image1', x: 10, y: 150, width: 90, height: 60, color: '#0000FF', objectFit: 'cover' },
       // label and value are not used for images, but need to be present to satisfy the type
       label: {} as any,
       value: {} as any,

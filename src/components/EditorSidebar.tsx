@@ -12,6 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Textarea } from './ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -148,6 +149,23 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
           <div className="space-y-1">
             <Label htmlFor="image-height" className="text-xs">Height (mm)</Label>
             <Input id="image-height" name="height" type="number" value={data.height || 0} onChange={(e) => handlePartChange('placeholder', 'height', e.target.value)} className="h-8" />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="image-fit" className="text-xs">Image Fit</Label>
+            <Select
+              value={data.objectFit || 'cover'}
+              onValueChange={(value) => handlePartChange('placeholder', 'objectFit', value)}
+            >
+              <SelectTrigger id="image-fit" className="h-8">
+                <SelectValue placeholder="Select fit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cover">Cover (fills frame)</SelectItem>
+                <SelectItem value="contain">Contain (fits image)</SelectItem>
+                <SelectItem value="fill">Fill (stretches)</SelectItem>
+                <SelectItem value="none">None (original size)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

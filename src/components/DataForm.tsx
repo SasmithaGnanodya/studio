@@ -4,24 +4,23 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { FieldLayout } from '@/lib/types';
+import type { FieldLayout, ImageData } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Textarea } from './ui/textarea';
+import { ImageAdjustmentControl } from './ImageAdjustmentControl';
 
 type DataFormProps = {
   layout: FieldLayout[];
   data: any;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  onSelectChange: (name: string, value: string) => void;
+  onDataChange: (name: string, value: string | ImageData) => void;
 };
 
-export const DataForm = ({ layout, data, onChange, onSelectChange }: DataFormProps) => {
+export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
   const renderedFieldIds = new Set<string>();
 
   return (
     <ScrollArea className="h-[calc(100vh-12rem)]">
-      <div className="space-y-4 p-1">
+      <div className="space-y-6 p-1">
         {layout.map((field) => {
           if (renderedFieldIds.has(field.fieldId)) {
             return null;
@@ -33,15 +32,15 @@ export const DataForm = ({ layout, data, onChange, onSelectChange }: DataFormPro
 
 
           return (
-            <div key={field.id} className="grid grid-cols-3 items-center gap-4">
-              <Label htmlFor={field.fieldId} className="text-sm font-medium text-right capitalize">
+            <div key={field.id} className="space-y-2">
+              <Label htmlFor={field.fieldId} className="text-sm font-medium capitalize">
                 {labelText.replace(/([A-Z])/g, ' $1').trim()}
               </Label>
-              <div className="col-span-2">
+              <div>
                 {inputType === 'dropdown' ? (
                    <Select
                     value={data[field.fieldId] || ''}
-                    onValueChange={(value) => onSelectChange(field.fieldId, value)}
+                    onValueChange={(value) => onDataChange(field.fieldId, value)}
                    >
                      <SelectTrigger id={field.fieldId}>
                        <SelectValue placeholder={`Select ${field.label.text}`} />
@@ -53,19 +52,16 @@ export const DataForm = ({ layout, data, onChange, onSelectChange }: DataFormPro
                      </SelectContent>
                    </Select>
                 ) : inputType === 'image' ? (
-                  <Input
-                    id={field.fieldId}
-                    name={field.fieldId}
-                    value={data[field.fieldId] || ''}
-                    onChange={onChange}
-                    placeholder="Enter image URL"
+                  <ImageAdjustmentControl
+                    value={data[field.fieldId] || { url: '', scale: 1, x: 0, y: 0 }}
+                    onChange={(value) => onDataChange(field.fieldId, value)}
                   />
                 ) : (
                   <Input
                     id={field.fieldId}
                     name={field.fieldId}
                     value={data[field.fieldId] || ''}
-                    onChange={onChange}
+                    onChange={(e) => onDataChange(e.target.name, e.target.value)}
                   />
                 )}
               </div>
