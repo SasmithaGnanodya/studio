@@ -15,6 +15,7 @@ import { initialLayout, initialReportState } from '@/lib/initialReportState';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { EditorSidebar } from '@/components/EditorSidebar';
 import { ReportPage } from '@/components/ReportPage';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 // Standard DPI for screen, used for mm to px conversion
 const DPI = 96;
@@ -31,6 +32,7 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     height: 5,
     isBold: false,
     color: '#000000',
+    fontSize: 12,
     inputType: 'text',
     options: []
   };
@@ -47,6 +49,7 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     height: part.height || 5,
     isBold: part.isBold || false,
     color: part.color || '#000000',
+    fontSize: part.fontSize || 12,
     inputType: part.inputType || 'text',
     options: part.options || []
   };
@@ -110,14 +113,17 @@ export default function EditorPage() {
     setFields(prevFields =>
       prevFields.map(field => {
         if (field.id === fieldId) {
-          return {
-            ...field,
-            [part]: {
-              ...(field as any)[part],
-              x: PX_TO_MM(xInPx),
-              y: PX_TO_MM(yInPx),
+            const fieldToUpdate = (field as any)[part];
+            if (fieldToUpdate) {
+                return {
+                    ...field,
+                    [part]: {
+                        ...fieldToUpdate,
+                        x: PX_TO_MM(xInPx),
+                        y: PX_TO_MM(yInPx),
+                    }
+                };
             }
-          };
         }
         return field;
       })
@@ -128,14 +134,17 @@ export default function EditorPage() {
     setFields(prevFields =>
       prevFields.map(field => {
         if (field.id === fieldId) {
-          return {
-            ...field,
-            [part]: {
-              ...(field as any)[part],
-              width: PX_TO_MM(widthInPx),
-              height: PX_TO_MM(heightInPx),
+            const fieldToUpdate = (field as any)[part];
+             if (fieldToUpdate) {
+                return {
+                    ...field,
+                    [part]: {
+                    ...fieldToUpdate,
+                    width: PX_TO_MM(widthInPx),
+                    height: PX_TO_MM(heightInPx),
+                    }
+                };
             }
-          };
         }
         return field;
       })
@@ -143,7 +152,7 @@ export default function EditorPage() {
   }, []);
 
   const handleSelectField = (id: string) => {
-    const baseId = id.replace(/-(label|value)$/, '');
+    const baseId = id.replace(/-(label|value|placeholder)$/, '');
     setSelectedFieldId(baseId);
   };
   
@@ -154,8 +163,8 @@ export default function EditorPage() {
         id: newId,
         fieldId: 'newField',
         fieldType: 'text',
-        label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000' },
-        value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', inputType: 'text', options: [] },
+        label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 },
+        value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
       };
       setFields(prev => [...prev, newField]);
     } else { // image
@@ -200,12 +209,14 @@ export default function EditorPage() {
             if (typeof field.label === 'object' && field.label !== null) {
               field.label.isBold = field.label.isBold || false;
               field.label.color = field.label.color || '#000000';
+              field.label.fontSize = field.label.fontSize || 12;
             }
             if (typeof field.value === 'object' && field.value !== null) {
               field.value.isBold = field.value.isBold || false;
               field.value.color = field.value.color || '#000000';
               field.value.inputType = field.value.inputType || 'text';
               field.value.options = field.value.options || [];
+              field.value.fontSize = field.value.fontSize || 12;
             }
           } else if (field.fieldType === 'image') {
             // No specific cleaning needed for image fields yet unless new properties are added
@@ -240,6 +251,7 @@ export default function EditorPage() {
       height: field.label.height,
       isBold: field.label.isBold,
       color: field.label.color,
+      fontSize: field.label.fontSize,
     }));
 
     const valuePlaceholders = fields.filter(f => f.fieldType === 'text').map(field => {
@@ -253,10 +265,11 @@ export default function EditorPage() {
         height: field.value.height,
         isBold: field.value.isBold,
         color: field.value.color,
+        fontSize: field.value.fontSize,
       };
     });
 
-    const imagePlaceholders = fields.filter(f => f.fieldType === 'image').map(field => {
+    const imagePlaceholders = fields.filter(f => f.fieldType === 'image' && f.placeholder).map(field => {
       const imageUrl = initialReportState[field.fieldId] || "https://placehold.co/600x400?text=Image";
       return {
         id: `image-${field.id}`,
@@ -278,9 +291,9 @@ export default function EditorPage() {
       <Header />
       <main className="flex-1 flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
         <Card>
-          <CardContent className="pt-6 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Layout Editor</h2>
-            <div className="flex items-center gap-2">
+          <CardContent className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <h2 className="text-xl font-semibold self-start">Layout Editor</h2>
+            <div className="flex flex-wrap items-center justify-center gap-2">
                 <Button variant="outline" onClick={() => handleAddNewField('text')}><PlusCircle className="mr-2 h-4 w-4" /> Add Text Field</Button>
                 <Button variant="outline" onClick={() => handleAddNewField('image')}><ImageIcon className="mr-2 h-4 w-4" /> Add Image</Button>
                 <Link href="/" passHref>
@@ -292,16 +305,37 @@ export default function EditorPage() {
         </Card>
         
         {selectedField && (
-          <EditorSidebar 
-            field={selectedField}
-            onUpdate={handleUpdateField}
-            onDelete={handleDeleteField}
-            onClose={() => setSelectedFieldId(null)}
-          />
+          <div className='block md:hidden'>
+             <Accordion type="single" collapsible defaultValue="item-1">
+                <AccordionItem value="item-1">
+                    <AccordionTrigger className="bg-card px-6">
+                       <h2 className="text-lg font-semibold">Editing Field: <span className="font-mono bg-muted px-2 py-1 rounded-md">{selectedField.fieldId}</span></h2>
+                    </AccordionTrigger>
+                    <AccordionContent className='bg-card'>
+                        <EditorSidebar 
+                            field={selectedField}
+                            onUpdate={handleUpdateField}
+                            onDelete={handleDeleteField}
+                            onClose={() => setSelectedFieldId(null)}
+                         />
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
+          </div>
         )}
+        <div className='hidden md:block'>
+          {selectedField && (
+            <EditorSidebar 
+              field={selectedField}
+              onUpdate={handleUpdateField}
+              onDelete={handleDeleteField}
+              onClose={() => setSelectedFieldId(null)}
+            />
+          )}
+        </div>
         
         <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
-          <div className="relative mx-auto preview-mode">
+          <div className="relative mx-auto w-fit">
               <ReportPage 
                 staticLabels={staticLabels} 
                 dynamicValues={valuePlaceholders} 
@@ -340,7 +374,7 @@ export default function EditorPage() {
               ])}
 
                {/* Draggable handles for images */}
-               {fields.filter(f => f.fieldType === 'image').map(field => (
+               {fields.filter(f => f.fieldType === 'image' && f.placeholder).map(field => (
                 <DraggableField
                   key={`image-drag-${field.id}`}
                   id={field.id}
@@ -361,3 +395,5 @@ export default function EditorPage() {
     </div>
   );
 }
+
+    

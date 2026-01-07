@@ -124,20 +124,20 @@ export default function LandingPage() {
             </CardDescription>
             </CardHeader>
             <CardContent>
-            <div className="flex w-full items-center space-x-2">
-                <div className="relative flex-grow">
+            <div className="flex flex-col sm:flex-row w-full items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                <div className="relative flex-grow w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                     type="text"
-                    placeholder="Enter Vehicle Registration No (e.g., GV2233)"
+                    placeholder="Enter Vehicle Registration No"
                     value={searchTerm}
                     onChange={handleSearchChange}
                     onKeyDown={handleKeyDown}
-                    className="pl-10 text-lg"
+                    className="pl-10 text-lg w-full"
                 />
                 </div>
                 {noResults && searchTerm && (
-                <Button onClick={handleCreateNew}>
+                <Button onClick={handleCreateNew} className="w-full sm:w-auto">
                     <PlusCircle className="mr-2 h-5 w-5" />
                     Create New Report
                 </Button>
@@ -153,16 +153,19 @@ export default function LandingPage() {
                     <li key={report.id}>
                         <Link href={`/report/${report.vehicleId}`} passHref>
                         <div className="flex items-center p-3 rounded-md border bg-card hover:bg-muted transition-colors cursor-pointer">
-                            <Car className="mr-4 h-5 w-5 text-primary" />
-                            <div className='flex-grow'>
-                            <p className="font-semibold">{report.vehicleId}</p>
-                            <p className="text-sm text-muted-foreground">
-                                {report.reportData?.manufacturer} {report.reportData?.model} ({report.reportData?.manufactureYear})
-                            </p>
+                            <Car className="mr-4 h-5 w-5 text-primary shrink-0" />
+                            <div className='flex-grow overflow-hidden'>
+                                <p className="font-semibold truncate">{report.vehicleId}</p>
+                                <p className="text-sm text-muted-foreground truncate">
+                                    {report.reportData?.manufacturer} {report.reportData?.model} ({report.reportData?.manufactureYear})
+                                </p>
                             </div>
-                            <p className='text-sm text-muted-foreground'>
-                                Last updated: {new Date(report.updatedAt.seconds * 1000).toLocaleDateString()}
-                            </p>
+                            {report.updatedAt && (
+                                <p className='text-sm text-muted-foreground text-right shrink-0 ml-2'>
+                                    <span className='hidden sm:inline'>Last updated: </span>
+                                    {new Date(report.updatedAt.seconds * 1000).toLocaleDateString()}
+                                </p>
+                            )}
                         </div>
                         </Link>
                     </li>
@@ -193,3 +196,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    

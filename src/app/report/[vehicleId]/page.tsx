@@ -16,6 +16,7 @@ import { doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp
 import type { FieldLayout, FieldPart, ImageData, Report } from '@/lib/types';
 import { DataForm } from '@/components/DataForm';
 import { useToast } from '@/hooks/use-toast';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const validateAndCleanFieldPart = (part: any): FieldPart => {
   const defaults: FieldPart = {
@@ -175,7 +176,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
       const value = reportData[field.fieldId as keyof typeof reportData] || '';
       return {
         id: `value-${field.id}`,
-        value: value,
+        value: String(value), // Ensure value is a string
         x: field.value.x,
         y: field.value.y,
         width: field.value.width,
@@ -186,7 +187,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
       };
     });
 
-    const imageValues = layout.filter(f => f.fieldType === 'image').map(field => {
+    const imageValues = layout.filter(f => f.fieldType === 'image' && f.placeholder).map(field => {
         const imageData = reportData[field.fieldId] || { url: '', scale: 1, x: 0, y: 0 };
         return {
             id: `image-${field.id}`,
@@ -206,23 +207,42 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
-      <main className="flex flex-1 flex-col md:flex-row gap-4 p-4 lg:gap-6 lg:p-6 no-print">
-        <Card className="w-full md:w-1/3 lg:w-1/4 h-fit sticky top-6">
-            <CardHeader>
-                <CardTitle>Report Data</CardTitle>
-                <CardDescription>
-                    Vehicle No: <span className='font-semibold text-primary'>{vehicleId}</span>
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-                <DataForm layout={layout} data={reportData} onDataChange={handleDataChange} />
-            </CardContent>
-        </Card>
+      <main className="flex flex-1 flex-col lg:flex-row gap-4 p-4 lg:gap-6 lg:p-6 no-print">
+        <div className="w-full lg:w-1/3 xl:w-1/4 lg:h-[calc(100vh-6rem)] lg:sticky lg:top-20">
+            <Card className="hidden lg:block h-full">
+                <CardHeader>
+                    <CardTitle>Report Data</CardTitle>
+                    <CardDescription>
+                        Vehicle No: <span className='font-semibold text-primary'>{vehicleId}</span>
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                    <DataForm layout={layout} data={reportData} onDataChange={handleDataChange} />
+                </CardContent>
+            </Card>
+            <div className="block lg:hidden">
+                <Accordion type="single" collapsible>
+                    <AccordionItem value="item-1">
+                        <AccordionTrigger className='bg-card px-4 rounded-t-lg'>
+                             <CardHeader className="p-0">
+                                <CardTitle>Report Data</CardTitle>
+                                <CardDescription>
+                                    Vehicle No: <span className='font-semibold text-primary'>{vehicleId}</span>
+                                </CardDescription>
+                            </CardHeader>
+                        </AccordionTrigger>
+                        <AccordionContent className='bg-card p-4 rounded-b-lg'>
+                            <DataForm layout={layout} data={reportData} onDataChange={handleDataChange} />
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            </div>
+        </div>
         
         <div className="flex-1 flex flex-col gap-4">
           <Card>
-            <CardContent className="pt-6 flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+            <CardContent className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center space-x-4 self-start">
                 <div className="flex items-center space-x-2">
                   <Switch id="preview-mode" checked={isPreview} onCheckedChange={setIsPreview} />
                   <Label htmlFor="preview-mode" className="flex items-center gap-2"><Eye size={16}/> Preview</Label>
@@ -232,7 +252,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
                   <Label htmlFor="calibration-mode" className="flex items-center gap-2"><Wrench size={16}/> Calibrate</Label>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-2">
                 <Button onClick={handleSaveReport}><Save className="mr-2 h-4 w-4" /> Save Report</Button>
                 <Link href="/editor" passHref>
                   <Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit Layout</Button>
@@ -243,7 +263,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
           </Card>
           
           <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
-            <div className={isPreview ? "preview-mode" : ""}>
+            <div className={`relative mx-auto w-fit ${isPreview ? "preview-mode" : ""}`}>
                <ReportPage 
                   staticLabels={staticLabels} 
                   dynamicValues={dynamicValues}
@@ -267,3 +287,5 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     </div>
   );
 }
+
+    
