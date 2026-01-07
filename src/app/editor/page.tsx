@@ -36,8 +36,8 @@ export default function EditorPage() {
           const data = layoutDoc.data();
           const validatedFields = data.fields.map((f: any) => ({
             ...f,
-            label: f.label || { text: 'Label', x: 10, y: 10, width: 50, height: 5 },
-            value: f.value || { text: f.fieldId, x: 10, y: 20, width: 50, height: 5 }
+            label: f.label || { text: 'Label', x: 10, y: 10, width: 50, height: 5, className: '' },
+            value: f.value || { text: f.fieldId, x: 10, y: 20, width: 50, height: 5, className: '' }
           }));
           setFields(validatedFields as FieldLayout[]);
         }
@@ -56,6 +56,24 @@ export default function EditorPage() {
               ...field[part],
               x: xInPx * PX_TO_MM,
               y: yInPx * PX_TO_MM,
+            }
+          };
+        }
+        return field;
+      })
+    );
+  }, []);
+  
+  const updateFieldPartSize = useCallback((fieldId: string, part: 'label' | 'value', widthInPx: number, heightInPx: number) => {
+    setFields(prevFields =>
+      prevFields.map(field => {
+        if (field.id === fieldId) {
+          return {
+            ...field,
+            [part]: {
+              ...field[part],
+              width: widthInPx * PX_TO_MM,
+              height: heightInPx * PX_TO_MM,
             }
           };
         }
@@ -182,6 +200,7 @@ export default function EditorPage() {
                       width={field.label.width * MM_TO_PX}
                       height={field.label.height * MM_TO_PX}
                       onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'label', x, y)}
+                      onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'label', w, h)}
                       onClick={handleSelectField}
                       isSelected={field.id === selectedFieldId}
                       borderColor='blue'
@@ -198,6 +217,7 @@ export default function EditorPage() {
                       width={field.value.width * MM_TO_PX}
                       height={field.value.height * MM_TO_PX}
                       onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'value', x, y)}
+                      onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'value', w, h)}
                       onClick={handleSelectField}
                       isSelected={field.id === selectedFieldId}
                       borderColor='green'

@@ -32,10 +32,9 @@ export default function Home() {
           const data = layoutDoc.data();
           // Ensure fields have a valid structure for backward compatibility
           const validatedFields = data.fields.map((f: any) => ({
-            id: f.id,
-            fieldId: f.fieldId || f.id,
-            label: f.label || { text: 'Label', x: 10, y: 10, width: 50, height: 5 },
-            value: f.value || { text: f.fieldId || f.id, x: 10, y: 20, width: 50, height: 5 }
+            ...f,
+            label: f.label || { text: 'Label', x: 10, y: 10, width: 50, height: 5, className: '' },
+            value: f.value || { text: f.fieldId, x: 10, y: 20, width: 50, height: 5, className: '' }
           }));
           setLayout(validatedFields as FieldLayout[]);
         }

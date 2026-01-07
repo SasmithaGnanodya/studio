@@ -25,9 +25,9 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
     if (!currentPart) return;
 
     let processedValue = value;
-    if (property === 'x' || property === 'y' || property === 'width' || property === 'height') {
-      const numericValue = typeof value === 'string' ? parseFloat(value) : value;
-      processedValue = isNaN(numericValue) ? 0 : numericValue;
+    if (['x', 'y', 'width', 'height'].includes(property as string)) {
+        const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+        processedValue = isNaN(numericValue) ? 0 : numericValue;
     }
 
     const newPart = { ...currentPart, [property]: processedValue };
@@ -42,18 +42,21 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
     const data = field[part];
     if (!data) return null; // Defensive check in case a part is missing
     const title = part.charAt(0).toUpperCase() + part.slice(1);
+    const isLabelPart = part === 'label';
 
     return (
       <AccordionItem value={part}>
         <AccordionTrigger>{title}</AccordionTrigger>
         <AccordionContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor={`${part}-text`}>{part === 'label' ? 'Label Text' : 'Data Field ID'}</Label>
+            <Label htmlFor={`${part}-text`}>{isLabelPart ? 'Label Text' : 'Data Field ID'}</Label>
             <Input 
               id={`${part}-text`} 
               name="text" 
               value={data.text || ''} 
-              onChange={(e) => handleLayoutChange(part, 'text', e.target.value)} />
+              onChange={(e) => handleLayoutChange(part, 'text', e.target.value)} 
+              readOnly={!isLabelPart}
+              />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-2">
