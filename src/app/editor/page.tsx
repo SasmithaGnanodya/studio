@@ -125,10 +125,10 @@ export default function EditorPage() {
     try {
         // Create a deep copy and clean the data for Firestore
         const cleanedFields = JSON.parse(JSON.stringify(fields)).map((field: FieldLayout) => {
-          if (typeof field.label.className === 'undefined') {
+          if (typeof field.label === 'object' && field.label !== null && typeof field.label.className === 'undefined') {
             field.label.className = '';
           }
-          if (typeof field.value.className === 'undefined') {
+          if (typeof field.value === 'object' && field.value !== null && typeof field.value.className === 'undefined') {
             field.value.className = '';
           }
           return field;
