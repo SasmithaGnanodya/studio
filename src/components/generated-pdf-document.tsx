@@ -12,6 +12,7 @@ const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
+    fontFamily: 'Helvetica',
   },
   backgroundImage: {
     position: 'absolute',
@@ -29,7 +30,6 @@ const styles = StyleSheet.create({
   },
   fieldText: {
     fontSize: 10,
-    fontFamily: 'Helvetica', 
   }
 });
 
