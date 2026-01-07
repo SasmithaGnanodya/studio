@@ -71,6 +71,7 @@
     display: flex;
     align-items: center;
     padding-left: 2mm;
+    height: 8mm;
   }
 
   .calibration-mode .field {
@@ -78,7 +79,7 @@
   }
 
   .preview-mode {
-    background-image: url('https://i.imgur.com/4s5iY9P.jpeg');
+    background-image: url('https://i.imgur.com/g0t6Y8r.jpeg');
     background-size: contain;
     background-repeat: no-repeat;
   }
