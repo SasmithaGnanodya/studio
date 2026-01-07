@@ -98,15 +98,21 @@ export const initialReportState = {
 
 export const initialLayout: FieldLayout[] = [
     {
-      id: 'regNumber',
+      id: 'regNumber-layout',
       fieldId: 'regNumber',
-      label: { text: 'Reg No.', x: 5, y: 52, width: 22, height: 5, className: '' },
-      value: { text: 'regNumber', x: 27, y: 52, width: 34, height: 5, className: '' }
+      label: { text: 'Reg No.', x: 10, y: 10, width: 50, height: 5, className: '' },
+      value: { text: 'regNumber', x: 65, y: 10, width: 50, height: 5, className: '' }
     },
     {
-      id: 'manufacturer',
+      id: 'manufacturer-layout',
       fieldId: 'manufacturer',
-      label: { text: 'Manufacturer', x: 61, y: 52, width: 30, height: 5, className: '' },
-      value: { text: 'manufacturer', x: 91, y: 52, width: 40, height: 5, className: '' }
+      label: { text: 'Manufacturer', x: 10, y: 20, width: 50, height: 5, className: '' },
+      value: { text: 'manufacturer', x: 65, y: 20, width: 50, height: 5, className: '' }
+    },
+    {
+      id: 'model-layout',
+      fieldId: 'model',
+      label: { text: 'Model', x: 10, y: 30, width: 50, height: 5, className: '' },
+      value: { text: 'model', x: 65, y: 30, width: 50, height: 5, className: '' }
     },
 ];
