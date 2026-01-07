@@ -121,8 +121,20 @@ export default function EditorPage() {
     }
 
     try {
+        // Create a deep copy and clean the data for Firestore
+        const cleanedFields = JSON.parse(JSON.stringify(fields)).map((field: FieldLayout) => {
+          if (!field.label.className) {
+            field.label.className = '';
+          }
+          if (!field.value.className) {
+            field.value.className = '';
+          }
+          return field;
+        });
+
         const layoutDocRef = doc(firestore, `layouts/${user.uid}`);
-        await setDoc(layoutDocRef, { fields });
+        await setDoc(layoutDocRef, { fields: cleanedFields });
+        
         toast({
             title: "Layout Saved",
             description: "Your field layout has been saved successfully.",
