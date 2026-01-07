@@ -1,0 +1,207 @@
+/**
+ * This Firestore Security Ruleset enforces a strict user-ownership model for a form management application.
+ *
+ * Core Philosophy:
+ * The security model is designed to be highly secure and performant by ensuring that users can only access data
+ * within their own dedicated data tree. All operations are authorized based on the user's authenticated UID,
+ * which is a fundamental part of the document path.
+ *
+ * Data Structure:
+ * All application data is nested under the `/users/{userId}` collection. This hierarchical structure includes a user's
+ * `formTemplates`, the `inputFields` for each template, and the `formData` submitted for those templates.
+ * This path-based scoping is the primary mechanism for authorization.
+ *
+ * Key Security Decisions:
+ * - No Public Data: There are no globally readable collections. All data is private to the user who owns it.
+ * - User Listing Disabled: To protect user privacy and prevent data scraping, it is not possible to query the top-level `/users` collection.
+ * - Path-Based Security: Authorization relies on matching the `request.auth.uid` with the `{userId}` wildcard in the document path. This avoids slow and costly `get()` or `exists()` calls to other documents for authorization checks.
+ *
+ * Denormalization for Authorization:
+ * The data structure itself is a form of denormalization. By placing all of a user's resources in a subcollection
+ * under their user ID (`/users/{userId}/...`), we establish a direct and unbreakable ownership link that is easily
+ * verifiable in security rules without needing extra document reads. Additionally, on document creation, we validate
+ * that internal ID fields (like `userId` on a `FormTemplate`) match the ID from the path to ensure data integrity from the start.
+ *
+ * Structural Segregation:
+ * This ruleset does not distinguish between public and private data within a collection, as all data is considered
+ * private to the user. The segregation is done at the highest level by partitioning all data into user-specific trees.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * isSignedIn
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * isOwner
+     * @param userId The UID of the document owner from the path.
+     * Validates that the requesting user is authenticated and their UID matches
+     * the owner's UID specified in the document path.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * isExistingOwner
+     * @param userId The UID of the document owner from the path.
+     * Ensures the requesting user is the owner AND the document already exists.
+     * CRITICAL for all update and delete operations to prevent modifying non-existent data.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * hasValidUserData
+     * @param userId The UID of the user from the path.
+     * Validates that the incoming User document's `id` field matches the document's path ID.
+     * This enforces relational integrity on creation.
+     */
+    function hasValidUserData(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * isUserDataImmutable
+     * Ensures the core `id` field of a User document cannot be changed after creation.
+     */
+    function isUserDataImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * hasValidFormTemplateData
+     * @param userId The UID of the user from the path.
+     * Validates that the incoming FormTemplate's `userId` field matches the owner's ID in the path.
+     */
+    function hasValidFormTemplateData(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /**
+     * isFormTemplateDataImmutable
+     * Ensures the `userId` field linking a FormTemplate to its owner is immutable.
+     */
+    function isFormTemplateDataImmutable() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    /**
+     * hasValidInputFieldData
+     * @param formTemplateId The ID of the parent form template from the path.
+     * Validates that the incoming InputField's `formTemplateId` field matches the parent ID in the path.
+     */
+    function hasValidInputFieldData(formTemplateId) {
+      return request.resource.data.formTemplateId == formTemplateId;
+    }
+
+    /**
+     * isInputFieldDataImmutable
+     * Ensures the `formTemplateId` field linking an InputField to its template is immutable.
+     */
+    function isInputFieldDataImmutable() {
+      return request.resource.data.formTemplateId == resource.data.formTemplateId;
+    }
+
+    /**
+     * hasValidFormData
+     * @param formTemplateId The ID of the parent form template from the path.
+     * Validates that the incoming FormData's `formTemplateId` field matches the parent ID in the path.
+     */
+    function hasValidFormData(formTemplateId) {
+      return request.resource.data.formTemplateId == formTemplateId;
+    }
+
+    /**
+     * isFormDataImmutable
+     * Ensures the `formTemplateId` field linking FormData to its template is immutable.
+     */
+    function isFormDataImmutable() {
+      return request.resource.data.formTemplateId == resource.data.formTemplateId;
+    }
+
+
+    // ------------------------------------------------------------------------
+    // Collection Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Rules for a user's own profile document.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user can create their own user document.
+     * @allow (get) An authenticated user can read their own user document.
+     * @deny (list) No user, authenticated or not, can list all users in the system.
+     * @deny (get) An authenticated user cannot read another user's document.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && hasValidUserData(userId);
+      allow update: if isExistingOwner(userId) && isUserDataImmutable();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for form templates, which are owned by a user.
+     * @path /users/{userId}/formTemplates/{formTemplateId}
+     * @allow (create) User 'user_A' can create a form template under `/users/user_A/formTemplates/...`.
+     * @allow (list) User 'user_A' can list all form templates under their own path.
+     * @deny (create) User 'user_B' cannot create a form template under `/users/user_A/formTemplates/...`.
+     * @deny (list) User 'user_B' cannot list form templates belonging to 'user_A'.
+     * @principle Enforces strict document ownership within a user's private data tree.
+     */
+    match /users/{userId}/formTemplates/{formTemplateId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidFormTemplateData(userId);
+      allow update: if isExistingOwner(userId) && isFormTemplateDataImmutable();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for input fields, which belong to a specific form template.
+     * @path /users/{userId}/formTemplates/{formTemplateId}/inputFields/{inputFieldId}
+     * @allow (get) User 'user_A' can read an input field on a template they own.
+     * @allow (create) User 'user_A' can add a new input field to a template they own.
+     * @deny (get) User 'user_B' cannot read an input field on a template owned by 'user_A'.
+     * @deny (update) User 'user_B' cannot update an input field on a template owned by 'user_A'.
+     * @principle Inherits ownership from the parent path, ensuring only the template owner can manage its fields.
+     */
+    match /users/{userId}/formTemplates/{formTemplateId}/inputFields/{inputFieldId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidInputFieldData(formTemplateId);
+      allow update: if isExistingOwner(userId) && isInputFieldDataImmutable();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for form data, which is associated with a specific form template.
+     * @path /users/{userId}/formTemplates/{formTemplateId}/formData/{formDataId}
+     * @allow (list) User 'user_A' can list all submitted form data for a template they own.
+     * @allow (delete) User 'user_A' can delete submitted form data from a template they own.
+     * @deny (list) User 'user_B' cannot list form data for a template owned by 'user_A'.
+     * @deny (create) User 'user_B' cannot add form data to a template owned by 'user_A'.
+     * @principle Inherits ownership from the parent path, ensuring only the template owner can manage its data.
+     */
+    match /users/{userId}/formTemplates/{formTemplateId}/formData/{formDataId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidFormData(formTemplateId);
+      allow update: if isExistingOwner(userId) && isFormDataImmutable();
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}

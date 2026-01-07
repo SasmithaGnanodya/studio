@@ -1,0 +1,242 @@
+{
+  "entities": {
+    "FormTemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FormTemplate",
+      "type": "object",
+      "description": "Represents a PDF template used as a base form.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the FormTemplate entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the form template."
+        },
+        "pdfUrl": {
+          "type": "string",
+          "description": "URL where the PDF template is stored.",
+          "format": "uri"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User who uploaded this template. (Relationship: User 1:N FormTemplate)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the form template was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "pdfUrl",
+        "userId",
+        "createdAt"
+      ]
+    },
+    "InputField": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InputField",
+      "type": "object",
+      "description": "Represents an input field placed on a form template.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the InputField entity."
+        },
+        "formTemplateId": {
+          "type": "string",
+          "description": "Reference to FormTemplate this input field belongs to. (Relationship: FormTemplate 1:N InputField)"
+        },
+        "xPosition": {
+          "type": "number",
+          "description": "X-coordinate of the input field on the template."
+        },
+        "yPosition": {
+          "type": "number",
+          "description": "Y-coordinate of the input field on the template."
+        },
+        "width": {
+          "type": "number",
+          "description": "Width of the input field."
+        },
+        "height": {
+          "type": "number",
+          "description": "Height of the input field."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of input field (e.g., text, number, date)."
+        },
+        "isRequired": {
+          "type": "boolean",
+          "description": "Indicates if the input field is required."
+        }
+      },
+      "required": [
+        "id",
+        "formTemplateId",
+        "xPosition",
+        "yPosition",
+        "width",
+        "height",
+        "type",
+        "isRequired"
+      ]
+    },
+    "FormData": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FormData",
+      "type": "object",
+      "description": "Represents the data entered into a form based on a template.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the FormData entity."
+        },
+        "formTemplateId": {
+          "type": "string",
+          "description": "Reference to the FormTemplate used to generate this data. (Relationship: FormTemplate 1:N FormData)"
+        },
+        "inputFieldId": {
+          "type": "string",
+          "description": "Reference to the InputField that this data is associated with. (Relationship: InputField 1:N FormData)"
+        },
+        "value": {
+          "type": "string",
+          "description": "The data entered into the input field."
+        }
+      },
+      "required": [
+        "id",
+        "formTemplateId",
+        "inputFieldId",
+        "value"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the user."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection of user documents. The userId is the Firebase Authentication UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/formTemplates/{formTemplateId}",
+        "definition": {
+          "entityName": "FormTemplate",
+          "schema": {
+            "$ref": "#/backend/entities/FormTemplate"
+          },
+          "description": "Collection of form templates owned by a specific user.  The userId is denormalized from the document, but is primarily enforced by the path.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user who owns the form template."
+            },
+            {
+              "name": "formTemplateId",
+              "description": "The unique identifier of the form template."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/formTemplates/{formTemplateId}/inputFields/{inputFieldId}",
+        "definition": {
+          "entityName": "InputField",
+          "schema": {
+            "$ref": "#/backend/entities/InputField"
+          },
+          "description": "Collection of input fields associated with a specific form template.  Parent is the user and form template.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user who owns the form template."
+            },
+            {
+              "name": "formTemplateId",
+              "description": "The unique identifier of the form template."
+            },
+            {
+              "name": "inputFieldId",
+              "description": "The unique identifier of the input field."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/formTemplates/{formTemplateId}/formData/{formDataId}",
+        "definition": {
+          "entityName": "FormData",
+          "schema": {
+            "$ref": "#/backend/entities/FormData"
+          },
+          "description": "Collection of form data associated with a specific form template.  Parent is the user and form template.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user who owns the form template."
+            },
+            {
+              "name": "formTemplateId",
+              "description": "The unique identifier of the form template."
+            },
+            {
+              "name": "formDataId",
+              "description": "The unique identifier of the form data."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to provide a secure and scalable backend for the FormFlow PDF Filler application, emphasizing authorization independence, clarity, and adherence to Firestore best practices.\n\nThe primary goal is to eliminate the need for `get()` calls in security rules by denormalizing authorization data.  Since FormTemplates and associated data (InputFields, FormData) are owned by a specific user, we leverage path-based ownership using the `/users/{userId}` path. This simplifies security rules and allows atomic operations.\n\nAuthorization Independence (Denormalization): The `FormTemplates` collection is nested under `/users/{userId}`. This inherently associates each template with its owner. The `FormData` is linked to a specific `InputField` and `FormTemplate` via IDs. While we could nest `InputFields` and `FormData` further, the expected access patterns (listing all form data for a template) benefit from a flatter structure. This design facilitates secure `list` operations, because each collection has homogeneous security requirements (owned by the user in the path)."
+  }
+}
