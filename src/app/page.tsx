@@ -1,21 +1,41 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Header } from '@/components/header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Printer, Eye, Wrench } from 'lucide-react';
+import { Printer, Eye, Wrench, Edit } from 'lucide-react';
 import { DataForm } from '@/components/DataForm';
 import { ReportPage } from '@/components/ReportPage';
-import { initialReportState } from '@/lib/initialReportState';
+import { initialReportState, initialLayout } from '@/lib/initialReportState';
+import Link from 'next/link';
+import { useFirebase } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import type { FieldLayout } from '@/lib/types';
+
 
 export default function Home() {
   const [reportData, setReportData] = useState(initialReportState);
+  const [layout, setLayout] = useState<FieldLayout[]>(initialLayout);
   const [isPreview, setIsPreview] = useState(true);
   const [isCalibrating, setIsCalibrating] = useState(false);
+  const { firestore, user } = useFirebase();
+
+  useEffect(() => {
+    if (user && firestore) {
+      const fetchLayout = async () => {
+        const layoutDocRef = doc(firestore, `layouts/${user.uid}`);
+        const layoutDoc = await getDoc(layoutDocRef);
+        if (layoutDoc.exists()) {
+          setLayout(layoutDoc.data().fields as FieldLayout[]);
+        }
+      };
+      fetchLayout();
+    }
+  }, [user, firestore]);
 
   const handleDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -25,6 +45,13 @@ export default function Home() {
   const handlePrint = () => {
     window.print();
   };
+
+  const fieldsWithData = useMemo(() => {
+    return layout.map(field => ({
+      ...field,
+      value: reportData[field.id as keyof typeof reportData] || ''
+    }));
+  }, [layout, reportData]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -51,13 +78,18 @@ export default function Home() {
                   <Label htmlFor="calibration-mode" className="flex items-center gap-2"><Wrench size={16}/> Calibrate</Label>
                 </div>
               </div>
-              <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Print to PDF</Button>
+              <div className="flex items-center gap-2">
+                <Link href="/editor" passHref>
+                  <Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit Layout</Button>
+                </Link>
+                <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Print to PDF</Button>
+              </div>
             </CardContent>
           </Card>
           
           <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
             <div className={isPreview ? "preview-mode" : ""}>
-               <ReportPage data={reportData} isCalibrating={isCalibrating} />
+               <ReportPage fields={fieldsWithData} isCalibrating={isCalibrating} />
             </div>
           </div>
         </div>
@@ -65,7 +97,7 @@ export default function Home() {
       
       {/* Print-only view */}
       <div className="hidden print-view">
-        <ReportPage data={reportData} isCalibrating={false} />
+        <ReportPage fields={fieldsWithData} isCalibrating={false} />
       </div>
     </div>
   );

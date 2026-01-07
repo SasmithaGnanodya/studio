@@ -1,3 +1,4 @@
+
 /**
  * This Firestore Security Ruleset enforces a strict user-ownership model for a form management application.
  *
@@ -125,10 +126,20 @@ service cloud.firestore {
 
     /**
      * isFormDataImmutable
-     * Ensures the `formTemplateId` field linking FormData to its template is immutable.
+     * Ensures the `formTemplateId` field linking an InputField to its template is immutable.
      */
     function isFormDataImmutable() {
       return request.resource.data.formTemplateId == resource.data.formTemplateId;
+    }
+    
+    /**
+     * isValidLayoutData
+     * @param userId The UID of the user from the path.
+     * Validates that the incoming Layout document has the correct structure.
+     */
+    function isValidLayoutData(userId) {
+      return request.resource.data.userId == userId &&
+             request.resource.data.fields is list;
     }
 
 
@@ -139,11 +150,6 @@ service cloud.firestore {
     /**
      * @description Rules for a user's own profile document.
      * @path /users/{userId}
-     * @allow (create) An authenticated user can create their own user document.
-     * @allow (get) An authenticated user can read their own user document.
-     * @deny (list) No user, authenticated or not, can list all users in the system.
-     * @deny (get) An authenticated user cannot read another user's document.
-     * @principle Restricts access to a user's own data tree and prevents user enumeration.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
@@ -152,15 +158,22 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) && isUserDataImmutable();
       allow delete: if isExistingOwner(userId);
     }
+    
+    /**
+     * @description Rules for a user's form field layout.
+     * @path /layouts/{userId}
+     */
+    match /layouts/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isValidLayoutData(userId);
+      allow update: if isExistingOwner(userId) && isValidLayoutData(userId);
+      allow delete: if isExistingOwner(userId);
+    }
 
     /**
      * @description Rules for form templates, which are owned by a user.
      * @path /users/{userId}/formTemplates/{formTemplateId}
-     * @allow (create) User 'user_A' can create a form template under `/users/user_A/formTemplates/...`.
-     * @allow (list) User 'user_A' can list all form templates under their own path.
-     * @deny (create) User 'user_B' cannot create a form template under `/users/user_A/formTemplates/...`.
-     * @deny (list) User 'user_B' cannot list form templates belonging to 'user_A'.
-     * @principle Enforces strict document ownership within a user's private data tree.
      */
     match /users/{userId}/formTemplates/{formTemplateId} {
       allow get: if isOwner(userId);
@@ -173,11 +186,6 @@ service cloud.firestore {
     /**
      * @description Rules for input fields, which belong to a specific form template.
      * @path /users/{userId}/formTemplates/{formTemplateId}/inputFields/{inputFieldId}
-     * @allow (get) User 'user_A' can read an input field on a template they own.
-     * @allow (create) User 'user_A' can add a new input field to a template they own.
-     * @deny (get) User 'user_B' cannot read an input field on a template owned by 'user_A'.
-     * @deny (update) User 'user_B' cannot update an input field on a template owned by 'user_A'.
-     * @principle Inherits ownership from the parent path, ensuring only the template owner can manage its fields.
      */
     match /users/{userId}/formTemplates/{formTemplateId}/inputFields/{inputFieldId} {
       allow get: if isOwner(userId);
@@ -190,11 +198,6 @@ service cloud.firestore {
     /**
      * @description Rules for form data, which is associated with a specific form template.
      * @path /users/{userId}/formTemplates/{formTemplateId}/formData/{formDataId}
-     * @allow (list) User 'user_A' can list all submitted form data for a template they own.
-     * @allow (delete) User 'user_A' can delete submitted form data from a template they own.
-     * @deny (list) User 'user_B' cannot list form data for a template owned by 'user_A'.
-     * @deny (create) User 'user_B' cannot add form data to a template owned by 'user_A'.
-     * @principle Inherits ownership from the parent path, ensuring only the template owner can manage its data.
      */
     match /users/{userId}/formTemplates/{formTemplateId}/formData/{formDataId} {
       allow get: if isOwner(userId);

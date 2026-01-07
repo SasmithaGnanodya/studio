@@ -1,3 +1,6 @@
+
+import type { FieldLayout } from './types';
+
 // src/lib/initialReportState.ts
 
 export const initialReportState = {
@@ -91,3 +94,46 @@ export const initialReportState = {
   imgFront: null,
   imgRear: null,
 };
+
+
+export const initialLayout: FieldLayout[] = [
+  // Header
+  { id: 'reportNumber', label: 'Report No.', x: 160, y: 30, width: 40, height: 5 },
+  { id: 'date', label: 'Date', x: 160, y: 35, width: 40, height: 5 },
+  // Row 1
+  { id: 'regNumber', label: 'Reg No.', x: 5, y: 52, width: 22, height: 5 },
+  { id: 'manufacturer', label: 'Manufacturer', x: 27, y: 52, width: 34, height: 5 },
+  { id: 'model', label: 'Model', x: 61, y: 52, width: 59, height: 5 },
+  { id: 'fuelType', label: 'Fuel Type', x: 120, y: 52, width: 35, height: 5 },
+  { id: 'manufactureYear', label: 'Manuf. Year', x: 155, y: 52, width: 32, height: 5 },
+  // Row 2
+  { id: 'origin', label: 'Origin', x: 5, y: 62, width: 22, height: 5 },
+  { id: 'engineNumber', label: 'Engine No.', x: 27, y: 62, width: 34, height: 5 },
+  { id: 'chassisNumber', label: 'Chassis No.', x: 61, y: 62, width: 59, height: 5 },
+  { id: 'vehicleClass', label: 'Class', x: 120, y: 62, width: 35, height: 5 },
+  // Body
+  { id: 'bodyShape', label: 'Body Shape', x: 40, y: 90, width: 40, height: 5 },
+  { id: 'numberOfDoors', label: 'Doors', x: 40, y: 95, width: 40, height: 5 },
+  { id: 'roofType', label: 'Roof', x: 40, y: 100, width: 40, height: 5 },
+  { id: 'seatingCapacity', label: 'Seats', x: 40, y: 105, width: 40, height: 5 },
+  // Engine
+  { id: 'displacement', label: 'Displacement (CC)', x: 25, y: 122, width: 40, height: 5 },
+  { id: 'fuelSystem', label: 'Fuel System', x: 25, y: 127, width: 40, height: 5 },
+  { id: 'engineType', label: 'Engine Type', x: 25, y: 132, width: 40, height: 5 },
+  { id: 'engineCondition', label: 'Engine Condition', x: 25, y: 142, width: 40, height: 5 },
+  // Odometer
+  { id: 'odometer', label: 'Odometer (KM)', x: 160, y: 125, width: 40, height: 5 },
+  // Electrical
+  { id: 'battery', label: 'Battery', x: 170, y: 135, width: 30, height: 5, className: 'small' },
+  { id: 'starter', label: 'Starter', x: 170, y: 140, width: 30, height: 5, className: 'small' },
+  { id: 'alternator', label: 'Alternator', x: 170, y: 145, width: 30, height: 5, className: 'small' },
+  // Tyres
+  { id: 'tyreSizeFront', label: 'Front Tyres', x: 30, y: 192, width: 20, height: 5 },
+  { id: 'tyreWasteFront', label: 'Front Tyre Waste', x: 50, y: 192, width: 20, height: 5 },
+  { id: 'tyreSizeRear', label: 'Rear Tyres', x: 30, y: 198, width: 20, height: 5 },
+  { id: 'tyreWasteRear', label: 'Rear Tyre Waste', x: 50, y: 198, width: 20, height: 5 },
+  // Valuation
+  { id: 'marketValueNum', label: 'Market Value (Rs.)', x: 40, y: 275, width: 100, height: 5, className: 'large' },
+  { id: 'marketValueText', label: 'In Words', x: 40, y: 280, width: 150, height: 5 },
+  { id: 'forcedSaleValue', label: 'Forced Sale (Rs.)', x: 40, y: 285, width: 100, height: 5 },
+];

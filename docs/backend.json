@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "FormTemplate": {
@@ -142,6 +143,24 @@
         "email",
         "name"
       ]
+    },
+    "Layout": {
+      "title": "Layout",
+      "type": "object",
+      "description": "Stores the visual layout and coordinates for form fields.",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns this layout."
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/InputField"
+          }
+        }
+      },
+      "required": ["userId", "fields"]
     }
   },
   "auth": {
@@ -234,6 +253,18 @@
               "description": "The unique identifier of the form data."
             }
           ]
+        }
+      },
+      {
+        "path": "/layouts/{userId}",
+        "definition": {
+            "entityName": "Layout",
+            "schema": { "$ref": "#/entities/Layout" },
+            "description": "Stores the user-specific layout of form fields.",
+            "params": [{
+                "name": "userId",
+                "description": "The UID of the user who owns this layout."
+            }]
         }
       }
     ],
