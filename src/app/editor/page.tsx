@@ -183,61 +183,19 @@ export default function EditorPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
-      <main className="flex-1 flex flex-row gap-4 p-4 lg:gap-6 lg:p-6">
-        <div className="flex-1 flex flex-col gap-4">
-            <Card>
-              <CardContent className="pt-6 flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Layout Editor</h2>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handleAddNewField}><PlusCircle className="mr-2 h-4 w-4" /> Add Field</Button>
-                    <Link href="/" passHref>
-                        <Button variant="outline"><Home className="mr-2 h-4 w-4" /> Go to Form</Button>
-                    </Link>
-                    <Button onClick={handleSaveLayout}><Save className="mr-2 h-4 w-4" /> Save Layout</Button>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
-              <div className="relative mx-auto preview-mode">
-                  <ReportPage staticLabels={staticLabels} dynamicValues={valuePlaceholders} isCalibrating={true} />
-                  
-                  {/* Draggable handles for labels */}
-                  {fields.map(field => (
-                    <DraggableField
-                      key={`label-drag-${field.id}`}
-                      id={`${field.id}-label`}
-                      x={MM_TO_PX(field.label.x)}
-                      y={MM_TO_PX(field.label.y)}
-                      width={MM_TO_PX(field.label.width)}
-                      height={MM_TO_PX(field.label.height)}
-                      onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'label', x, y)}
-                      onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'label', w, h)}
-                      onClick={handleSelectField}
-                      isSelected={field.id === selectedFieldId}
-                      borderColor='blue'
-                    />
-                  ))}
-
-                   {/* Draggable handles for values */}
-                   {fields.map(field => (
-                    <DraggableField
-                      key={`value-drag-${field.id}`}
-                      id={`${field.id}-value`}
-                      x={MM_TO_PX(field.value.x)}
-                      y={MM_TO_PX(field.value.y)}
-                      width={MM_TO_PX(field.value.width)}
-                      height={MM_TO_PX(field.value.height)}
-                      onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'value', x, y)}
-                      onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'value', w, h)}
-                      onClick={handleSelectField}
-                      isSelected={field.id === selectedFieldId}
-                      borderColor='green'
-                    />
-                  ))}
-              </div>
+      <main className="flex-1 flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+        <Card>
+          <CardContent className="pt-6 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Layout Editor</h2>
+            <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={handleAddNewField}><PlusCircle className="mr-2 h-4 w-4" /> Add Field</Button>
+                <Link href="/" passHref>
+                    <Button variant="outline"><Home className="mr-2 h-4 w-4" /> Go to Form</Button>
+                </Link>
+                <Button onClick={handleSaveLayout}><Save className="mr-2 h-4 w-4" /> Save Layout</Button>
             </div>
-        </div>
+          </CardContent>
+        </Card>
         
         {selectedField && (
           <EditorSidebar 
@@ -247,9 +205,47 @@ export default function EditorPage() {
             onClose={() => setSelectedFieldId(null)}
           />
         )}
+        
+        <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
+          <div className="relative mx-auto preview-mode">
+              <ReportPage staticLabels={staticLabels} dynamicValues={valuePlaceholders} isCalibrating={true} />
+              
+              {/* Draggable handles for labels */}
+              {fields.map(field => (
+                <DraggableField
+                  key={`label-drag-${field.id}`}
+                  id={`${field.id}-label`}
+                  x={MM_TO_PX(field.label.x)}
+                  y={MM_TO_PX(field.label.y)}
+                  width={MM_TO_PX(field.label.width)}
+                  height={MM_TO_PX(field.label.height)}
+                  onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'label', x, y)}
+                  onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'label', w, h)}
+                  onClick={handleSelectField}
+                  isSelected={field.id === selectedFieldId}
+                  borderColor='blue'
+                />
+              ))}
+
+               {/* Draggable handles for values */}
+               {fields.map(field => (
+                <DraggableField
+                  key={`value-drag-${field.id}`}
+                  id={`${field.id}-value`}
+                  x={MM_TO_PX(field.value.x)}
+                  y={MM_TO_PX(field.value.y)}
+                  width={MM_TO_PX(field.value.width)}
+                  height={MM_TO_PX(field.value.height)}
+                  onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'value', x, y)}
+                  onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'value', w, h)}
+                  onClick={handleSelectField}
+                  isSelected={field.id === selectedFieldId}
+                  borderColor='green'
+                />
+              ))}
+          </div>
+        </div>
       </main>
     </div>
   );
 }
-
-    
