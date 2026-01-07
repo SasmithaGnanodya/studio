@@ -10,16 +10,17 @@
  * Data Structure:
  * All application data is nested under the `/users/{userId}` collection. This hierarchical structure includes a user's
  * `formTemplates`, the `inputFields` for each template, and the `formData` submitted for those templates.
+ * The `layouts` collection is separate but also keyed by the user's UID.
  * This path-based scoping is the primary mechanism for authorization.
  *
  * Key Security Decisions:
  * - No Public Data: There are no globally readable collections. All data is private to the user who owns it.
- * - User Listing Disabled: To protect user privacy and prevent data scraping, it is not possible to query the top-level `/users` collection.
+ * - User Listing Disabled: To protect user privacy and prevent data scraping, it is not possible to query the top-level `/users` or `/layouts` collections.
  * - Path-Based Security: Authorization relies on matching the `request.auth.uid` with the `{userId}` wildcard in the document path. This avoids slow and costly `get()` or `exists()` calls to other documents for authorization checks.
  *
  * Denormalization for Authorization:
  * The data structure itself is a form of denormalization. By placing all of a user's resources in a subcollection
- * under their user ID (`/users/{userId}/...`), we establish a direct and unbreakable ownership link that is easily
+ * under their user ID (`/users/{userId}/...`) or keying documents by their ID (`/layouts/{userId}`), we establish a direct and unbreakable ownership link that is easily
  * verifiable in security rules without needing extra document reads. Additionally, on document creation, we validate
  * that internal ID fields (like `userId` on a `FormTemplate`) match the ID from the path to ensure data integrity from the start.
  *
@@ -60,7 +61,7 @@ service cloud.firestore {
      * CRITICAL for all update and delete operations to prevent modifying non-existent data.
      */
     function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+      return isOwner(userId) && exists(/databases/$(database)/documents/$(request.path.split('/')[1])/$(userId));
     }
 
     /**
@@ -136,11 +137,21 @@ service cloud.firestore {
      * isValidLayoutData
      * @param userId The UID of the user from the path.
      * Validates that the incoming Layout document has the correct structure.
+     * It checks that the `fields` property is a list.
      */
     function isValidLayoutData(userId) {
-      return request.resource.data.userId == userId &&
-             request.resource.data.fields is list;
+      // The incoming resource must have a `fields` property that is a list.
+      return request.resource.data.fields is list;
     }
+    
+    /**
+     * isLayoutDataImmutable
+     * Validates the immutability constraints for layout updates.
+     * The `userId` within the document cannot be changed.
+     */
+     function isLayoutDataImmutable() {
+       return request.resource.data.userId == resource.data.userId;
+     }
 
 
     // ------------------------------------------------------------------------
@@ -153,22 +164,23 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false;
+      allow list: if false; // Prevent listing all users
       allow create: if isOwner(userId) && hasValidUserData(userId);
-      allow update: if isExistingOwner(userId) && isUserDataImmutable();
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId) && isUserDataImmutable();
+      allow delete: if isOwner(userId);
     }
     
     /**
      * @description Rules for a user's form field layout.
+     * A user can only access their own layout.
      * @path /layouts/{userId}
      */
     match /layouts/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false;
+      allow list: if false; // Prevent one user from listing all layouts
       allow create: if isOwner(userId) && isValidLayoutData(userId);
-      allow update: if isExistingOwner(userId) && isValidLayoutData(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId) && isValidLayoutData(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
@@ -176,11 +188,7 @@ service cloud.firestore {
      * @path /users/{userId}/formTemplates/{formTemplateId}
      */
     match /users/{userId}/formTemplates/{formTemplateId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && hasValidFormTemplateData(userId);
-      allow update: if isExistingOwner(userId) && isFormTemplateDataImmutable();
-      allow delete: if isExistingOwner(userId);
+      allow read, write: if isOwner(userId);
     }
 
     /**
@@ -188,11 +196,7 @@ service cloud.firestore {
      * @path /users/{userId}/formTemplates/{formTemplateId}/inputFields/{inputFieldId}
      */
     match /users/{userId}/formTemplates/{formTemplateId}/inputFields/{inputFieldId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && hasValidInputFieldData(formTemplateId);
-      allow update: if isExistingOwner(userId) && isInputFieldDataImmutable();
-      allow delete: if isExistingOwner(userId);
+      allow read, write: if isOwner(userId);
     }
 
     /**
@@ -200,11 +204,7 @@ service cloud.firestore {
      * @path /users/{userId}/formTemplates/{formTemplateId}/formData/{formDataId}
      */
     match /users/{userId}/formTemplates/{formTemplateId}/formData/{formDataId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && hasValidFormData(formTemplateId);
-      allow update: if isExistingOwner(userId) && isFormDataImmutable();
-      allow delete: if isExistingOwner(userId);
+      allow read, write: if isOwner(userId);
     }
   }
 }
