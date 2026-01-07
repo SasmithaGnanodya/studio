@@ -22,11 +22,16 @@ export const DraggableField = ({ id, label, x, y, width, height, onDragStop, onC
   const [isDragging, setIsDragging] = useState(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
   const elementStartPos = useRef({ x: 0, y: 0 });
+  const currentPositionRef = useRef(position);
 
   // Update internal position if props change from outside
   useEffect(() => {
     setPosition({ x, y });
   }, [x, y]);
+  
+  useEffect(() => {
+    currentPositionRef.current = position;
+  }, [position]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     onClick(id); 
@@ -50,11 +55,7 @@ export const DraggableField = ({ id, label, x, y, width, height, onDragStop, onC
   const handleMouseUp = useCallback(() => {
     if (isDragging) {
       setIsDragging(false);
-      // Use a callback to get the latest position state to avoid stale closures
-      setPosition(currentPos => {
-        onDragStop(id, currentPos.x, currentPos.y);
-        return currentPos;
-      });
+      onDragStop(id, currentPositionRef.current.x, currentPositionRef.current.y);
     }
   }, [isDragging, id, onDragStop]);
 
