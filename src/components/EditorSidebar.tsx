@@ -74,10 +74,6 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
             <Label htmlFor={`${part}-height`} className="text-xs">Height (mm)</Label>
             <Input id={`${part}-height`} name="height" type="number" value={data.height || 0} onChange={(e) => handleLayoutChange(part, 'height', e.target.value)} className="h-8" />
           </div>
-          <div className="space-y-1 sm:col-span-3">
-            <Label htmlFor={`${part}-className`} className="text-xs">CSS Class</Label>
-            <Input id={`${part}-className`} name="className" value={data.className || ''} onChange={(e) => handleLayoutChange(part, 'className', e.target.value)} className="h-8" />
-          </div>
            <div className="space-y-1 sm:col-span-2">
             <Label htmlFor={`${part}-color`} className="text-xs">Color</Label>
             <Input id={`${part}-color`} name="color" type="color" value={data.color || '#000000'} onChange={(e) => handleLayoutChange(part, 'color', e.target.value)} className="h-8 p-1" />

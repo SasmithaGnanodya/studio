@@ -23,7 +23,6 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     y: 0,
     width: 50,
     height: 5,
-    className: '',
     isBold: false,
     color: '#000000'
   };
@@ -38,7 +37,6 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     y: part.y || 0,
     width: part.width || 50,
     height: part.height || 5,
-    className: part.className || '',
     isBold: part.isBold || false,
     color: part.color || '#000000'
   };
@@ -87,7 +85,6 @@ export default function Home() {
       y: field.label.y,
       width: field.label.width,
       height: field.label.height,
-      className: field.label.className,
       isBold: field.label.isBold,
       color: field.label.color,
     }));
@@ -101,7 +98,6 @@ export default function Home() {
         y: field.value.y,
         width: field.value.width,
         height: field.value.height,
-        className: field.value.className,
         isBold: field.value.isBold,
         color: field.value.color,
       };

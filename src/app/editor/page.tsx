@@ -29,7 +29,6 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     y: 0,
     width: 50,
     height: 5,
-    className: '',
     isBold: false,
     color: '#000000'
   };
@@ -44,7 +43,6 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     y: part.y || 0,
     width: part.width || 50,
     height: part.height || 5,
-    className: part.className || '',
     isBold: part.isBold || false,
     color: part.color || '#000000'
   };
@@ -123,8 +121,8 @@ export default function EditorPage() {
     const newField: FieldLayout = {
       id: newId,
       fieldId: 'newField',
-      label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, className: '', isBold: false, color: '#000000' },
-      value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, className: '', isBold: false, color: '#000000' },
+      label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000' },
+      value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000' },
     };
     setFields(prev => [...prev, newField]);
     setSelectedFieldId(newId);
@@ -156,9 +154,6 @@ export default function EditorPage() {
         const cleanedFields = JSON.parse(JSON.stringify(fields)).map((field: FieldLayout) => {
           // Ensure label and value are objects before trying to access properties
           if (typeof field.label === 'object' && field.label !== null) {
-            if (typeof field.label.className === 'undefined') {
-              field.label.className = '';
-            }
             if (typeof field.label.isBold === 'undefined') {
               field.label.isBold = false;
             }
@@ -167,9 +162,6 @@ export default function EditorPage() {
             }
           }
           if (typeof field.value === 'object' && field.value !== null) {
-            if (typeof field.value.className === 'undefined') {
-              field.value.className = '';
-            }
             if (typeof field.value.isBold === 'undefined') {
               field.value.isBold = false;
             }
@@ -205,7 +197,6 @@ export default function EditorPage() {
       y: field.label.y,
       width: field.label.width,
       height: field.label.height,
-      className: field.label.className,
       isBold: field.label.isBold,
       color: field.label.color,
     }));
@@ -219,7 +210,6 @@ export default function EditorPage() {
         y: field.value.y,
         width: field.value.width,
         height: field.value.height,
-        className: field.value.className,
         isBold: field.value.isBold,
         color: field.value.color,
       };

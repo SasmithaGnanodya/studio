@@ -9,7 +9,6 @@ export type PrintField = {
   y: number;
   width: number;
   height: number;
-  className?: string;
   isBold?: boolean;
   color?: string;
 };
@@ -34,7 +33,7 @@ const renderField = (field: PrintField) => {
   return (
     <div
       key={field.id}
-      className={`field ${field.className || ''}`}
+      className="field"
       style={style}
     >
       {field.value}
