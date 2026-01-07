@@ -169,7 +169,7 @@ export default function EditorPage() {
             
             <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
               {/* Container for the real report preview and the interactive overlays */}
-              <div className="relative w-[800px] h-[1131px] mx-auto">
+              <div className="relative w-[800px] h-[1131px] mx-auto preview-mode">
                   {/* The real ReportPage component provides the visual background */}
                   <div className="absolute inset-0 pointer-events-none" style={{ transform: 'scale(1)', transformOrigin: 'top left' }}>
                     <ReportPage fields={fieldsWithData} staticLabels={staticLabels} isCalibrating={true} />
@@ -205,5 +205,3 @@ export default function EditorPage() {
     </div>
   );
 }
-
-    
