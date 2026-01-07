@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, PlusCircle } from 'lucide-react';
+import { Trash, X, PlusCircle, CheckCircle } from 'lucide-react';
 import type { FieldLayout, SubField } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
 
@@ -127,8 +127,8 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
         </ScrollArea>
         {/* Actions */}
         <div className="pt-4 mt-4 border-t">
-              <Button variant="outline" onClick={onClose} className="w-full mb-2">
-                Close
+              <Button onClick={onClose} className="w-full mb-2">
+                <CheckCircle className="mr-2 h-4 w-4" /> Confirm & Close
              </Button>
              <Button variant="destructive" onClick={() => onDelete(field.id)} className="w-full">
                 <Trash className="mr-2 h-4 w-4" /> Delete Field
