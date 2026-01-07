@@ -22,6 +22,35 @@ const INCH_PER_MM = 0.0393701;
 const MM_TO_PX = (mm: number) => mm * INCH_PER_MM * DPI;
 const PX_TO_MM = (px: number) => px / (INCH_PER_MM * DPI);
 
+const validateAndCleanFieldPart = (part: any): FieldPart => {
+  const defaults: FieldPart = {
+    text: '',
+    x: 0,
+    y: 0,
+    width: 50,
+    height: 5,
+    className: '',
+    isBold: false,
+    color: '#000000'
+  };
+
+  if (typeof part !== 'object' || part === null) {
+    return { ...defaults, text: String(part || '') };
+  }
+
+  return {
+    text: part.text || '',
+    x: part.x || 0,
+    y: part.y || 0,
+    width: part.width || 50,
+    height: part.height || 5,
+    className: part.className || '',
+    isBold: part.isBold || false,
+    color: part.color || '#000000'
+  };
+};
+
+
 export default function EditorPage() {
   const [fields, setFields] = useState<FieldLayout[]>(initialLayout);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
@@ -38,8 +67,8 @@ export default function EditorPage() {
           const data = layoutDoc.data();
           const validatedFields = data.fields.map((f: any) => ({
             ...f,
-            label: f.label || { text: 'Label', x: 10, y: 10, width: 50, height: 5, className: '' },
-            value: f.value || { text: f.fieldId, x: 10, y: 20, width: 50, height: 5, className: '' }
+            label: validateAndCleanFieldPart(f.label),
+            value: validateAndCleanFieldPart(f.value)
           }));
           setFields(validatedFields as FieldLayout[]);
         }
@@ -94,8 +123,8 @@ export default function EditorPage() {
     const newField: FieldLayout = {
       id: newId,
       fieldId: 'newField',
-      label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, className: '' },
-      value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, className: '' },
+      label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, className: '', isBold: false, color: '#000000' },
+      value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, className: '', isBold: false, color: '#000000' },
     };
     setFields(prev => [...prev, newField]);
     setSelectedFieldId(newId);
@@ -125,11 +154,28 @@ export default function EditorPage() {
     try {
         // Create a deep copy and clean the data for Firestore
         const cleanedFields = JSON.parse(JSON.stringify(fields)).map((field: FieldLayout) => {
-          if (typeof field.label === 'object' && field.label !== null && typeof field.label.className === 'undefined') {
-            field.label.className = '';
+          // Ensure label and value are objects before trying to access properties
+          if (typeof field.label === 'object' && field.label !== null) {
+            if (typeof field.label.className === 'undefined') {
+              field.label.className = '';
+            }
+            if (typeof field.label.isBold === 'undefined') {
+              field.label.isBold = false;
+            }
+             if (typeof field.label.color === 'undefined') {
+              field.label.color = '#000000';
+            }
           }
-          if (typeof field.value === 'object' && field.value !== null && typeof field.value.className === 'undefined') {
-            field.value.className = '';
+          if (typeof field.value === 'object' && field.value !== null) {
+            if (typeof field.value.className === 'undefined') {
+              field.value.className = '';
+            }
+            if (typeof field.value.isBold === 'undefined') {
+              field.value.isBold = false;
+            }
+            if (typeof field.value.color === 'undefined') {
+              field.value.color = '#000000';
+            }
           }
           return field;
         });
@@ -159,7 +205,9 @@ export default function EditorPage() {
       y: field.label.y,
       width: field.label.width,
       height: field.label.height,
-      className: field.label.className
+      className: field.label.className,
+      isBold: field.label.isBold,
+      color: field.label.color,
     }));
 
     const valuePlaceholders = fields.map(field => {
@@ -171,7 +219,9 @@ export default function EditorPage() {
         y: field.value.y,
         width: field.value.width,
         height: field.value.height,
-        className: field.value.className
+        className: field.value.className,
+        isBold: field.value.isBold,
+        color: field.value.color,
       };
     });
 

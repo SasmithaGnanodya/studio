@@ -6,6 +6,8 @@ export type FieldPart = {
   width: number;
   height: number;
   className?: string;
+  isBold?: boolean;
+  color?: string;
 };
 
 export type FieldLayout = {
@@ -14,4 +16,5 @@ export type FieldLayout = {
   label: FieldPart;
   value: FieldPart;
 };
+
 

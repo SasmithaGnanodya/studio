@@ -2,14 +2,14 @@
 "use client";
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Trash, X, ChevronDown } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
-import { ScrollArea } from './ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { Checkbox } from './ui/checkbox';
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -20,14 +20,14 @@ type EditorSidebarProps = {
 
 export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSidebarProps) => {
 
-  const handleLayoutChange = (part: 'label' | 'value', property: keyof FieldPart, value: string | number) => {
+  const handleLayoutChange = (part: 'label' | 'value', property: keyof FieldPart, value: string | number | boolean) => {
     const currentPart = field[part];
     if (!currentPart) return;
 
     let processedValue = value;
     if (['x', 'y', 'width', 'height'].includes(property as string)) {
         const numericValue = typeof value === 'string' ? parseFloat(value) : value;
-        processedValue = isNaN(numericValue) || !value ? 0 : numericValue;
+        processedValue = isNaN(numericValue as number) || !value ? 0 : numericValue;
     }
 
     const newPart = { ...currentPart, [property]: processedValue };
@@ -47,7 +47,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
     return (
       <div className="flex-1 px-4">
         <h3 className="font-semibold mb-2">{title}</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
           <div className="space-y-1 sm:col-span-2">
             <Label htmlFor={`${part}-text`} className="text-xs">{isLabelPart ? 'Label Text' : 'Data Field ID'}</Label>
             <Input 
@@ -74,9 +74,17 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
             <Label htmlFor={`${part}-height`} className="text-xs">Height (mm)</Label>
             <Input id={`${part}-height`} name="height" type="number" value={data.height || 0} onChange={(e) => handleLayoutChange(part, 'height', e.target.value)} className="h-8" />
           </div>
-          <div className="space-y-1 sm:col-span-2">
+          <div className="space-y-1 sm:col-span-3">
             <Label htmlFor={`${part}-className`} className="text-xs">CSS Class</Label>
             <Input id={`${part}-className`} name="className" value={data.className || ''} onChange={(e) => handleLayoutChange(part, 'className', e.target.value)} className="h-8" />
+          </div>
+           <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor={`${part}-color`} className="text-xs">Color</Label>
+            <Input id={`${part}-color`} name="color" type="color" value={data.color || '#000000'} onChange={(e) => handleLayoutChange(part, 'color', e.target.value)} className="h-8 p-1" />
+          </div>
+           <div className="flex items-center space-x-2 pt-5">
+            <Checkbox id={`${part}-bold`} checked={data.isBold || false} onCheckedChange={(checked) => handleLayoutChange(part, 'isBold', checked as boolean)} />
+            <Label htmlFor={`${part}-bold`} className="text-xs font-normal">Bold</Label>
           </div>
         </div>
       </div>

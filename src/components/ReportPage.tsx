@@ -10,6 +10,8 @@ export type PrintField = {
   width: number;
   height: number;
   className?: string;
+  isBold?: boolean;
+  color?: string;
 };
 
 type ReportPageProps = {
@@ -18,21 +20,27 @@ type ReportPageProps = {
   isCalibrating: boolean;
 };
 
-const renderField = (field: PrintField) => (
-  <div
-    key={field.id}
-    className={`field ${field.className || ''}`}
-    style={{
-      top: `${field.y}mm`,
-      left: `${field.x}mm`,
-      width: `${field.width}mm`,
-      height: `${field.height}mm`,
-      whiteSpace: 'pre-wrap', // Allows rendering of \n
-    }}
-  >
-    {field.value}
-  </div>
-);
+const renderField = (field: PrintField) => {
+  const style: React.CSSProperties = {
+    top: `${field.y}mm`,
+    left: `${field.x}mm`,
+    width: `${field.width}mm`,
+    height: `${field.height}mm`,
+    whiteSpace: 'pre-wrap', // Allows rendering of \n
+    fontWeight: field.isBold ? 'bold' : 'normal',
+    color: field.color || '#000000',
+  };
+
+  return (
+    <div
+      key={field.id}
+      className={`field ${field.className || ''}`}
+      style={style}
+    >
+      {field.value}
+    </div>
+  );
+};
 
 export const ReportPage = ({ staticLabels, dynamicValues, isCalibrating }: ReportPageProps) => {
   return (

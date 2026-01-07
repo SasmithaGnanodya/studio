@@ -13,8 +13,36 @@ import { initialReportState, initialLayout } from '@/lib/initialReportState';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import type { FieldLayout } from '@/lib/types';
+import type { FieldLayout, FieldPart } from '@/lib/types';
 import { DataForm } from '@/components/DataForm';
+
+const validateAndCleanFieldPart = (part: any): FieldPart => {
+  const defaults: FieldPart = {
+    text: '',
+    x: 0,
+    y: 0,
+    width: 50,
+    height: 5,
+    className: '',
+    isBold: false,
+    color: '#000000'
+  };
+
+  if (typeof part !== 'object' || part === null) {
+    return { ...defaults, text: String(part || '') };
+  }
+
+  return {
+    text: part.text || '',
+    x: part.x || 0,
+    y: part.y || 0,
+    width: part.width || 50,
+    height: part.height || 5,
+    className: part.className || '',
+    isBold: part.isBold || false,
+    color: part.color || '#000000'
+  };
+};
 
 export default function Home() {
   const [reportData, setReportData] = useState(initialReportState);
@@ -30,11 +58,10 @@ export default function Home() {
         const layoutDoc = await getDoc(layoutDocRef);
         if (layoutDoc.exists()) {
           const data = layoutDoc.data();
-          // Ensure fields have a valid structure for backward compatibility
           const validatedFields = data.fields.map((f: any) => ({
             ...f,
-            label: typeof f.label === 'object' ? f.label : { text: f.label || 'Label', x: 10, y: 10, width: 50, height: 5, className: '' },
-            value: typeof f.value === 'object' ? f.value : { text: f.fieldId, x: 10, y: 20, width: 50, height: 5, className: '' }
+            label: validateAndCleanFieldPart(f.label),
+            value: validateAndCleanFieldPart(f.value)
           }));
           setLayout(validatedFields as FieldLayout[]);
         }
@@ -60,7 +87,9 @@ export default function Home() {
       y: field.label.y,
       width: field.label.width,
       height: field.label.height,
-      className: field.label.className
+      className: field.label.className,
+      isBold: field.label.isBold,
+      color: field.label.color,
     }));
 
     const dynamicValues = layout.map(field => {
@@ -72,7 +101,9 @@ export default function Home() {
         y: field.value.y,
         width: field.value.width,
         height: field.value.height,
-        className: field.value.className
+        className: field.value.className,
+        isBold: field.value.isBold,
+        color: field.value.color,
       };
     });
 
