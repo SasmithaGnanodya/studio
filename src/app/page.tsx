@@ -1,212 +1,121 @@
 "use client";
 
 import { useState } from 'react';
-import dynamic from 'next/dynamic';
 import { Header } from '@/components/header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { DataForm } from '@/components/DataForm';
+import { ReportPage } from '@/components/ReportPage';
 import { Button } from '@/components/ui/button';
-import { Upload, Loader2, Save } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Printer, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { Field } from '@/types';
-import { useAuth, useFirestore, useUser } from '@/firebase';
-import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { useAuth, useUser } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 
-const PdfWorkspace = dynamic(() => import('@/components/pdf-workspace').then(mod => mod.PdfWorkspace), {
-  ssr: false,
-  loading: () => (
-    <div className="flex flex-col items-center justify-center h-full text-center rounded-lg border-2 border-dashed">
-      <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      <h3 className="mt-4 text-lg font-semibold">Loading PDF Workspace...</h3>
-    </div>
-  ),
-});
-
-const PdfControls = dynamic(() => import('@/components/pdf-controls').then(mod => mod.PdfControls), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full md:w-80 lg:w-96 flex flex-col gap-4">
-      <Card>
-        <CardHeader><CardTitle>Loading Controls...</CardTitle></CardHeader>
-        <CardContent><Loader2 className="h-8 w-8 animate-spin" /></CardContent>
-      </Card>
-    </div>
-    ),
-});
-
+export type ReportData = {
+  date: string;
+  reportNumber: string;
+  regNumber: string;
+  manufacturer: string;
+  model: string;
+  frontImage: string | null;
+  engineCapacity: string;
+};
 
 export default function Home() {
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pageImages, setPageImages] = useState<string[]>([]);
-  const [pageDimensions, setPageDimensions] = useState<{width: number, height: number}[]>([]);
-  const [fields, setFields] = useState<Field[]>([]);
-  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
-  
+  const [data, setData] = useState<ReportData>({
+    date: '2024-07-31',
+    reportNumber: 'VRN-12345',
+    regNumber: 'GHI-678',
+    manufacturer: 'Toyota',
+    model: 'Corolla',
+    frontImage: 'https://picsum.photos/seed/car/400/300',
+    engineCapacity: '1800cc',
+  });
+  const [isCalibrationMode, setIsCalibrationMode] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(true);
+
   const { toast } = useToast();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      setPdfFile(file);
-      setFields([]);
-      setPageImages([]);
-      setPageDimensions([]);
-      setSelectedFieldId(null);
-    } else {
-      toast({
-        title: "Invalid File",
-        description: "Please upload a valid PDF file.",
-        variant: "destructive",
-      });
-      setPdfFile(null);
-    }
-  };
-  
-  const addField = (page: number, x: number, y: number) => {
-    const newField: Field = {
-      id: `field-${Date.now()}`,
-      page,
-      x,
-      y,
-      width: 25,
-      height: 4,
-      value: '',
-      type: 'text',
-      isRequired: false,
-    };
-    setFields((prev) => [...prev, newField]);
-    setSelectedFieldId(newField.id);
-  };
-  
-  const updateField = (id: string, newProps: Partial<Field>) => {
-    setFields((prev) =>
-      prev.map((field) => (field.id === id ? { ...field, ...newProps } : field))
-    );
-  };
-  
-  const deleteField = (id: string) => {
-    setFields((prev) => prev.filter((field) => field.id !== id));
-    if (selectedFieldId === id) {
-      setSelectedFieldId(null);
-    }
-  };
+  const handlePrint = () => {
+    // Ensure calibration and preview modes are off for printing
+    const originalCalibration = isCalibrationMode;
+    const originalPreview = isPreviewMode;
+    setIsCalibrationMode(false);
+    setIsPreviewMode(false);
 
-  const handleSaveToCloud = async () => {
-    if (!pdfFile) {
-        toast({ title: 'No PDF loaded', description: 'Please upload a PDF file first.', variant: 'destructive' });
-        return;
-    }
-    
-    let currentUserId = user?.uid;
-    
-    if (!currentUserId && !isUserLoading) {
+    // Allow state to update before printing
+    setTimeout(() => {
+      window.print();
+      // Restore previous state after printing dialog closes
+      setIsCalibrationMode(originalCalibration);
+      setIsPreviewMode(originalPreview);
+    }, 100);
+  };
+  
+  const handleLogin = async () => {
+     if (!user && !isUserLoading) {
         try {
             await initiateAnonymousSignIn(auth);
-            // Re-check user after sign-in attempt
-            currentUserId = auth.currentUser?.uid;
-            if(!currentUserId) {
-                toast({ title: 'Authentication Failed', description: 'Could not sign in anonymously to save data.', variant: 'destructive' });
-                return;
-            }
+            toast({ title: 'Signed in anonymously' });
         } catch (error) {
-            toast({ title: 'Authentication Error', description: 'An error occurred during anonymous sign-in.', variant: 'destructive' });
-            return;
+            toast({ title: 'Authentication Error', variant: 'destructive' });
         }
     }
-    
-    if (!currentUserId) {
-        toast({ title: 'Please wait', description: 'User authentication is in progress. Please try again shortly.', variant: 'destructive' });
-        return;
-    }
-
-
-    const formTemplateRef = doc(collection(firestore, `users/${currentUserId}/formTemplates`));
-    const formTemplateData = {
-        id: formTemplateRef.id,
-        name: pdfFile.name,
-        pdfUrl: '', // URL will be handled by backend storage, empty for now
-        userId: currentUserId,
-        createdAt: serverTimestamp(),
-    };
-    
-    setDocumentNonBlocking(formTemplateRef, formTemplateData, { merge: true });
-
-    for (const field of fields) {
-        const inputFieldRef = doc(collection(firestore, `users/${currentUserId}/formTemplates/${formTemplateRef.id}/inputFields`));
-        const { x, y, width, height, type, isRequired } = field;
-        const inputFieldData = {
-            id: inputFieldRef.id,
-            formTemplateId: formTemplateRef.id,
-            xPosition: x,
-            yPosition: y,
-            width,
-            height,
-            type,
-            isRequired,
-        };
-        addDocumentNonBlocking(collection(firestore, `users/${currentUserId}/formTemplates/${formTemplateRef.id}/inputFields`), inputFieldData);
-    }
-
-    toast({ title: 'Success!', description: 'Your form template has been saved to the cloud.' });
-  };
-
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
       <main className="flex flex-1 flex-col md:flex-row gap-4 p-4 lg:gap-6 lg:p-6">
-        <aside className="w-full md:w-80 lg:w-96 flex flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between text-base">
-                <div className="flex items-center gap-2">
-                  <Upload className="h-5 w-5" />
-                  <span>1. Upload Template</span>
-                </div>
-                <Button variant="outline" size="sm" onClick={handleSaveToCloud} disabled={!pdfFile}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save to Cloud
+        <aside className="w-full md:w-96 flex flex-col gap-4 no-print">
+          <DataForm data={data} setData={setData} />
+          <div className="bg-card p-4 rounded-lg shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="preview-mode" className="flex items-center gap-2 cursor-pointer">
+                    <Eye className="h-5 w-5" />
+                    <span>Preview BG</span>
+                </Label>
+                <Switch
+                    id="preview-mode"
+                    checked={isPreviewMode}
+                    onCheckedChange={setIsPreviewMode}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="calibration-mode" className="flex items-center gap-2 cursor-pointer">
+                    <div className="w-5 h-5 border border-red-500 rounded-sm" />
+                    <span>Calibration Mode</span>
+                </Label>
+                <Switch
+                    id="calibration-mode"
+                    checked={isCalibrationMode}
+                    onCheckedChange={setIsCalibrationMode}
+                />
+              </div>
+              <Button onClick={handlePrint} className="w-full">
+                <Printer className="mr-2 h-4 w-4" />
+                Print Valuation Report
+              </Button>
+               {!user && (
+                 <Button onClick={handleLogin} variant="outline" className="w-full">
+                    Sign In to Save
                 </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Label htmlFor="pdf-upload" className="sr-only">Upload PDF</Label>
-              <Input id="pdf-upload" type="file" accept="application/pdf" onChange={handleFileChange} />
-              {pdfFile && <p className="mt-2 text-sm text-muted-foreground truncate">Loaded: {pdfFile.name}</p>}
-            </CardContent>
-          </Card>
-          
-          <PdfControls
-            fields={fields}
-            selectedFieldId={selectedFieldId}
-            updateField={updateField}
-            deleteField={deleteField}
-            pdfFile={pdfFile}
-            pageImages={pageImages}
-            pageDimensions={pageDimensions}
-          />
-
+               )}
+          </div>
         </aside>
 
-        <div className="flex-1 rounded-lg border bg-card shadow-sm p-4 min-h-[600px] md:min-h-0">
-          <PdfWorkspace
-            pdfFile={pdfFile}
-            fields={fields}
-            selectedFieldId={selectedFieldId}
-            onFieldAdd={addField}
-            onFieldChange={updateField}
-            onFieldSelect={setSelectedFieldId}
-            onPdfLoadSuccess={({images, dimensions}) => {
-              setPageImages(images);
-              setPageDimensions(dimensions);
-            }}
-          />
+        <div className="flex-1 rounded-lg bg-white shadow-sm p-4 min-h-[600px] md:min-h-0 overflow-auto">
+           <div
+            className={`
+              ${isCalibrationMode ? 'calibration-mode' : ''}
+              ${isPreviewMode ? 'preview-mode print-background' : ''}
+            `}
+          >
+            <ReportPage data={data} />
+          </div>
         </div>
       </main>
     </div>
