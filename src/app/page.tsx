@@ -64,13 +64,16 @@ export default function Home() {
     }));
 
     const fieldsWithData = layout.flatMap(field =>
-      field.subFields ? field.subFields.map(sub => ({
-        ...sub,
-        value: reportData[sub.id as keyof typeof reportData] || '',
-        // Position sub-field relative to parent container
-        x: field.x + (sub.x || 0),
-        y: field.y + (sub.y || 0),
-      })) : []
+      field.subFields ? field.subFields.map(sub => {
+        const value = reportData[sub.id as keyof typeof reportData] || '';
+        return {
+          ...sub,
+          value: `${sub.label}: ${value}`, // Combine label and value
+          // Position sub-field relative to parent container
+          x: field.x + (sub.x || 0),
+          y: field.y + (sub.y || 0),
+        }
+      }) : []
     );
 
     return { staticLabels, fieldsWithData };
@@ -81,12 +84,7 @@ export default function Home() {
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
       <main className="flex flex-1 flex-col md:flex-row gap-4 p-4 lg:gap-6 lg:p-6 no-print">
-        <Card className="w-full md:w-1/3 lg:w-1/4">
-          <CardContent className="pt-6">
-            <DataForm data={reportData} onChange={handleDataChange} />
-          </CardContent>
-        </Card>
-
+        
         <div className="flex-1 flex flex-col gap-4">
           <Card>
             <CardContent className="pt-6 flex items-center justify-between">
