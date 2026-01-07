@@ -40,6 +40,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
 
   const renderPartEditor = (part: 'label' | 'value') => {
     const data = field[part];
+    if (!data) return null; // Defensive check in case a part is missing
     const title = part.charAt(0).toUpperCase() + part.slice(1);
 
     return (
@@ -51,25 +52,25 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
             <Input 
               id={`${part}-text`} 
               name="text" 
-              value={data.text} 
+              value={data.text || ''} 
               onChange={(e) => handleLayoutChange(part, 'text', e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-2">
               <Label htmlFor={`${part}-x`}>X (mm)</Label>
-              <Input id={`${part}-x`} name="x" type="number" value={data.x} onChange={(e) => handleLayoutChange(part, 'x', e.target.value)} />
+              <Input id={`${part}-x`} name="x" type="number" value={data.x || 0} onChange={(e) => handleLayoutChange(part, 'x', e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor={`${part}-y`}>Y (mm)</Label>
-              <Input id={`${part}-y`} name="y" type="number" value={data.y} onChange={(e) => handleLayoutChange(part, 'y', e.target.value)} />
+              <Input id={`${part}-y`} name="y" type="number" value={data.y || 0} onChange={(e) => handleLayoutChange(part, 'y', e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor={`${part}-width`}>Width (mm)</Label>
-              <Input id={`${part}-width`} name="width" type="number" value={data.width} onChange={(e) => handleLayoutChange(part, 'width', e.target.value)} />
+              <Input id={`${part}-width`} name="width" type="number" value={data.width || 0} onChange={(e) => handleLayoutChange(part, 'width', e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor={`${part}-height`}>Height (mm)</Label>
-              <Input id={`${part}-height`} name="height" type="number" value={data.height} onChange={(e) => handleLayoutChange(part, 'height', e.target.value)} />
+              <Input id={`${part}-height`} name="height" type="number" value={data.height || 0} onChange={(e) => handleLayoutChange(part, 'height', e.target.value)} />
             </div>
           </div>
           <div className="space-y-2">
