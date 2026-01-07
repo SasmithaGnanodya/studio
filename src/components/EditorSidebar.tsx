@@ -25,7 +25,6 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
     if (!currentPart) return;
 
     let processedValue = value;
-    // Ensure numeric properties are handled correctly, converting empty strings or invalid numbers to 0
     if (property === 'x' || property === 'y' || property === 'width' || property === 'height') {
       const numericValue = typeof value === 'string' ? parseFloat(value) : value;
       processedValue = isNaN(numericValue) ? 0 : numericValue;
@@ -93,7 +92,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
           <div className="space-y-6">
             <div className="space-y-2">
                 <Label htmlFor="fieldId">Field ID (for data linking)</Label>
-                <Input id="fieldId" name="fieldId" value={field.fieldId} onChange={handleFieldIdChange} />
+                <Input id="fieldId" name="fieldId" value={field.fieldId || ''} onChange={handleFieldIdChange} />
             </div>
 
             <Accordion type="multiple" defaultValue={['label', 'value']} className="w-full">
