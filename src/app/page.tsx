@@ -33,8 +33,8 @@ export default function Home() {
           // Ensure fields have a valid structure for backward compatibility
           const validatedFields = data.fields.map((f: any) => ({
             ...f,
-            label: f.label || { text: 'Label', x: 10, y: 10, width: 50, height: 5, className: '' },
-            value: f.value || { text: f.fieldId, x: 10, y: 20, width: 50, height: 5, className: '' }
+            label: typeof f.label === 'object' ? f.label : { text: f.label || 'Label', x: 10, y: 10, width: 50, height: 5, className: '' },
+            value: typeof f.value === 'object' ? f.value : { text: f.fieldId, x: 10, y: 20, width: 50, height: 5, className: '' }
           }));
           setLayout(validatedFields as FieldLayout[]);
         }
@@ -86,7 +86,7 @@ export default function Home() {
       <main className="flex flex-1 flex-col md:flex-row gap-4 p-4 lg:gap-6 lg:p-6 no-print">
         <Card className="w-full md:w-1/3 lg:w-1/4 h-fit sticky top-6">
             <CardContent className="pt-6">
-                <DataForm data={reportData} onChange={handleDataChange} />
+                <DataForm layout={layout} data={reportData} onChange={handleDataChange} />
             </CardContent>
         </Card>
         
