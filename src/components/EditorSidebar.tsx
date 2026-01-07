@@ -28,7 +28,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
       if (!currentPart) return;
 
       let processedValue = value;
-      if (['x', 'y', 'width', 'height'].includes(property as string)) {
+      if (['x', 'y', 'width', 'height', 'fontSize'].includes(property as string)) {
           processedValue = value === '' ? 0 : parseFloat(value);
           if (isNaN(processedValue)) processedValue = 0;
       }
@@ -85,7 +85,11 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
             <Label htmlFor={`${part}-color`} className="text-xs">Color</Label>
             <Input id={`${part}-color`} name="color" type="color" value={data.color || '#000000'} onChange={(e) => handlePartChange(part, 'color', e.target.value)} className="h-8 p-1" />
           </div>
-           <div className="flex items-center space-x-2 pt-5">
+          <div className="space-y-1">
+            <Label htmlFor={`${part}-fontSize`} className="text-xs">Size (pt)</Label>
+            <Input id={`${part}-fontSize`} name="fontSize" type="number" value={data.fontSize || 12} onChange={(e) => handlePartChange(part, 'fontSize', e.target.value)} className="h-8" />
+          </div>
+           <div className="flex items-center space-x-2 pt-5 sm:col-span-6">
             <Checkbox id={`${part}-bold`} checked={data.isBold || false} onCheckedChange={(checked) => handlePartChange(part, 'isBold', checked as boolean)} />
             <Label htmlFor={`${part}-bold`} className="text-xs font-normal">Bold</Label>
           </div>
@@ -133,23 +137,25 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
     return (
       <div className="flex-1 px-4">
         <h3 className="font-semibold mb-2">Image Placeholder</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
-          <div className="space-y-1">
-            <Label htmlFor="image-x" className="text-xs">X (mm)</Label>
-            <Input id="image-x" name="x" type="number" value={data.x || 0} onChange={(e) => handlePartChange('placeholder', 'x', e.target.value)} className="h-8" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="image-y" className="text-xs">Y (mm)</Label>
-            <Input id="image-y" name="y" type="number" value={data.y || 0} onChange={(e) => handlePartChange('placeholder', 'y', e.target.value)} className="h-8" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="image-width" className="text-xs">Width (mm)</Label>
-            <Input id="image-width" name="width" type="number" value={data.width || 0} onChange={(e) => handlePartChange('placeholder', 'width', e.target.value)} className="h-8" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="image-height" className="text-xs">Height (mm)</Label>
-            <Input id="image-height" name="height" type="number" value={data.height || 0} onChange={(e) => handlePartChange('placeholder', 'height', e.target.value)} className="h-8" />
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+            <div className="grid grid-cols-2 gap-2 sm:col-span-2">
+                <div className="space-y-1">
+                    <Label htmlFor="image-x" className="text-xs">X (mm)</Label>
+                    <Input id="image-x" name="x" type="number" value={data.x || 0} onChange={(e) => handlePartChange('placeholder', 'x', e.target.value)} className="h-8" />
+                </div>
+                <div className="space-y-1">
+                    <Label htmlFor="image-y" className="text-xs">Y (mm)</Label>
+                    <Input id="image-y" name="y" type="number" value={data.y || 0} onChange={(e) => handlePartChange('placeholder', 'y', e.target.value)} className="h-8" />
+                </div>
+                <div className="space-y-1">
+                    <Label htmlFor="image-width" className="text-xs">Width (mm)</Label>
+                    <Input id="image-width" name="width" type="number" value={data.width || 0} onChange={(e) => handlePartChange('placeholder', 'width', e.target.value)} className="h-8" />
+                </div>
+                <div className="space-y-1">
+                    <Label htmlFor="image-height" className="text-xs">Height (mm)</Label>
+                    <Input id="image-height" name="height" type="number" value={data.height || 0} onChange={(e) => handlePartChange('placeholder', 'height', e.target.value)} className="h-8" />
+                </div>
+            </div>
         </div>
       </div>
     )

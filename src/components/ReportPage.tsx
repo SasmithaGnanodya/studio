@@ -12,6 +12,7 @@ export type PrintField = {
   height: number;
   isBold?: boolean;
   color?: string;
+  fontSize?: number;
 };
 
 export type PrintImageField = {
@@ -40,6 +41,7 @@ const renderTextField = (field: PrintField) => {
     whiteSpace: 'pre-wrap', // Allows rendering of \n
     fontWeight: field.isBold ? 'bold' : 'normal',
     color: field.color || '#000000',
+    fontSize: field.fontSize ? `${field.fontSize}pt` : '12pt',
   };
 
   return (

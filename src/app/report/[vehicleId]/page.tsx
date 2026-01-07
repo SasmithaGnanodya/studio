@@ -26,6 +26,7 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     height: 5,
     isBold: false,
     color: '#000000',
+    fontSize: 12,
     inputType: 'text',
     options: [],
     objectFit: 'cover'
@@ -43,6 +44,7 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     height: part.height || 5,
     isBold: part.isBold || false,
     color: part.color || '#000000',
+    fontSize: part.fontSize || 12,
     inputType: part.inputType || 'text',
     options: part.options || [],
     objectFit: part.objectFit || 'cover'
@@ -166,6 +168,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
       height: field.label.height,
       isBold: field.label.isBold,
       color: field.label.color,
+      fontSize: field.label.fontSize,
     }));
 
     const dynamicValues = layout.filter(f => f.fieldType === 'text').map(field => {
@@ -179,6 +182,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
         height: field.value.height,
         isBold: field.value.isBold,
         color: field.value.color,
+        fontSize: field.value.fontSize,
       };
     });
 

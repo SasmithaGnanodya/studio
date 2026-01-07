@@ -101,22 +101,22 @@ export const initialLayout: FieldLayout[] = [
       id: 'regNumber-layout',
       fieldId: 'regNumber',
       fieldType: 'text',
-      label: { text: 'Reg No.', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000' },
-      value: { text: 'regNumber', x: 65, y: 10, width: 50, height: 5, isBold: false, color: '#000000' }
+      label: { text: 'Reg No.', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 },
+      value: { text: 'regNumber', x: 65, y: 10, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 }
     },
     {
       id: 'manufacturer-layout',
       fieldId: 'manufacturer',
       fieldType: 'text',
-      label: { text: 'Manufacturer', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000' },
-      value: { text: 'manufacturer', x: 65, y: 20, width: 50, height: 5, isBold: false, color: '#000000' }
+      label: { text: 'Manufacturer', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 },
+      value: { text: 'manufacturer', x: 65, y: 20, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 }
     },
     {
       id: 'model-layout',
       fieldId: 'model',
       fieldType: 'text',
-      label: { text: 'Model', x: 10, y: 30, width: 50, height: 5, isBold: false, color: '#000000' },
-      value: { text: 'model', x: 65, y: 30, width: 50, height: 5, isBold: false, color: '#000000' }
+      label: { text: 'Model', x: 10, y: 30, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 },
+      value: { text: 'model', x: 65, y: 30, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 }
     },
     {
       id: 'image1-layout',

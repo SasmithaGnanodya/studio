@@ -7,6 +7,7 @@ export type FieldPart = {
   height: number;
   isBold?: boolean;
   color?: string;
+  fontSize?: number; // Added font size property
   inputType?: 'text' | 'dropdown';
   options?: string[];
   objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
@@ -33,6 +34,6 @@ export type Report = {
   vehicleId: string; // e.g. registration number
   userId: string;
   reportData: { [key: string]: any };
-  createdAt: number;
-  updatedAt: number;
+  createdAt: { seconds: number, nanoseconds: number };
+  updatedAt: { seconds: number, nanoseconds: number };
 };
