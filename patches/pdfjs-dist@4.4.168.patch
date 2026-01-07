@@ -1,0 +1,56 @@
+diff --git a/node_modules/pdfjs-dist/build/pdf.mjs b/node_modules/pdfjs-dist/build/pdf.mjs
+index 21749ce..344a85c 100644
+--- a/node_modules/pdfjs-dist/build/pdf.mjs
++++ b/node_modules/pdfjs-dist/build/pdf.mjs
+@@ -348,6 +348,22 @@
+ Object.setPrototypeOf(globalThis.Promise, null);
+ delete globalThis.Promise;
+ 
++if (typeof Promise.withResolvers !== 'function') {
++  Promise.withResolvers = function withResolvers() {
++    let resolve, reject;
++    const promise = new Promise((res, rej) => {
++      resolve = res;
++      reject = rej;
++    });
++    if (resolve === undefined || reject === undefined) {
++      throw new Error('Promise constructor did not call the resolver synchronously.');
++    }
++    return {
++      promise,
++      resolve,
++      reject,
++    };
++  };
++}
+ const AbortException = function AbortException(message) {
+   this.message = message;
+ };
+diff --git a/node_modules/pdfjs-dist/build/pdf.worker.mjs b/node_modules/pdfjs-dist/build/pdf.worker.mjs
+index 9e06140..251d73c 100644
+--- a/node_modules/pdfjs-dist/build/pdf.worker.mjs
++++ b/node_modules/pdfjs-dist/build/pdf.worker.mjs
+@@ -282,6 +282,22 @@
+ Object.setPrototypeOf(globalThis.Promise, null);
+ delete globalThis.Promise;
+ 
++if (typeof Promise.withResolvers !== 'function') {
++  Promise.withResolvers = function withResolvers() {
++    let resolve, reject;
++    const promise = new Promise((res, rej) => {
++      resolve = res;
++      reject = rej;
++    });
++    if (resolve === undefined || reject === undefined) {
++      throw new Error('Promise constructor did not call the resolver synchronously.');
++    }
++    return {
++      promise,
++      resolve,
++      reject,
++    };
++  };
++}
+ const AbortException = function AbortException(message) {
+   this.message = message;
+ };
