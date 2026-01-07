@@ -1,4 +1,5 @@
 import { FileText } from 'lucide-react';
+import { UserNav } from './UserNav';
 
 export function Header() {
   return (
@@ -10,6 +11,9 @@ export function Header() {
             <h1 className="text-xl font-bold tracking-tight">
               Valuation Report Generator
             </h1>
+          </div>
+          <div className="ml-auto">
+            <UserNav />
           </div>
         </div>
       </div>
