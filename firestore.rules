@@ -9,7 +9,8 @@
  * Data Structure:
  * - /users/{userId}: Private user profile data.
  * - /layouts/{userId}: User-specific layout configurations.
- * - /reports/{reportId}: Individual report documents, containing a `userId` field for ownership.
+ * - /reports/{reportId}: Individual report documents, containing a `userId` field for ownership. This collection
+ *   requires a composite index on (userId, vehicleId) to allow for efficient and secure user-specific searches.
  *
  * Key Security Decisions:
  * - No Public Data: There are no globally readable collections.
