@@ -16,10 +16,11 @@ export type PrintField = {
 type ReportPageProps = {
   staticLabels: PrintField[];
   dynamicValues: PrintField[];
+  imageValues: PrintField[];
   isCalibrating: boolean;
 };
 
-const renderField = (field: PrintField) => {
+const renderTextField = (field: PrintField) => {
   const style: React.CSSProperties = {
     top: `${field.y}mm`,
     left: `${field.x}mm`,
@@ -41,14 +42,33 @@ const renderField = (field: PrintField) => {
   );
 };
 
-export const ReportPage = ({ staticLabels, dynamicValues, isCalibrating }: ReportPageProps) => {
+const renderImageField = (field: PrintField) => {
+  const style: React.CSSProperties = {
+    top: `${field.y}mm`,
+    left: `${field.x}mm`,
+    width: `${field.width}mm`,
+    height: `${field.height}mm`,
+    position: 'absolute',
+  };
+
+  return (
+    <div key={field.id} style={style}>
+      <img src={field.value as string} alt={`report-image-${field.id}`} className="w-full h-full object-cover" />
+    </div>
+  );
+};
+
+export const ReportPage = ({ staticLabels, dynamicValues, imageValues, isCalibrating }: ReportPageProps) => {
   return (
     <div className={`report-page ${isCalibrating ? 'calibration-mode' : ''}`}>
       {/* Render static labels */}
-      {staticLabels.map(renderField)}
+      {staticLabels.map(renderTextField)}
       
       {/* Render dynamic data fields */}
-      {dynamicValues.map(renderField)}
+      {dynamicValues.map(renderTextField)}
+      
+      {/* Render image fields */}
+      {imageValues.map(renderImageField)}
     </div>
   );
 };

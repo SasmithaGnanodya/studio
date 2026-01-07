@@ -60,11 +60,13 @@ export default function Home() {
         const layoutDoc = await getDoc(layoutDocRef);
         if (layoutDoc.exists()) {
           const data = layoutDoc.data();
-          if (data.fields && Array.isArray(data.fields)) {
+           if (data.fields && Array.isArray(data.fields)) {
             const validatedFields = data.fields.map((f: any) => ({
               ...f,
-              label: validateAndCleanFieldPart(f.label),
-              value: validateAndCleanFieldPart(f.value)
+              fieldType: f.fieldType || 'text', // Default to text for old data
+              label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
+              value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
+              placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
             }));
             setLayout(validatedFields as FieldLayout[]);
           }
@@ -89,8 +91,8 @@ export default function Home() {
     window.print();
   };
 
-  const { staticLabels, dynamicValues } = useMemo(() => {
-    const staticLabels = layout.map(field => ({
+  const { staticLabels, dynamicValues, imageValues } = useMemo(() => {
+    const staticLabels = layout.filter(f => f.fieldType === 'text').map(field => ({
       id: `label-${field.id}`,
       value: field.label.text,
       x: field.label.x,
@@ -101,7 +103,7 @@ export default function Home() {
       color: field.label.color,
     }));
 
-    const dynamicValues = layout.map(field => {
+    const dynamicValues = layout.filter(f => f.fieldType === 'text').map(field => {
       const value = reportData[field.fieldId as keyof typeof reportData] || '';
       return {
         id: `value-${field.id}`,
@@ -115,7 +117,19 @@ export default function Home() {
       };
     });
 
-    return { staticLabels, dynamicValues };
+    const imageValues = layout.filter(f => f.fieldType === 'image').map(field => {
+        const imageUrl = reportData[field.fieldId] || "https://placehold.co/600x400?text=No+Image";
+        return {
+            id: `image-${field.id}`,
+            value: imageUrl,
+            x: field.placeholder!.x,
+            y: field.placeholder!.y,
+            width: field.placeholder!.width,
+            height: field.placeholder!.height,
+        };
+    });
+
+    return { staticLabels, dynamicValues, imageValues };
   }, [layout, reportData]);
 
 
@@ -153,7 +167,12 @@ export default function Home() {
           
           <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
             <div className={isPreview ? "preview-mode" : ""}>
-               <ReportPage staticLabels={staticLabels} dynamicValues={dynamicValues} isCalibrating={isCalibrating} />
+               <ReportPage 
+                  staticLabels={staticLabels} 
+                  dynamicValues={dynamicValues}
+                  imageValues={imageValues}
+                  isCalibrating={isCalibrating} 
+                />
             </div>
           </div>
         </div>
@@ -161,7 +180,12 @@ export default function Home() {
       
       {/* Print-only view */}
       <div className="hidden print-view">
-        <ReportPage staticLabels={staticLabels} dynamicValues={dynamicValues} isCalibrating={false} />
+         <ReportPage 
+            staticLabels={staticLabels} 
+            dynamicValues={dynamicValues}
+            imageValues={imageValues}
+            isCalibrating={false} 
+          />
       </div>
     </div>
   );

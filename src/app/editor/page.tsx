@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Save, Home, PlusCircle } from 'lucide-react';
+import { Save, Home, PlusCircle, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
@@ -70,8 +70,10 @@ export default function EditorPage() {
           if (data.fields && Array.isArray(data.fields)) {
             const validatedFields = data.fields.map((f: any) => ({
               ...f,
-              label: validateAndCleanFieldPart(f.label),
-              value: validateAndCleanFieldPart(f.value)
+              fieldType: f.fieldType || 'text', // Default to text for old data
+              label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
+              value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
+              placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
             }));
             setFields(validatedFields as FieldLayout[]);
           }
@@ -80,6 +82,29 @@ export default function EditorPage() {
       fetchLayout();
     }
   }, [user, firestore]);
+
+  const updateFieldPosition = useCallback((id: string, xInPx: number, yInPx: number) => {
+      setFields(prev => prev.map(f => {
+          if (f.id === id) {
+              if (f.fieldType === 'image' && f.placeholder) {
+                  return { ...f, placeholder: { ...f.placeholder, x: PX_TO_MM(xInPx), y: PX_TO_MM(yInPx) } };
+              }
+          }
+          return f;
+      }));
+  }, []);
+
+  const updateFieldSize = useCallback((id: string, widthInPx: number, heightInPx: number) => {
+      setFields(prev => prev.map(f => {
+          if (f.id === id) {
+              if (f.fieldType === 'image' && f.placeholder) {
+                  return { ...f, placeholder: { ...f.placeholder, width: PX_TO_MM(widthInPx), height: PX_TO_MM(heightInPx) } };
+              }
+          }
+          return f;
+      }));
+  }, []);
+
 
   const updateFieldPartPosition = useCallback((fieldId: string, part: 'label' | 'value', xInPx: number, yInPx: number) => {
     setFields(prevFields =>
@@ -122,15 +147,29 @@ export default function EditorPage() {
     setSelectedFieldId(baseId);
   };
   
-  const handleAddNewField = () => {
-    const newId = `field_${Date.now()}`;
-    const newField: FieldLayout = {
-      id: newId,
-      fieldId: 'newField',
-      label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000' },
-      value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', inputType: 'text', options: [] },
-    };
-    setFields(prev => [...prev, newField]);
+  const handleAddNewField = (type: 'text' | 'image') => {
+    const newId = `${type}_${Date.now()}`;
+    if (type === 'text') {
+      const newField: FieldLayout = {
+        id: newId,
+        fieldId: 'newField',
+        fieldType: 'text',
+        label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000' },
+        value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', inputType: 'text', options: [] },
+      };
+      setFields(prev => [...prev, newField]);
+    } else { // image
+       const newImageField: FieldLayout = {
+        id: newId,
+        fieldId: 'newImage',
+        fieldType: 'image',
+        placeholder: { text: 'newImage', x: 10, y: 150, width: 90, height: 60, color: '#0000FF' },
+        // These are not used but required by the type, can be empty objects
+        label: {} as any,
+        value: {} as any,
+      };
+      setFields(prev => [...prev, newImageField]);
+    }
     setSelectedFieldId(newId);
   }
 
@@ -156,18 +195,20 @@ export default function EditorPage() {
     }
 
     try {
-        // Create a deep copy and clean the data for Firestore
         const cleanedFields = JSON.parse(JSON.stringify(fields)).map((field: FieldLayout) => {
-          // Ensure label and value are objects before trying to access properties
-          if (typeof field.label === 'object' && field.label !== null) {
-            if (typeof field.label.isBold === 'undefined') field.label.isBold = false;
-            if (typeof field.label.color === 'undefined') field.label.color = '#000000';
-          }
-          if (typeof field.value === 'object' && field.value !== null) {
-            if (typeof field.value.isBold === 'undefined') field.value.isBold = false;
-            if (typeof field.value.color === 'undefined') field.value.color = '#000000';
-            if (typeof field.value.inputType === 'undefined') field.value.inputType = 'text';
-            if (typeof field.value.options === 'undefined') field.value.options = [];
+          if (field.fieldType === 'text') {
+            if (typeof field.label === 'object' && field.label !== null) {
+              field.label.isBold = field.label.isBold || false;
+              field.label.color = field.label.color || '#000000';
+            }
+            if (typeof field.value === 'object' && field.value !== null) {
+              field.value.isBold = field.value.isBold || false;
+              field.value.color = field.value.color || '#000000';
+              field.value.inputType = field.value.inputType || 'text';
+              field.value.options = field.value.options || [];
+            }
+          } else if (field.fieldType === 'image') {
+            // No specific cleaning needed for image fields yet unless new properties are added
           }
           return field;
         });
@@ -189,8 +230,8 @@ export default function EditorPage() {
     }
   };
   
-  const { staticLabels, valuePlaceholders } = useMemo(() => {
-    const staticLabels = fields.map(field => ({
+  const { staticLabels, valuePlaceholders, imagePlaceholders } = useMemo(() => {
+    const staticLabels = fields.filter(f => f.fieldType === 'text').map(field => ({
       id: `label-${field.id}`,
       value: field.label.text,
       x: field.label.x,
@@ -201,7 +242,7 @@ export default function EditorPage() {
       color: field.label.color,
     }));
 
-    const valuePlaceholders = fields.map(field => {
+    const valuePlaceholders = fields.filter(f => f.fieldType === 'text').map(field => {
       const value = initialReportState[field.fieldId as keyof typeof initialReportState] || `[${field.fieldId}]`;
       return {
         id: `value-${field.id}`,
@@ -215,7 +256,19 @@ export default function EditorPage() {
       };
     });
 
-    return { staticLabels, valuePlaceholders };
+    const imagePlaceholders = fields.filter(f => f.fieldType === 'image').map(field => {
+      const imageUrl = initialReportState[field.fieldId] || "https://placehold.co/600x400?text=Image";
+      return {
+        id: `image-${field.id}`,
+        value: imageUrl, // URL
+        x: field.placeholder!.x,
+        y: field.placeholder!.y,
+        width: field.placeholder!.width,
+        height: field.placeholder!.height,
+      };
+    });
+
+    return { staticLabels, valuePlaceholders, imagePlaceholders };
   }, [fields]);
 
   const selectedField = fields.find(f => f.id === selectedFieldId) || null;
@@ -228,7 +281,8 @@ export default function EditorPage() {
           <CardContent className="pt-6 flex items-center justify-between">
             <h2 className="text-xl font-semibold">Layout Editor</h2>
             <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={handleAddNewField}><PlusCircle className="mr-2 h-4 w-4" /> Add Field</Button>
+                <Button variant="outline" onClick={() => handleAddNewField('text')}><PlusCircle className="mr-2 h-4 w-4" /> Add Text Field</Button>
+                <Button variant="outline" onClick={() => handleAddNewField('image')}><ImageIcon className="mr-2 h-4 w-4" /> Add Image</Button>
                 <Link href="/" passHref>
                     <Button variant="outline"><Home className="mr-2 h-4 w-4" /> Go to Form</Button>
                 </Link>
@@ -248,10 +302,15 @@ export default function EditorPage() {
         
         <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
           <div className="relative mx-auto preview-mode">
-              <ReportPage staticLabels={staticLabels} dynamicValues={valuePlaceholders} isCalibrating={true} />
+              <ReportPage 
+                staticLabels={staticLabels} 
+                dynamicValues={valuePlaceholders} 
+                imageValues={imagePlaceholders} 
+                isCalibrating={true} 
+              />
               
-              {/* Draggable handles for labels */}
-              {fields.map(field => (
+              {/* Draggable handles for text fields */}
+              {fields.filter(f => f.fieldType === 'text').flatMap(field => [
                 <DraggableField
                   key={`label-drag-${field.id}`}
                   id={`${field.id}-label`}
@@ -264,11 +323,7 @@ export default function EditorPage() {
                   onClick={handleSelectField}
                   isSelected={field.id === selectedFieldId}
                   borderColor='blue'
-                />
-              ))}
-
-               {/* Draggable handles for values */}
-               {fields.map(field => (
+                />,
                 <DraggableField
                   key={`value-drag-${field.id}`}
                   id={`${field.id}-value`}
@@ -281,6 +336,23 @@ export default function EditorPage() {
                   onClick={handleSelectField}
                   isSelected={field.id === selectedFieldId}
                   borderColor='green'
+                />
+              ])}
+
+               {/* Draggable handles for images */}
+               {fields.filter(f => f.fieldType === 'image').map(field => (
+                <DraggableField
+                  key={`image-drag-${field.id}`}
+                  id={field.id}
+                  x={MM_TO_PX(field.placeholder!.x)}
+                  y={MM_TO_PX(field.placeholder!.y)}
+                  width={MM_TO_PX(field.placeholder!.width)}
+                  height={MM_TO_PX(field.placeholder!.height)}
+                  onDragStop={(id, x, y) => updateFieldPosition(field.id, x, y)}
+                  onResizeStop={(id, w, h) => updateFieldSize(field.id, w, h)}
+                  onClick={handleSelectField}
+                  isSelected={field.id === selectedFieldId}
+                  borderColor='purple'
                 />
               ))}
           </div>

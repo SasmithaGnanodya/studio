@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Image } from 'lucide-react';
 
 type DraggableFieldProps = {
   id: string;
@@ -14,9 +15,10 @@ type DraggableFieldProps = {
   onClick: (id: string) => void;
   isSelected: boolean;
   borderColor?: string;
+  isImage?: boolean;
 };
 
-export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeStop, onClick, isSelected, borderColor = 'blue' }: DraggableFieldProps) => {
+export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeStop, onClick, isSelected, borderColor = 'blue', isImage = false }: DraggableFieldProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState<string | null>(null);
   const dragStartPos = useRef({ x: 0, y: 0 });
@@ -47,20 +49,14 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
     if (isResizing) {
         let newWidth = elementStartRect.current.width;
         let newHeight = elementStartRect.current.height;
-        // let newX = elementStartRect.current.x;
-        // let newY = elementStartRect.current.y;
         
         if (isResizing.includes('right')) newWidth += dx;
-        if (isResizing.includes('left')) {
-            // newX += dx;
-            newWidth -= dx;
-        }
+        if (isResizing.includes('left')) newWidth -= dx;
         if (isResizing.includes('bottom')) newHeight += dy;
-        if (isResizing.includes('top')) {
-            // newY += dy;
-            newHeight -= dy;
-        }
-
+        if (isResizing.includes('top')) newHeight -= dy;
+        
+        // The drag stop for resize has to be different because it only updates size, not position
+        // The position is updated via the drag handle
         onResizeStop(id, Math.max(10, newWidth), Math.max(10, newHeight));
     } else if (isDragging) {
         const newX = elementStartRect.current.x + dx;
@@ -100,6 +96,9 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
     backgroundColor: isSelected ? 'rgba(0, 123, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
     boxSizing: 'border-box',
     zIndex: isSelected ? 10 : 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   };
   
   const resizeHandleStyle: React.CSSProperties = {
@@ -120,6 +119,7 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
         onMouseDown={handleMouseDown}
         onClick={(e) => { e.stopPropagation(); onClick(id); }}
     >
+        {isImage && <Image className="w-1/2 h-1/2 opacity-20" />}
         {isSelected && (
             <>
                 <div data-resize="top-left" style={{...resizeHandleStyle, top: '-5px', left: '-5px', cursor: 'nwse-resize'}}></div>

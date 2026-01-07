@@ -22,33 +22,32 @@ type EditorSidebarProps = {
 
 export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSidebarProps) => {
 
-  const handleLayoutChange = (part: 'label' | 'value', property: keyof FieldPart, value: any) => {
-    const currentPart = field[part];
-    if (!currentPart) return;
+  const handlePartChange = (part: 'label' | 'value' | 'placeholder', property: keyof FieldPart, value: any) => {
+      const currentPart = field[part];
+      if (!currentPart) return;
 
-    let processedValue = value;
-    if (['x', 'y', 'width', 'height'].includes(property as string)) {
-        const numericValue = typeof value === 'string' ? parseFloat(value) : value;
-        processedValue = isNaN(numericValue as number) || value === '' ? 0 : numericValue;
-    }
-    
-    if (property === 'options' && typeof value === 'string') {
-        processedValue = value.split('\n');
-    }
+      let processedValue = value;
+      if (['x', 'y', 'width', 'height'].includes(property as string)) {
+          processedValue = value === '' ? 0 : parseFloat(value);
+          if (isNaN(processedValue)) processedValue = 0;
+      }
+      
+      if (property === 'options' && typeof value === 'string') {
+          processedValue = value.split('\n');
+      }
 
-    const newPart = { ...currentPart, [property]: processedValue };
-    onUpdate(field.id, { [part]: newPart });
+      const newPart = { ...currentPart, [property]: processedValue };
+      onUpdate(field.id, { [part]: newPart });
   };
   
   const handleFieldIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdate(field.id, { fieldId: e.target.value });
   }
 
-  const renderPartEditor = (part: 'label' | 'value') => {
+  const renderTextPartEditor = (part: 'label' | 'value') => {
     const data = field[part];
     if (!data) return null;
     const title = part.charAt(0).toUpperCase() + part.slice(1);
-    const isLabelPart = part === 'label';
     const isValuePart = part === 'value';
 
     return (
@@ -56,37 +55,37 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
         <h3 className="font-semibold mb-2">{title}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
           <div className="space-y-1 sm:col-span-6">
-            <Label htmlFor={`${part}-text`} className="text-xs">{isLabelPart ? 'Label Text' : 'Data Field ID'}</Label>
+            <Label htmlFor={`${part}-text`} className="text-xs">Text</Label>
             <Input 
               id={`${part}-text`} 
               name="text"
               className="h-8"
-              value={isLabelPart ? data.text || '' : field.fieldId || ''} 
-              onChange={(e) => isLabelPart ? handleLayoutChange(part, 'text', e.target.value) : handleFieldIdChange(e) }
+              value={data.text || ''} 
+              onChange={(e) => handlePartChange(part, 'text', e.target.value)}
             />
           </div>
           <div className="space-y-1">
             <Label htmlFor={`${part}-x`} className="text-xs">X (mm)</Label>
-            <Input id={`${part}-x`} name="x" type="number" value={data.x || 0} onChange={(e) => handleLayoutChange(part, 'x', e.target.value)} className="h-8" />
+            <Input id={`${part}-x`} name="x" type="number" value={data.x || 0} onChange={(e) => handlePartChange(part, 'x', e.target.value)} className="h-8" />
           </div>
           <div className="space-y-1">
             <Label htmlFor={`${part}-y`} className="text-xs">Y (mm)</Label>
-            <Input id={`${part}-y`} name="y" type="number" value={data.y || 0} onChange={(e) => handleLayoutChange(part, 'y', e.target.value)} className="h-8" />
+            <Input id={`${part}-y`} name="y" type="number" value={data.y || 0} onChange={(e) => handlePartChange(part, 'y', e.target.value)} className="h-8" />
           </div>
           <div className="space-y-1">
             <Label htmlFor={`${part}-width`} className="text-xs">Width (mm)</Label>
-            <Input id={`${part}-width`} name="width" type="number" value={data.width || 0} onChange={(e) => handleLayoutChange(part, 'width', e.target.value)} className="h-8" />
+            <Input id={`${part}-width`} name="width" type="number" value={data.width || 0} onChange={(e) => handlePartChange(part, 'width', e.target.value)} className="h-8" />
           </div>
           <div className="space-y-1">
             <Label htmlFor={`${part}-height`} className="text-xs">Height (mm)</Label>
-            <Input id={`${part}-height`} name="height" type="number" value={data.height || 0} onChange={(e) => handleLayoutChange(part, 'height', e.target.value)} className="h-8" />
+            <Input id={`${part}-height`} name="height" type="number" value={data.height || 0} onChange={(e) => handlePartChange(part, 'height', e.target.value)} className="h-8" />
           </div>
            <div className="space-y-1">
             <Label htmlFor={`${part}-color`} className="text-xs">Color</Label>
-            <Input id={`${part}-color`} name="color" type="color" value={data.color || '#000000'} onChange={(e) => handleLayoutChange(part, 'color', e.target.value)} className="h-8 p-1" />
+            <Input id={`${part}-color`} name="color" type="color" value={data.color || '#000000'} onChange={(e) => handlePartChange(part, 'color', e.target.value)} className="h-8 p-1" />
           </div>
            <div className="flex items-center space-x-2 pt-5">
-            <Checkbox id={`${part}-bold`} checked={data.isBold || false} onCheckedChange={(checked) => handleLayoutChange(part, 'isBold', checked as boolean)} />
+            <Checkbox id={`${part}-bold`} checked={data.isBold || false} onCheckedChange={(checked) => handlePartChange(part, 'isBold', checked as boolean)} />
             <Label htmlFor={`${part}-bold`} className="text-xs font-normal">Bold</Label>
           </div>
         </div>
@@ -95,7 +94,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                 <Label className='text-xs font-medium'>Input Type</Label>
                 <RadioGroup 
                     value={data.inputType || 'text'} 
-                    onValueChange={(value) => handleLayoutChange(part, 'inputType', value)}
+                    onValueChange={(value) => handlePartChange(part, 'inputType', value)}
                     className='flex items-center gap-4 mt-2'
                 >
                     <div className='flex items-center space-x-2'>
@@ -114,7 +113,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                         <Textarea
                             id='dropdown-options'
                             value={(data.options || []).join('\n')}
-                            onChange={(e) => handleLayoutChange(part, 'options', e.target.value)}
+                            onChange={(e) => handlePartChange(part, 'options', e.target.value)}
                             placeholder='Option 1\nOption 2\nOption 3'
                             className='text-sm'
                         />
@@ -124,6 +123,35 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
         )}
       </div>
     );
+  }
+
+  const renderImagePartEditor = () => {
+    const data = field.placeholder;
+    if (!data) return null;
+
+    return (
+      <div className="flex-1 px-4">
+        <h3 className="font-semibold mb-2">Image Placeholder</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
+          <div className="space-y-1">
+            <Label htmlFor="image-x" className="text-xs">X (mm)</Label>
+            <Input id="image-x" name="x" type="number" value={data.x || 0} onChange={(e) => handlePartChange('placeholder', 'x', e.target.value)} className="h-8" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="image-y" className="text-xs">Y (mm)</Label>
+            <Input id="image-y" name="y" type="number" value={data.y || 0} onChange={(e) => handlePartChange('placeholder', 'y', e.target.value)} className="h-8" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="image-width" className="text-xs">Width (mm)</Label>
+            <Input id="image-width" name="width" type="number" value={data.width || 0} onChange={(e) => handlePartChange('placeholder', 'width', e.target.value)} className="h-8" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="image-height" className="text-xs">Height (mm)</Label>
+            <Input id="image-height" name="height" type="number" value={data.height || 0} onChange={(e) => handlePartChange('placeholder', 'height', e.target.value)} className="h-8" />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -137,10 +165,22 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
              </div>
           </AccordionTrigger>
           <AccordionContent>
-            <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x border-t">
-              {renderPartEditor('label')}
-              {renderPartEditor('value')}
+            <div className='p-4 border-b'>
+                 <Label htmlFor="fieldId">Field ID (for data linking)</Label>
+                 <Input id="fieldId" value={field.fieldId} onChange={handleFieldIdChange} className="font-mono mt-1" />
             </div>
+
+            <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x border-t">
+              {field.fieldType === 'text' ? (
+                <>
+                  {renderTextPartEditor('label')}
+                  {renderTextPartEditor('value')}
+                </>
+              ) : (
+                renderImagePartEditor()
+              )}
+            </div>
+
             <div className="flex justify-end gap-2 p-4 border-t mt-2">
                <Button variant="outline" onClick={onClose}>
                   <X className="mr-2 h-4 w-4" /> Unselect

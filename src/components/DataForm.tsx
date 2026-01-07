@@ -17,25 +17,25 @@ type DataFormProps = {
 };
 
 export const DataForm = ({ layout, data, onChange, onSelectChange }: DataFormProps) => {
-  // Create a set of unique fieldIds to avoid rendering duplicate inputs
   const renderedFieldIds = new Set<string>();
 
   return (
     <ScrollArea className="h-[calc(100vh-12rem)]">
       <div className="space-y-4 p-1">
         {layout.map((field) => {
-          // Ensure we haven't already rendered an input for this fieldId
           if (renderedFieldIds.has(field.fieldId)) {
             return null;
           }
           renderedFieldIds.add(field.fieldId);
+          
+          const labelText = field.fieldType === 'text' ? field.label.text : field.fieldId;
+          const inputType = field.fieldType === 'image' ? 'image' : field.value.inputType || 'text';
 
-          const inputType = field.value.inputType || 'text';
 
           return (
             <div key={field.id} className="grid grid-cols-3 items-center gap-4">
-              <Label htmlFor={field.fieldId} className="text-sm font-medium text-right">
-                {field.label.text}
+              <Label htmlFor={field.fieldId} className="text-sm font-medium text-right capitalize">
+                {labelText.replace(/([A-Z])/g, ' $1').trim()}
               </Label>
               <div className="col-span-2">
                 {inputType === 'dropdown' ? (
@@ -52,6 +52,14 @@ export const DataForm = ({ layout, data, onChange, onSelectChange }: DataFormPro
                        ))}
                      </SelectContent>
                    </Select>
+                ) : inputType === 'image' ? (
+                  <Input
+                    id={field.fieldId}
+                    name={field.fieldId}
+                    value={data[field.fieldId] || ''}
+                    onChange={onChange}
+                    placeholder="Enter image URL"
+                  />
                 ) : (
                   <Input
                     id={field.fieldId}

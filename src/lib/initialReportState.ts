@@ -3,7 +3,7 @@ import type { FieldLayout } from './types';
 
 // src/lib/initialReportState.ts
 
-export const initialReportState = {
+export const initialReportState: { [key: string]: any } = {
   // --- Header ---
   reportNumber: "V1234",
   date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format
@@ -88,9 +88,9 @@ export const initialReportState = {
   extras: "A/C, Power Steering, Airbags",
   marketValueNum: "3,500,000",
   marketValueText: "Three Million Five Hundred Thousand Rupees",
-  forcedSaleValue: "3,000,000",
   
   // --- Images (URLs from Firebase Storage) ---
+  image1: 'https://picsum.photos/seed/1/600/400',
   imgFront: null,
   imgRear: null,
 };
@@ -100,19 +100,31 @@ export const initialLayout: FieldLayout[] = [
     {
       id: 'regNumber-layout',
       fieldId: 'regNumber',
+      fieldType: 'text',
       label: { text: 'Reg No.', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000' },
       value: { text: 'regNumber', x: 65, y: 10, width: 50, height: 5, isBold: false, color: '#000000' }
     },
     {
       id: 'manufacturer-layout',
       fieldId: 'manufacturer',
+      fieldType: 'text',
       label: { text: 'Manufacturer', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000' },
       value: { text: 'manufacturer', x: 65, y: 20, width: 50, height: 5, isBold: false, color: '#000000' }
     },
     {
       id: 'model-layout',
       fieldId: 'model',
+      fieldType: 'text',
       label: { text: 'Model', x: 10, y: 30, width: 50, height: 5, isBold: false, color: '#000000' },
       value: { text: 'model', x: 65, y: 30, width: 50, height: 5, isBold: false, color: '#000000' }
     },
+    {
+      id: 'image1-layout',
+      fieldId: 'image1',
+      fieldType: 'image',
+      placeholder: { text: 'image1', x: 10, y: 150, width: 90, height: 60, color: '#0000FF' },
+      // label and value are not used for images, but need to be present to satisfy the type
+      label: {} as any,
+      value: {} as any,
+    }
 ];
