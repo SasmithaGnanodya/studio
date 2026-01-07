@@ -16,9 +16,11 @@ import type { FieldLayout, FieldPart } from '@/lib/types';
 import { EditorSidebar } from '@/components/EditorSidebar';
 import { ReportPage } from '@/components/ReportPage';
 
-// Approximate conversion factor from pixels on screen to mm for the report
-const PX_TO_MM = 210 / 800; // A4 width in mm / approx container width in pixels
-const MM_TO_PX = 1 / PX_TO_MM;
+// Standard DPI for screen, used for mm to px conversion
+const DPI = 96;
+const INCH_PER_MM = 0.0393701;
+const MM_TO_PX = (mm: number) => mm * INCH_PER_MM * DPI;
+const PX_TO_MM = (px: number) => px / (INCH_PER_MM * DPI);
 
 export default function EditorPage() {
   const [fields, setFields] = useState<FieldLayout[]>(initialLayout);
@@ -54,8 +56,8 @@ export default function EditorPage() {
             ...field,
             [part]: {
               ...field[part],
-              x: xInPx * PX_TO_MM,
-              y: yInPx * PX_TO_MM,
+              x: PX_TO_MM(xInPx),
+              y: PX_TO_MM(yInPx),
             }
           };
         }
@@ -72,8 +74,8 @@ export default function EditorPage() {
             ...field,
             [part]: {
               ...field[part],
-              width: widthInPx * PX_TO_MM,
-              height: heightInPx * PX_TO_MM,
+              width: PX_TO_MM(widthInPx),
+              height: PX_TO_MM(heightInPx),
             }
           };
         }
@@ -123,10 +125,10 @@ export default function EditorPage() {
     try {
         // Create a deep copy and clean the data for Firestore
         const cleanedFields = JSON.parse(JSON.stringify(fields)).map((field: FieldLayout) => {
-          if (!field.label.className) {
+          if (typeof field.label.className === 'undefined') {
             field.label.className = '';
           }
-          if (!field.value.className) {
+          if (typeof field.value.className === 'undefined') {
             field.value.className = '';
           }
           return field;
@@ -197,20 +199,18 @@ export default function EditorPage() {
             </Card>
             
             <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
-              <div className="relative w-[800px] h-[1131px] mx-auto preview-mode">
-                  <div className="absolute inset-0 pointer-events-none" style={{ transform: 'scale(1)', transformOrigin: 'top left' }}>
-                    <ReportPage staticLabels={staticLabels} dynamicValues={valuePlaceholders} isCalibrating={true} />
-                  </div>
+              <div className="relative mx-auto preview-mode">
+                  <ReportPage staticLabels={staticLabels} dynamicValues={valuePlaceholders} isCalibrating={true} />
                   
                   {/* Draggable handles for labels */}
                   {fields.map(field => (
                     <DraggableField
                       key={`label-drag-${field.id}`}
                       id={`${field.id}-label`}
-                      x={field.label.x * MM_TO_PX}
-                      y={field.label.y * MM_TO_PX}
-                      width={field.label.width * MM_TO_PX}
-                      height={field.label.height * MM_TO_PX}
+                      x={MM_TO_PX(field.label.x)}
+                      y={MM_TO_PX(field.label.y)}
+                      width={MM_TO_PX(field.label.width)}
+                      height={MM_TO_PX(field.label.height)}
                       onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'label', x, y)}
                       onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'label', w, h)}
                       onClick={handleSelectField}
@@ -224,10 +224,10 @@ export default function EditorPage() {
                     <DraggableField
                       key={`value-drag-${field.id}`}
                       id={`${field.id}-value`}
-                      x={field.value.x * MM_TO_PX}
-                      y={field.value.y * MM_TO_PX}
-                      width={field.value.width * MM_TO_PX}
-                      height={field.value.height * MM_TO_PX}
+                      x={MM_TO_PX(field.value.x)}
+                      y={MM_TO_PX(field.value.y)}
+                      width={MM_TO_PX(field.value.width)}
+                      height={MM_TO_PX(field.value.height)}
                       onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'value', x, y)}
                       onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'value', w, h)}
                       onClick={handleSelectField}
@@ -251,3 +251,5 @@ export default function EditorPage() {
     </div>
   );
 }
+
+    
