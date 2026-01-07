@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Printer, Eye, Wrench, Edit } from 'lucide-react';
-import { DataForm } from '@/components/DataForm';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, initialLayout } from '@/lib/initialReportState';
 import Link from 'next/link';
@@ -57,14 +56,6 @@ export default function Home() {
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
       <main className="flex flex-1 flex-col md:flex-row gap-4 p-4 lg:gap-6 lg:p-6 no-print">
-        <aside className="w-full md:w-[450px] flex flex-col gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <DataForm data={reportData} onChange={handleDataChange} />
-            </CardContent>
-          </Card>
-        </aside>
-
         <div className="flex-1 flex flex-col gap-4">
           <Card>
             <CardContent className="pt-6 flex items-center justify-between">
