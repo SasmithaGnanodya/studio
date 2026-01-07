@@ -10,6 +10,8 @@ import { Trash, X, ChevronDown } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Checkbox } from './ui/checkbox';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { Textarea } from './ui/textarea';
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -20,14 +22,18 @@ type EditorSidebarProps = {
 
 export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSidebarProps) => {
 
-  const handleLayoutChange = (part: 'label' | 'value', property: keyof FieldPart, value: string | number | boolean) => {
+  const handleLayoutChange = (part: 'label' | 'value', property: keyof FieldPart, value: any) => {
     const currentPart = field[part];
     if (!currentPart) return;
 
     let processedValue = value;
     if (['x', 'y', 'width', 'height'].includes(property as string)) {
         const numericValue = typeof value === 'string' ? parseFloat(value) : value;
-        processedValue = isNaN(numericValue as number) || !value ? 0 : numericValue;
+        processedValue = isNaN(numericValue as number) || value === '' ? 0 : numericValue;
+    }
+    
+    if (property === 'options' && typeof value === 'string') {
+        processedValue = value.split('\n');
     }
 
     const newPart = { ...currentPart, [property]: processedValue };
@@ -43,12 +49,13 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
     if (!data) return null;
     const title = part.charAt(0).toUpperCase() + part.slice(1);
     const isLabelPart = part === 'label';
+    const isValuePart = part === 'value';
 
     return (
       <div className="flex-1 px-4">
         <h3 className="font-semibold mb-2">{title}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
-          <div className="space-y-1 sm:col-span-2">
+          <div className="space-y-1 sm:col-span-6">
             <Label htmlFor={`${part}-text`} className="text-xs">{isLabelPart ? 'Label Text' : 'Data Field ID'}</Label>
             <Input 
               id={`${part}-text`} 
@@ -74,7 +81,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
             <Label htmlFor={`${part}-height`} className="text-xs">Height (mm)</Label>
             <Input id={`${part}-height`} name="height" type="number" value={data.height || 0} onChange={(e) => handleLayoutChange(part, 'height', e.target.value)} className="h-8" />
           </div>
-           <div className="space-y-1 sm:col-span-2">
+           <div className="space-y-1">
             <Label htmlFor={`${part}-color`} className="text-xs">Color</Label>
             <Input id={`${part}-color`} name="color" type="color" value={data.color || '#000000'} onChange={(e) => handleLayoutChange(part, 'color', e.target.value)} className="h-8 p-1" />
           </div>
@@ -83,6 +90,38 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
             <Label htmlFor={`${part}-bold`} className="text-xs font-normal">Bold</Label>
           </div>
         </div>
+        {isValuePart && (
+            <div className='mt-4 border-t pt-4'>
+                <Label className='text-xs font-medium'>Input Type</Label>
+                <RadioGroup 
+                    value={data.inputType || 'text'} 
+                    onValueChange={(value) => handleLayoutChange(part, 'inputType', value)}
+                    className='flex items-center gap-4 mt-2'
+                >
+                    <div className='flex items-center space-x-2'>
+                        <RadioGroupItem value='text' id='type-text' />
+                        <Label htmlFor='type-text' className='font-normal'>Text Input</Label>
+                    </div>
+                     <div className='flex items-center space-x-2'>
+                        <RadioGroupItem value='dropdown' id='type-dropdown' />
+                        <Label htmlFor='type-dropdown' className='font-normal'>Dropdown</Label>
+                    </div>
+                </RadioGroup>
+
+                {data.inputType === 'dropdown' && (
+                    <div className='mt-4 space-y-2'>
+                        <Label htmlFor='dropdown-options' className='text-xs'>Dropdown Options (one per line)</Label>
+                        <Textarea
+                            id='dropdown-options'
+                            value={(data.options || []).join('\n')}
+                            onChange={(e) => handleLayoutChange(part, 'options', e.target.value)}
+                            placeholder='Option 1\nOption 2\nOption 3'
+                            className='text-sm'
+                        />
+                    </div>
+                )}
+            </div>
+        )}
       </div>
     );
   }

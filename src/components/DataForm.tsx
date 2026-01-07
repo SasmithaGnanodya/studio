@@ -1,3 +1,4 @@
+
 // src/components/DataForm.tsx
 
 import React from 'react';
@@ -5,14 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FieldLayout } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Textarea } from './ui/textarea';
 
 type DataFormProps = {
   layout: FieldLayout[];
   data: any;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onSelectChange: (name: string, value: string) => void;
 };
 
-export const DataForm = ({ layout, data, onChange }: DataFormProps) => {
+export const DataForm = ({ layout, data, onChange, onSelectChange }: DataFormProps) => {
   // Create a set of unique fieldIds to avoid rendering duplicate inputs
   const renderedFieldIds = new Set<string>();
 
@@ -26,18 +30,37 @@ export const DataForm = ({ layout, data, onChange }: DataFormProps) => {
           }
           renderedFieldIds.add(field.fieldId);
 
+          const inputType = field.value.inputType || 'text';
+
           return (
             <div key={field.id} className="grid grid-cols-3 items-center gap-4">
               <Label htmlFor={field.fieldId} className="text-sm font-medium text-right">
                 {field.label.text}
               </Label>
-              <Input
-                id={field.fieldId}
-                name={field.fieldId}
-                value={data[field.fieldId] || ''}
-                onChange={onChange}
-                className="col-span-2"
-              />
+              <div className="col-span-2">
+                {inputType === 'dropdown' ? (
+                   <Select
+                    value={data[field.fieldId] || ''}
+                    onValueChange={(value) => onSelectChange(field.fieldId, value)}
+                   >
+                     <SelectTrigger id={field.fieldId}>
+                       <SelectValue placeholder={`Select ${field.label.text}`} />
+                     </SelectTrigger>
+                     <SelectContent>
+                       {(field.value.options || []).map(option => (
+                         <SelectItem key={option} value={option}>{option}</SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
+                ) : (
+                  <Input
+                    id={field.fieldId}
+                    name={field.fieldId}
+                    value={data[field.fieldId] || ''}
+                    onChange={onChange}
+                  />
+                )}
+              </div>
             </div>
           );
         })}

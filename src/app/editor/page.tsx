@@ -30,7 +30,9 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     width: 50,
     height: 5,
     isBold: false,
-    color: '#000000'
+    color: '#000000',
+    inputType: 'text',
+    options: []
   };
 
   if (typeof part !== 'object' || part === null) {
@@ -44,7 +46,9 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     width: part.width || 50,
     height: part.height || 5,
     isBold: part.isBold || false,
-    color: part.color || '#000000'
+    color: part.color || '#000000',
+    inputType: part.inputType || 'text',
+    options: part.options || []
   };
 };
 
@@ -63,12 +67,14 @@ export default function EditorPage() {
         const layoutDoc = await getDoc(layoutDocRef);
         if (layoutDoc.exists()) {
           const data = layoutDoc.data();
-          const validatedFields = data.fields.map((f: any) => ({
-            ...f,
-            label: validateAndCleanFieldPart(f.label),
-            value: validateAndCleanFieldPart(f.value)
-          }));
-          setFields(validatedFields as FieldLayout[]);
+          if (data.fields && Array.isArray(data.fields)) {
+            const validatedFields = data.fields.map((f: any) => ({
+              ...f,
+              label: validateAndCleanFieldPart(f.label),
+              value: validateAndCleanFieldPart(f.value)
+            }));
+            setFields(validatedFields as FieldLayout[]);
+          }
         }
       };
       fetchLayout();
@@ -122,7 +128,7 @@ export default function EditorPage() {
       id: newId,
       fieldId: 'newField',
       label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000' },
-      value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000' },
+      value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', inputType: 'text', options: [] },
     };
     setFields(prev => [...prev, newField]);
     setSelectedFieldId(newId);
@@ -154,20 +160,14 @@ export default function EditorPage() {
         const cleanedFields = JSON.parse(JSON.stringify(fields)).map((field: FieldLayout) => {
           // Ensure label and value are objects before trying to access properties
           if (typeof field.label === 'object' && field.label !== null) {
-            if (typeof field.label.isBold === 'undefined') {
-              field.label.isBold = false;
-            }
-             if (typeof field.label.color === 'undefined') {
-              field.label.color = '#000000';
-            }
+            if (typeof field.label.isBold === 'undefined') field.label.isBold = false;
+            if (typeof field.label.color === 'undefined') field.label.color = '#000000';
           }
           if (typeof field.value === 'object' && field.value !== null) {
-            if (typeof field.value.isBold === 'undefined') {
-              field.value.isBold = false;
-            }
-            if (typeof field.value.color === 'undefined') {
-              field.value.color = '#000000';
-            }
+            if (typeof field.value.isBold === 'undefined') field.value.isBold = false;
+            if (typeof field.value.color === 'undefined') field.value.color = '#000000';
+            if (typeof field.value.inputType === 'undefined') field.value.inputType = 'text';
+            if (typeof field.value.options === 'undefined') field.value.options = [];
           }
           return field;
         });

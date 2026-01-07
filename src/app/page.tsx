@@ -24,7 +24,9 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     width: 50,
     height: 5,
     isBold: false,
-    color: '#000000'
+    color: '#000000',
+    inputType: 'text',
+    options: []
   };
 
   if (typeof part !== 'object' || part === null) {
@@ -38,7 +40,9 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     width: part.width || 50,
     height: part.height || 5,
     isBold: part.isBold || false,
-    color: part.color || '#000000'
+    color: part.color || '#000000',
+    inputType: part.inputType || 'text',
+    options: part.options || []
   };
 };
 
@@ -56,15 +60,19 @@ export default function Home() {
         const layoutDoc = await getDoc(layoutDocRef);
         if (layoutDoc.exists()) {
           const data = layoutDoc.data();
-          const validatedFields = data.fields.map((f: any) => ({
-            ...f,
-            label: validateAndCleanFieldPart(f.label),
-            value: validateAndCleanFieldPart(f.value)
-          }));
-          setLayout(validatedFields as FieldLayout[]);
+          if (data.fields && Array.isArray(data.fields)) {
+            const validatedFields = data.fields.map((f: any) => ({
+              ...f,
+              label: validateAndCleanFieldPart(f.label),
+              value: validateAndCleanFieldPart(f.value)
+            }));
+            setLayout(validatedFields as FieldLayout[]);
+          }
         }
       };
       fetchLayout();
+    } else {
+      setLayout(initialLayout);
     }
   }, [user, firestore]);
 
@@ -72,6 +80,10 @@ export default function Home() {
     const { name, value } = e.target;
     setReportData(prev => ({ ...prev, [name]: value }));
   };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setReportData(prev => ({...prev, [name]: value}));
+  }
 
   const handlePrint = () => {
     window.print();
@@ -113,7 +125,7 @@ export default function Home() {
       <main className="flex flex-1 flex-col md:flex-row gap-4 p-4 lg:gap-6 lg:p-6 no-print">
         <Card className="w-full md:w-1/3 lg:w-1/4 h-fit sticky top-6">
             <CardContent className="pt-6">
-                <DataForm layout={layout} data={reportData} onChange={handleDataChange} />
+                <DataForm layout={layout} data={reportData} onChange={handleDataChange} onSelectChange={handleSelectChange} />
             </CardContent>
         </Card>
         

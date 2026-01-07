@@ -7,6 +7,8 @@ export type FieldPart = {
   height: number;
   isBold?: boolean;
   color?: string;
+  inputType?: 'text' | 'dropdown';
+  options?: string[];
 };
 
 export type FieldLayout = {
