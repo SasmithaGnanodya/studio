@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useFirebase } from "@/firebase";
 import { signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { LogIn } from "lucide-react";
 
 export function UserNav() {
   const { user, auth } = useFirebase();
@@ -42,7 +43,8 @@ export function UserNav() {
   if (!user) {
     return (
       <Button onClick={handleSignIn}>
-        Sign in with Google
+        <LogIn className="mr-2 h-4 w-4" />
+        Sign In
       </Button>
     );
   }
