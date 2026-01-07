@@ -1,10 +1,10 @@
 
 // src/components/ReportPage.tsx
 import React from 'react';
-import type { FieldLayout } from '@/lib/types';
+import type { SubField } from '@/lib/types';
 
 type ReportPageProps = {
-  fields: (FieldLayout & { value: string })[];
+  fields: (SubField & { value: string })[];
   isCalibrating: boolean;
 };
 
