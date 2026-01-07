@@ -12,19 +12,19 @@ import { useFirebase } from '@/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { initialLayout, initialReportState } from '@/lib/initialReportState';
-import type { FieldLayout } from '@/lib/types';
+import type { FieldLayout, FieldPart } from '@/lib/types';
 import { EditorSidebar } from '@/components/EditorSidebar';
 import { ReportPage } from '@/components/ReportPage';
 
 // Approximate conversion factor from pixels on screen to mm for the report
 const PX_TO_MM = 210 / 800; // A4 width in mm / approx container width in pixels
+const MM_TO_PX = 1 / PX_TO_MM;
 
 export default function EditorPage() {
   const [fields, setFields] = useState<FieldLayout[]>(initialLayout);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
-  const [reportData, setReportData] = useState(initialReportState);
 
   // Fetch layout from Firestore on component mount
   useEffect(() => {
@@ -34,10 +34,10 @@ export default function EditorPage() {
         const layoutDoc = await getDoc(layoutDocRef);
         if (layoutDoc.exists()) {
           const data = layoutDoc.data();
-          // Ensure fields have a subFields array for backward compatibility
-          const validatedFields = data.fields.map((f: FieldLayout) => ({
+          const validatedFields = data.fields.map((f: any) => ({
             ...f,
-            subFields: f.subFields || [{ id: f.id, label: f.label, x: 0, y: 0, width: f.width, height: f.height }]
+            label: f.label || { text: 'Label', x: 10, y: 10, width: 50, height: 5 },
+            value: f.value || { text: f.fieldId, x: 10, y: 20, width: 50, height: 5 }
           }));
           setFields(validatedFields as FieldLayout[]);
         }
@@ -46,43 +46,45 @@ export default function EditorPage() {
     }
   }, [user, firestore]);
 
-  // Callback to update a field's absolute position after dragging
-  const updateFieldPosition = useCallback((id: string, xInPx: number, yInPx: number) => {
+  const updateFieldPartPosition = useCallback((fieldId: string, part: 'label' | 'value', xInPx: number, yInPx: number) => {
     setFields(prevFields =>
-      prevFields.map(field =>
-        field.id === id ? { ...field, x: xInPx * PX_TO_MM, y: yInPx * PX_TO_MM } : field
-      )
+      prevFields.map(field => {
+        if (field.id === fieldId) {
+          return {
+            ...field,
+            [part]: {
+              ...field[part],
+              x: xInPx * PX_TO_MM,
+              y: yInPx * PX_TO_MM,
+            }
+          };
+        }
+        return field;
+      })
     );
   }, []);
 
   const handleSelectField = (id: string) => {
-    setSelectedFieldId(id);
+    const baseId = id.replace(/-(label|value)$/, '');
+    setSelectedFieldId(baseId);
   };
   
-  // Adds a completely new field group to the layout
   const handleAddNewField = () => {
-    const newId = `new_field_${Date.now()}`;
+    const newId = `field_${Date.now()}`;
     const newField: FieldLayout = {
       id: newId,
-      label: 'New Field',
-      x: 10, // Default position in mm
-      y: 10, // Default position in mm
-      width: 50,
-      height: 10,
-      subFields: [
-        { id: newId, label: 'New Field', x: 0, y: 0, width: 50, height: 5, displayMode: 'inline' }
-      ]
+      fieldId: 'newField',
+      label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, className: '' },
+      value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, className: '' },
     };
     setFields(prev => [...prev, newField]);
     setSelectedFieldId(newId);
   }
 
-  // Updates any property of a field group, including its sub-fields
   const handleUpdateField = useCallback((id: string, updates: Partial<FieldLayout>) => {
     setFields(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
   }, []);
   
-  // Deletes a field group from the layout
   const handleDeleteField = (id: string) => {
     setFields(prev => prev.filter(f => f.id !== id));
     if (selectedFieldId === id) {
@@ -90,7 +92,6 @@ export default function EditorPage() {
     }
   };
 
-  // Saves the entire layout to Firestore
   const handleSaveLayout = async () => {
     if (!user || !firestore) {
         toast({
@@ -118,46 +119,32 @@ export default function EditorPage() {
     }
   };
   
-  // Memoize the calculation of fields for rendering
-  const { staticLabels, fieldsWithData } = useMemo(() => {
+  const { staticLabels, valuePlaceholders } = useMemo(() => {
     const staticLabels = fields.map(field => ({
       id: `label-${field.id}`,
-      value: field.label,
-      x: field.x,
-      y: field.y,
-      width: field.width,
-      height: field.height,
-      className: field.className
+      value: field.label.text,
+      x: field.label.x,
+      y: field.label.y,
+      width: field.label.width,
+      height: field.label.height,
+      className: field.label.className
     }));
 
-    const fieldsWithData = fields.flatMap(field =>
-      (field.subFields || []).map(sub => {
-        const value = reportData[sub.id as keyof typeof reportData] || `[${sub.id}]`;
-        let displayValue;
-        switch (sub.displayMode) {
-          case 'block':
-            displayValue = sub.label ? `${sub.label}:\n${value}` : value;
-            break;
-          case 'value_only':
-            displayValue = value;
-            break;
-          case 'inline':
-          default:
-            displayValue = sub.label ? `${sub.label}: ${value}` : value;
-            break;
-        }
+    const valuePlaceholders = fields.map(field => {
+      const value = initialReportState[field.fieldId as keyof typeof initialReportState] || `[${field.fieldId}]`;
+      return {
+        id: `value-${field.id}`,
+        value: value,
+        x: field.value.x,
+        y: field.value.y,
+        width: field.value.width,
+        height: field.value.height,
+        className: field.value.className
+      };
+    });
 
-        return {
-          ...sub,
-          value: displayValue,
-          x: field.x + (sub.x || 0),
-          y: field.y + (sub.y || 0),
-        }
-      })
-    );
-
-    return { staticLabels, fieldsWithData };
-  }, [fields, reportData]);
+    return { staticLabels, valuePlaceholders };
+  }, [fields]);
 
   const selectedField = fields.find(f => f.id === selectedFieldId) || null;
 
@@ -180,25 +167,40 @@ export default function EditorPage() {
             </Card>
             
             <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
-              {/* Container for the real report preview and the interactive overlays */}
               <div className="relative w-[800px] h-[1131px] mx-auto preview-mode">
-                  {/* The real ReportPage component provides the visual background */}
                   <div className="absolute inset-0 pointer-events-none" style={{ transform: 'scale(1)', transformOrigin: 'top left' }}>
-                    <ReportPage fields={fieldsWithData} staticLabels={staticLabels} isCalibrating={true} />
+                    <ReportPage staticLabels={staticLabels} dynamicValues={valuePlaceholders} isCalibrating={true} />
                   </div>
                   
-                  {/* The DraggableField components are transparent overlays for interaction */}
+                  {/* Draggable handles for labels */}
                   {fields.map(field => (
                     <DraggableField
-                      key={field.id}
-                      id={field.id}
-                      x={field.x / PX_TO_MM}
-                      y={field.y / PX_TO_MM}
-                      width={field.width / PX_TO_MM}
-                      height={field.height / PX_TO_MM}
-                      onDragStop={updateFieldPosition}
+                      key={`label-drag-${field.id}`}
+                      id={`${field.id}-label`}
+                      x={field.label.x * MM_TO_PX}
+                      y={field.label.y * MM_TO_PX}
+                      width={field.label.width * MM_TO_PX}
+                      height={field.label.height * MM_TO_PX}
+                      onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'label', x, y)}
                       onClick={handleSelectField}
                       isSelected={field.id === selectedFieldId}
+                      borderColor='blue'
+                    />
+                  ))}
+
+                   {/* Draggable handles for values */}
+                   {fields.map(field => (
+                    <DraggableField
+                      key={`value-drag-${field.id}`}
+                      id={`${field.id}-value`}
+                      x={field.value.x * MM_TO_PX}
+                      y={field.value.y * MM_TO_PX}
+                      width={field.value.width * MM_TO_PX}
+                      height={field.value.height * MM_TO_PX}
+                      onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'value', x, y)}
+                      onClick={handleSelectField}
+                      isSelected={field.id === selectedFieldId}
+                      borderColor='green'
                     />
                   ))}
               </div>

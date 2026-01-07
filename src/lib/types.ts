@@ -1,22 +1,16 @@
 
-export type SubField = {
-  id: string;
-  label: string;
-  x: number; // relative to parent, in mm
-  y: number; // relative to parent, in mm
+export type FieldPart = {
+  text: string; // The static text for a label, or the data ID for a value
+  x: number;
+  y: number;
   width: number;
   height: number;
   className?: string;
-  displayMode?: 'inline' | 'block' | 'value_only';
 };
 
 export type FieldLayout = {
   id: string;
-  label: string;
-  x: number; // absolute, in mm
-  y: number; // absolute, in mm
-  width: number; // in mm
-  height: number; // in mm
-  className?: string;
-  subFields: SubField[];
+  fieldId: string; // Connects to the key in initialReportState
+  label: FieldPart;
+  value: FieldPart;
 };

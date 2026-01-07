@@ -6,10 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, PlusCircle, CheckCircle } from 'lucide-react';
-import type { FieldLayout, SubField } from '@/lib/types';
+import { Trash, X, CheckCircle } from 'lucide-react';
+import type { FieldLayout, FieldPart } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -20,42 +20,57 @@ type EditorSidebarProps = {
 
 export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSidebarProps) => {
 
-  const handleParentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    onUpdate(field.id, { [name]: name === 'width' || name === 'height' ? parseFloat(value) : value });
+  const handleLayoutChange = (part: 'label' | 'value', property: keyof FieldPart, value: string | number) => {
+    const newPart = { ...field[part], [property]: value };
+    onUpdate(field.id, { [part]: newPart });
   };
   
-  const handleSubFieldChange = (subFieldIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    const newSubFields = [...field.subFields];
-    const numericValue = (name === 'x' || name === 'y' || name === 'width' || name === 'height') ? parseFloat(value) : value;
-    (newSubFields[subFieldIndex] as any)[name] = numericValue;
-    onUpdate(field.id, { subFields: newSubFields });
-  };
-
-  const handleSubFieldSelectChange = (subFieldIndex: number, value: 'inline' | 'block' | 'value_only') => {
-    const newSubFields = [...field.subFields];
-    newSubFields[subFieldIndex].displayMode = value;
-    onUpdate(field.id, { subFields: newSubFields });
+  const handleFieldIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onUpdate(field.id, { fieldId: e.target.value });
   }
 
-  const handleAddSubField = () => {
-    const newSubField: SubField = {
-      id: `${field.id}_sub_${Date.now()}`,
-      label: 'New Sub-field',
-      x: 0,
-      y: (field.subFields.length * 5), // Position new field below last one
-      width: field.width,
-      height: 5,
-      displayMode: 'inline',
-    };
-    onUpdate(field.id, { subFields: [...field.subFields, newSubField] });
-  };
-  
-  const handleDeleteSubField = (subFieldIndex: number) => {
-    const newSubFields = field.subFields.filter((_, index) => index !== subFieldIndex);
-    onUpdate(field.id, { subFields: newSubFields });
-  };
+  const renderPartEditor = (part: 'label' | 'value') => {
+    const data = field[part];
+    const title = part.charAt(0).toUpperCase() + part.slice(1);
+
+    return (
+      <AccordionItem value={part}>
+        <AccordionTrigger>{title}</AccordionTrigger>
+        <AccordionContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor={`${part}-text`}>{part === 'label' ? 'Label Text' : 'Data Field ID'}</Label>
+            <Input 
+              id={`${part}-text`} 
+              name="text" 
+              value={data.text} 
+              onChange={(e) => handleLayoutChange(part, 'text', e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
+              <Label htmlFor={`${part}-x`}>X (mm)</Label>
+              <Input id={`${part}-x`} name="x" type="number" value={data.x} onChange={(e) => handleLayoutChange(part, 'x', parseFloat(e.target.value))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`${part}-y`}>Y (mm)</Label>
+              <Input id={`${part}-y`} name="y" type="number" value={data.y} onChange={(e) => handleLayoutChange(part, 'y', parseFloat(e.target.value))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`${part}-width`}>Width (mm)</Label>
+              <Input id={`${part}-width`} name="width" type="number" value={data.width} onChange={(e) => handleLayoutChange(part, 'width', parseFloat(e.target.value))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`${part}-height`}>Height (mm)</Label>
+              <Input id={`${part}-height`} name="height" type="number" value={data.height} onChange={(e) => handleLayoutChange(part, 'height', parseFloat(e.target.value))} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${part}-className`}>CSS Class</Label>
+            <Input id={`${part}-className`} name="className" value={data.className || ''} onChange={(e) => handleLayoutChange(part, 'className', e.target.value)} />
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    );
+  }
 
   return (
     <Card className="w-full md:w-1/3 lg:w-1/4 h-fit sticky top-6">
@@ -66,84 +81,15 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
       <CardContent>
         <ScrollArea className="h-[calc(100vh-250px)] pr-4">
           <div className="space-y-6">
-            {/* Parent Field Editor */}
-            <div className="space-y-4 p-4 border rounded-lg">
-                <h4 className="font-medium">Main Container</h4>
-                <div className="space-y-2">
-                    <Label htmlFor="label">Label</Label>
-                    <Input id="label" name="label" value={field.label} onChange={handleParentChange} />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-2">
-                        <Label htmlFor="width">Width (mm)</Label>
-                        <Input id="width" name="width" type="number" value={field.width} onChange={handleParentChange} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="height">Height (mm)</Label>
-                        <Input id="height" name="height" type="number" value={field.height} onChange={handleParentChange} />
-                    </div>
-                </div>
-            </div>
-            
-            {/* Sub-fields Editor */}
             <div className="space-y-2">
-                <h4 className="font-medium">Sub-fields</h4>
-                 {field.subFields.map((sub, index) => (
-                    <div key={index} className="space-y-4 p-3 border rounded-md relative">
-                       <Button 
-                         variant="ghost" 
-                         size="icon" 
-                         className="absolute top-1 right-1 h-6 w-6"
-                         onClick={() => handleDeleteSubField(index)}
-                        >
-                           <Trash className="h-3 w-3 text-red-500"/>
-                        </Button>
-
-                       <div className="space-y-2">
-                           <Label htmlFor={`sub-id-${index}`}>Field ID</Label>
-                           <Input id={`sub-id-${index}`} name="id" value={sub.id} onChange={(e) => handleSubFieldChange(index, e)} />
-                       </div>
-                       <div className="space-y-2">
-                           <Label htmlFor={`sub-label-${index}`}>Label</Label>
-                           <Input id={`sub-label-${index}`} name="label" value={sub.label} onChange={(e) => handleSubFieldChange(index, e)} />
-                       </div>
-                       <div className="space-y-2">
-                          <Label htmlFor={`sub-display-mode-${index}`}>Display Mode</Label>
-                          <Select value={sub.displayMode || 'inline'} onValueChange={(value: 'inline' | 'block' | 'value_only') => handleSubFieldSelectChange(index, value)}>
-                            <SelectTrigger id={`sub-display-mode-${index}`}>
-                              <SelectValue placeholder="Select display mode" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="inline">Inline (Label: Value)</SelectItem>
-                              <SelectItem value="block">Block (Label on top)</SelectItem>
-                              <SelectItem value="value_only">Value Only</SelectItem>
-                            </SelectContent>
-                          </Select>
-                       </div>
-                       <div className="grid grid-cols-2 gap-2">
-                           <div className="space-y-2">
-                               <Label htmlFor={`sub-x-${index}`}>X (mm)</Label>
-                               <Input id={`sub-x-${index}`} name="x" type="number" value={sub.x} onChange={(e) => handleSubFieldChange(index, e)} />
-                           </div>
-                           <div className="space-y-2">
-                               <Label htmlFor={`sub-y-${index}`}>Y (mm)</Label>
-                               <Input id={`sub-y-${index}`} name="y" type="number" value={sub.y} onChange={(e) => handleSubFieldChange(index, e)} />
-                           </div>
-                           <div className="space-y-2">
-                               <Label htmlFor={`sub-width-${index}`}>Width (mm)</Label>
-                               <Input id={`sub-width-${index}`} name="width" type="number" value={sub.width} onChange={(e) => handleSubFieldChange(index, e)} />
-                           </div>
-                           <div className="space-y-2">
-                               <Label htmlFor={`sub-height-${index}`}>Height (mm)</Label>
-                               <Input id={`sub-height-${index}`} name="height" type="number" value={sub.height} onChange={(e) => handleSubFieldChange(index, e)} />
-                           </div>
-                       </div>
-                    </div>
-                ))}
-                 <Button variant="outline" size="sm" onClick={handleAddSubField} className="w-full mt-2">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Sub-field
-                </Button>
+                <Label htmlFor="fieldId">Field ID (for data linking)</Label>
+                <Input id="fieldId" name="fieldId" value={field.fieldId} onChange={handleFieldIdChange} />
             </div>
+
+            <Accordion type="multiple" defaultValue={['label', 'value']} className="w-full">
+              {renderPartEditor('label')}
+              {renderPartEditor('value')}
+            </Accordion>
           </div>
         </ScrollArea>
         {/* Actions */}

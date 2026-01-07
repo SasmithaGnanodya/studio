@@ -12,9 +12,10 @@ type DraggableFieldProps = {
   onDragStop: (id: string, x: number, y: number) => void;
   onClick: (id: string) => void;
   isSelected: boolean;
+  borderColor?: string;
 };
 
-export const DraggableField = ({ id, x, y, width, height, onDragStop, onClick, isSelected }: DraggableFieldProps) => {
+export const DraggableField = ({ id, x, y, width, height, onDragStop, onClick, isSelected, borderColor = 'blue' }: DraggableFieldProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
   const elementStartPos = useRef({ x: 0, y: 0 });
@@ -68,8 +69,8 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onClick, i
     width: `${width}px`,
     height: `${height}px`,
     cursor: isDragging ? 'grabbing' : 'grab',
-    border: isSelected ? '2px solid blue' : '1px dashed grey',
-    backgroundColor: isSelected ? 'rgba(0, 0, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+    border: isSelected ? `2px solid ${borderColor}` : `1px dashed ${borderColor}`,
+    backgroundColor: isSelected ? `rgba(0, 0, 255, 0.1)` : 'rgba(0, 0, 0, 0.05)',
     boxSizing: 'border-box',
     zIndex: isSelected ? 10 : 1,
   };
@@ -83,5 +84,3 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onClick, i
     />
   );
 };
-
-    

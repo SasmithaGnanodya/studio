@@ -1,9 +1,8 @@
 
 // src/components/ReportPage.tsx
 import React from 'react';
-import type { SubField } from '@/lib/types';
 
-type PrintField = {
+export type PrintField = {
   id: string;
   value: string | React.ReactNode;
   x: number;
@@ -14,8 +13,8 @@ type PrintField = {
 };
 
 type ReportPageProps = {
-  fields: (SubField & { value: string | React.ReactNode })[];
   staticLabels: PrintField[];
+  dynamicValues: PrintField[];
   isCalibrating: boolean;
 };
 
@@ -35,14 +34,14 @@ const renderField = (field: PrintField) => (
   </div>
 );
 
-export const ReportPage = ({ fields, staticLabels, isCalibrating }: ReportPageProps) => {
+export const ReportPage = ({ staticLabels, dynamicValues, isCalibrating }: ReportPageProps) => {
   return (
     <div className={`report-page ${isCalibrating ? 'calibration-mode' : ''}`}>
       {/* Render static labels */}
-      {isCalibrating && staticLabels.map(renderField)}
+      {staticLabels.map(renderField)}
       
       {/* Render dynamic data fields */}
-      {fields.map(renderField)}
+      {dynamicValues.map(renderField)}
     </div>
   );
 };

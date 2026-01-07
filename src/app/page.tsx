@@ -13,9 +13,8 @@ import { initialReportState, initialLayout } from '@/lib/initialReportState';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import type { FieldLayout, SubField } from '@/lib/types';
+import type { FieldLayout } from '@/lib/types';
 import { DataForm } from '@/components/DataForm';
-
 
 export default function Home() {
   const [reportData, setReportData] = useState(initialReportState);
@@ -31,10 +30,12 @@ export default function Home() {
         const layoutDoc = await getDoc(layoutDocRef);
         if (layoutDoc.exists()) {
           const data = layoutDoc.data();
-          // Ensure fields have a subFields array for backward compatibility
-          const validatedFields = data.fields.map((f: FieldLayout) => ({
-            ...f,
-            subFields: f.subFields || [{ id: f.id, label: f.label, x: 0, y: 0, width: f.width, height: f.height }]
+          // Ensure fields have a valid structure for backward compatibility
+          const validatedFields = data.fields.map((f: any) => ({
+            id: f.id,
+            fieldId: f.fieldId || f.id,
+            label: f.label || { text: 'Label', x: 10, y: 10, width: 50, height: 5 },
+            value: f.value || { text: f.fieldId || f.id, x: 10, y: 20, width: 50, height: 5 }
           }));
           setLayout(validatedFields as FieldLayout[]);
         }
@@ -52,45 +53,31 @@ export default function Home() {
     window.print();
   };
 
-  const { staticLabels, fieldsWithData } = useMemo(() => {
+  const { staticLabels, dynamicValues } = useMemo(() => {
     const staticLabels = layout.map(field => ({
       id: `label-${field.id}`,
-      value: field.label,
-      x: field.x,
-      y: field.y,
-      width: field.width,
-      height: field.height,
-      className: field.className
+      value: field.label.text,
+      x: field.label.x,
+      y: field.label.y,
+      width: field.label.width,
+      height: field.label.height,
+      className: field.label.className
     }));
 
-    const fieldsWithData = layout.flatMap(field =>
-      field.subFields ? field.subFields.map(sub => {
-        const value = reportData[sub.id as keyof typeof reportData] || '';
-        let displayValue;
-        switch (sub.displayMode) {
-          case 'block':
-            displayValue = sub.label ? `${sub.label}:\n${value}` : value;
-            break;
-          case 'value_only':
-            displayValue = value;
-            break;
-          case 'inline':
-          default:
-            displayValue = sub.label ? `${sub.label}: ${value}` : value;
-            break;
-        }
+    const dynamicValues = layout.map(field => {
+      const value = reportData[field.fieldId as keyof typeof reportData] || '';
+      return {
+        id: `value-${field.id}`,
+        value: value,
+        x: field.value.x,
+        y: field.value.y,
+        width: field.value.width,
+        height: field.value.height,
+        className: field.value.className
+      };
+    });
 
-        return {
-          ...sub,
-          value: displayValue,
-          // Position sub-field relative to parent container
-          x: field.x + (sub.x || 0),
-          y: field.y + (sub.y || 0),
-        }
-      }) : []
-    );
-
-    return { staticLabels, fieldsWithData };
+    return { staticLabels, dynamicValues };
   }, [layout, reportData]);
 
 
@@ -98,6 +85,11 @@ export default function Home() {
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
       <main className="flex flex-1 flex-col md:flex-row gap-4 p-4 lg:gap-6 lg:p-6 no-print">
+        <Card className="w-full md:w-1/3 lg:w-1/4 h-fit sticky top-6">
+            <CardContent className="pt-6">
+                <DataForm data={reportData} onChange={handleDataChange} />
+            </CardContent>
+        </Card>
         
         <div className="flex-1 flex flex-col gap-4">
           <Card>
@@ -123,7 +115,7 @@ export default function Home() {
           
           <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
             <div className={isPreview ? "preview-mode" : ""}>
-               <ReportPage fields={fieldsWithData} staticLabels={staticLabels} isCalibrating={isCalibrating} />
+               <ReportPage staticLabels={staticLabels} dynamicValues={dynamicValues} isCalibrating={isCalibrating} />
             </div>
           </div>
         </div>
@@ -131,7 +123,7 @@ export default function Home() {
       
       {/* Print-only view */}
       <div className="hidden print-view">
-        <ReportPage fields={fieldsWithData} staticLabels={staticLabels} isCalibrating={false} />
+        <ReportPage staticLabels={staticLabels} dynamicValues={dynamicValues} isCalibrating={false} />
       </div>
     </div>
   );
