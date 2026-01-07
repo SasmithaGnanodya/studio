@@ -45,12 +45,16 @@
     }
     body {
       -webkit-print-color-adjust: exact;
+      background: white;
     }
     .no-print {
       display: none !important;
     }
-    .print-background {
-      display: none !important;
+    .print-view {
+      display: block !important;
+    }
+    .preview-mode {
+      background-image: none !important;
     }
   }
 
@@ -60,6 +64,10 @@
     position: relative;
     margin: 0 auto;
     overflow: hidden;
+    font-family: 'Arial Narrow', sans-serif;
+    font-size: 11pt; 
+    font-weight: bold;
+    color: #000;
   }
 
   .field {
@@ -71,16 +79,23 @@
     display: flex;
     align-items: center;
     padding-left: 2mm;
-    height: 8mm;
+    white-space: nowrap;
   }
+  
+  .field.small { font-size: 9pt; }
+  .field.large { font-size: 14pt; }
 
   .calibration-mode .field {
     border: 1px solid red;
   }
 
-  .preview-mode {
+  .preview-mode .report-page {
     background-image: url('https://i.postimg.cc/tCRD1mPx/pre-printed-paper.jpg');
-    background-size: contain;
+    background-size: 210mm 297mm;
     background-repeat: no-repeat;
+  }
+
+  .print-view {
+    display: none;
   }
 }
