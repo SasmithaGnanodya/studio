@@ -33,7 +33,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
     onUpdate(field.id, { subFields: newSubFields });
   };
 
-  const handleSubFieldSelectChange = (subFieldIndex: number, value: 'inline' | 'block') => {
+  const handleSubFieldSelectChange = (subFieldIndex: number, value: 'inline' | 'block' | 'value_only') => {
     const newSubFields = [...field.subFields];
     newSubFields[subFieldIndex].displayMode = value;
     onUpdate(field.id, { subFields: newSubFields });
@@ -109,13 +109,14 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                        </div>
                        <div className="space-y-2">
                           <Label htmlFor={`sub-display-mode-${index}`}>Display Mode</Label>
-                          <Select value={sub.displayMode || 'inline'} onValueChange={(value: 'inline' | 'block') => handleSubFieldSelectChange(index, value)}>
+                          <Select value={sub.displayMode || 'inline'} onValueChange={(value: 'inline' | 'block' | 'value_only') => handleSubFieldSelectChange(index, value)}>
                             <SelectTrigger id={`sub-display-mode-${index}`}>
                               <SelectValue placeholder="Select display mode" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="inline">Inline (next to label)</SelectItem>
-                              <SelectItem value="block">Block (next line)</SelectItem>
+                              <SelectItem value="inline">Inline (Label: Value)</SelectItem>
+                              <SelectItem value="block">Block (Label on top)</SelectItem>
+                              <SelectItem value="value_only">Value Only</SelectItem>
                             </SelectContent>
                           </Select>
                        </div>

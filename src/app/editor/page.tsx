@@ -133,8 +133,20 @@ export default function EditorPage() {
     const fieldsWithData = fields.flatMap(field =>
       (field.subFields || []).map(sub => {
         const value = reportData[sub.id as keyof typeof reportData] || `[${sub.id}]`;
-        const separator = sub.displayMode === 'block' ? ':\n' : ': ';
-        const displayValue = sub.label ? `${sub.label}${separator}${value}` : value;
+        let displayValue;
+        switch (sub.displayMode) {
+          case 'block':
+            displayValue = sub.label ? `${sub.label}:\n${value}` : value;
+            break;
+          case 'value_only':
+            displayValue = value;
+            break;
+          case 'inline':
+          default:
+            displayValue = sub.label ? `${sub.label}: ${value}` : value;
+            break;
+        }
+
         return {
           ...sub,
           value: displayValue,

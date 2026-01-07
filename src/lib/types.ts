@@ -7,7 +7,7 @@ export type SubField = {
   width: number;
   height: number;
   className?: string;
-  displayMode?: 'inline' | 'block';
+  displayMode?: 'inline' | 'block' | 'value_only';
 };
 
 export type FieldLayout = {
