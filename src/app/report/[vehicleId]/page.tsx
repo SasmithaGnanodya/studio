@@ -49,7 +49,7 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
   };
 };
 
-export default function ReportBuilderPage({ params }: { params: { vehicleId: string } }) {
+export default function ReportBuilderPage({ params: { vehicleId: encodedVehicleId } }: { params: { vehicleId: string } }) {
   const [reportId, setReportId] = useState<string | null>(null);
   const [reportData, setReportData] = useState(initialReportState);
   const [layout, setLayout] = useState<FieldLayout[]>(initialLayout);
@@ -57,7 +57,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const [isCalibrating, setIsCalibrating] = useState(false);
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
-  const vehicleId = decodeURIComponent(params.vehicleId);
+  const vehicleId = decodeURIComponent(encodedVehicleId);
 
   // Fetch layout and report data
   useEffect(() => {
