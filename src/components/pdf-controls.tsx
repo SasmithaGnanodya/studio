@@ -30,19 +30,23 @@ export function PdfControls({
   pageDimensions
 }: PdfControlsProps) {
 
+  const canGeneratePdf = pageImages.length > 0;
+
   const [instance, updateInstance] = usePDF({
-    document: (
+    document: canGeneratePdf ? (
       <GeneratedPdfDocument 
         pageImages={pageImages}
         pageDimensions={pageDimensions}
         fields={fields}
       />
-    ),
+    ) : null,
   });
   
   useEffect(() => {
-    updateInstance();
-  }, [fields, pageImages, pageDimensions, updateInstance]);
+    if (canGeneratePdf) {
+      updateInstance();
+    }
+  }, [fields, pageImages, pageDimensions, updateInstance, canGeneratePdf]);
 
   const selectedField = fields.find(f => f.id === selectedFieldId);
 
@@ -92,7 +96,7 @@ export function PdfControls({
           >
             <Button 
               className="w-full" 
-              disabled={!pdfFile || instance.loading || !pageImages.length}
+              disabled={!pdfFile || instance.loading || !canGeneratePdf}
             >
               {instance.loading ? 'Generating...' : 'Download Filled PDF'}
             </Button>
