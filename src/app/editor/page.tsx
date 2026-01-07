@@ -106,14 +106,14 @@ export default function EditorPage() {
   }, []);
 
 
-  const updateFieldPartPosition = useCallback((fieldId: string, part: 'label' | 'value', xInPx: number, yInPx: number) => {
+  const updateFieldPartPosition = useCallback((fieldId: string, part: 'label' | 'value' | 'placeholder', xInPx: number, yInPx: number) => {
     setFields(prevFields =>
       prevFields.map(field => {
         if (field.id === fieldId) {
           return {
             ...field,
             [part]: {
-              ...field[part],
+              ...(field as any)[part],
               x: PX_TO_MM(xInPx),
               y: PX_TO_MM(yInPx),
             }
@@ -124,14 +124,14 @@ export default function EditorPage() {
     );
   }, []);
   
-  const updateFieldPartSize = useCallback((fieldId: string, part: 'label' | 'value', widthInPx: number, heightInPx: number) => {
+  const updateFieldPartSize = useCallback((fieldId: string, part: 'label' | 'value' | 'placeholder', widthInPx: number, heightInPx: number) => {
     setFields(prevFields =>
       prevFields.map(field => {
         if (field.id === fieldId) {
           return {
             ...field,
             [part]: {
-              ...field[part],
+              ...(field as any)[part],
               width: PX_TO_MM(widthInPx),
               height: PX_TO_MM(heightInPx),
             }
@@ -348,8 +348,8 @@ export default function EditorPage() {
                   y={MM_TO_PX(field.placeholder!.y)}
                   width={MM_TO_PX(field.placeholder!.width)}
                   height={MM_TO_PX(field.placeholder!.height)}
-                  onDragStop={(id, x, y) => updateFieldPosition(field.id, x, y)}
-                  onResizeStop={(id, w, h) => updateFieldSize(field.id, w, h)}
+                  onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'placeholder', x, y)}
+                  onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'placeholder', w, h)}
                   onClick={handleSelectField}
                   isSelected={field.id === selectedFieldId}
                   borderColor='purple'
