@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Header } from '@/components/header';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,7 @@ import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, initialLayout } from '@/lib/initialReportState';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp, updateDoc, limit } from 'firebase/firestore';
 import type { FieldLayout, FieldPart, ImageData, Report } from '@/lib/types';
 import { DataForm } from '@/components/DataForm';
 import { useToast } from '@/hooks/use-toast';
@@ -90,7 +90,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
 
         if (!querySnapshot.empty) {
             const reportDoc = querySnapshot.docs[0];
-            const report = reportDoc.data() as Report;
+            const report = reportDoc.data() as Omit<Report, 'id'>;
             setReportId(reportDoc.id);
             setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
             toast({
@@ -122,10 +122,12 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     }
 
     try {
+      const reportToSave = { ...reportData };
+      
       if (reportId) { // Existing report, update it
         const reportRef = doc(firestore, 'reports', reportId);
         await updateDoc(reportRef, {
-          reportData,
+          reportData: reportToSave,
           updatedAt: serverTimestamp(),
         });
         toast({ title: 'Report Updated', description: 'Your changes have been saved.' });
@@ -136,7 +138,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
           id: newReportRef.id,
           vehicleId,
           userId: user.uid,
-          reportData,
+          reportData: reportToSave,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
