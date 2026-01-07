@@ -69,6 +69,11 @@ export default function LandingPage() {
       handleCreateNew();
     }
   }
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    setSearchTerm(formattedValue);
+  };
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -87,9 +92,9 @@ export default function LandingPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Enter Vehicle Registration No (e.g., ABC-1234)"
+                  placeholder="Enter Vehicle Registration No (e.g., GV2233)"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={handleSearchChange}
                   onKeyDown={handleKeyDown}
                   className="pl-10 text-lg"
                 />
