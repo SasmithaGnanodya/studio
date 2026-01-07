@@ -3,28 +3,45 @@
 import React from 'react';
 import type { SubField } from '@/lib/types';
 
+type PrintField = {
+  id: string;
+  value: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  className?: string;
+};
+
 type ReportPageProps = {
   fields: (SubField & { value: string })[];
+  staticLabels: PrintField[];
   isCalibrating: boolean;
 };
 
-export const ReportPage = ({ fields, isCalibrating }: ReportPageProps) => {
+const renderField = (field: PrintField) => (
+  <div
+    key={field.id}
+    className={`field ${field.className || ''}`}
+    style={{
+      top: `${field.y}mm`,
+      left: `${field.x}mm`,
+      width: `${field.width}mm`,
+      height: `${field.height}mm`,
+    }}
+  >
+    {field.value}
+  </div>
+);
+
+export const ReportPage = ({ fields, staticLabels, isCalibrating }: ReportPageProps) => {
   return (
     <div className={`report-page ${isCalibrating ? 'calibration-mode' : ''}`}>
-      {fields.map(({ id, x, y, width, height, value, className }) => (
-        <div
-          key={id}
-          className={`field ${className || ''}`}
-          style={{
-            top: `${y}mm`,
-            left: `${x}mm`,
-            width: `${width}mm`,
-            height: `${height}mm`,
-          }}
-        >
-          {value}
-        </div>
-      ))}
+      {/* Render static labels */}
+      {isCalibrating && staticLabels.map(renderField)}
+      
+      {/* Render dynamic data fields */}
+      {fields.map(renderField)}
     </div>
   );
 };

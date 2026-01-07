@@ -52,8 +52,18 @@ export default function Home() {
     window.print();
   };
 
-  const fieldsWithData = useMemo(() => {
-    return layout.flatMap(field => 
+  const { staticLabels, fieldsWithData } = useMemo(() => {
+    const staticLabels = layout.map(field => ({
+      id: `label-${field.id}`,
+      value: field.label,
+      x: field.x,
+      y: field.y,
+      width: field.width,
+      height: field.height,
+      className: field.className
+    }));
+
+    const fieldsWithData = layout.flatMap(field =>
       field.subFields ? field.subFields.map(sub => ({
         ...sub,
         value: reportData[sub.id as keyof typeof reportData] || '',
@@ -62,6 +72,8 @@ export default function Home() {
         y: field.y + (sub.y || 0),
       })) : []
     );
+
+    return { staticLabels, fieldsWithData };
   }, [layout, reportData]);
 
 
@@ -99,7 +111,7 @@ export default function Home() {
           
           <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
             <div className={isPreview ? "preview-mode" : ""}>
-               <ReportPage fields={fieldsWithData} isCalibrating={isCalibrating} />
+               <ReportPage fields={fieldsWithData} staticLabels={staticLabels} isCalibrating={isCalibrating} />
             </div>
           </div>
         </div>
@@ -107,7 +119,7 @@ export default function Home() {
       
       {/* Print-only view */}
       <div className="hidden print-view">
-        <ReportPage fields={fieldsWithData} isCalibrating={false} />
+        <ReportPage fields={fieldsWithData} staticLabels={staticLabels} isCalibrating={false} />
       </div>
     </div>
   );
