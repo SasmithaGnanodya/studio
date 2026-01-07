@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from 'react';
-import { usePDF } from '@react-pdf/renderer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Download, PlusCircle, Trash2 } from 'lucide-react';
 import { GeneratedPdfDocument } from '@/components/generated-pdf-document';
 import type { Field } from '@/types';
+import { usePDF } from '@react-pdf/renderer';
+import { useEffect } from 'react';
 
 type PdfControlsProps = {
   fields: Field[];
@@ -20,6 +20,41 @@ type PdfControlsProps = {
   pageDimensions: {width: number, height: number}[];
 };
 
+// New component to isolate the usePDF hook
+function DownloadButton({ fields, pageImages, pageDimensions, pdfFile }: Omit<PdfControlsProps, 'selectedFieldId' | 'updateField' | 'deleteField'>) {
+    const [instance, updateInstance] = usePDF({
+        document: (
+          <GeneratedPdfDocument 
+            pageImages={pageImages}
+            pageDimensions={pageDimensions}
+            fields={fields}
+          />
+        ),
+      });
+
+    useEffect(() => {
+        updateInstance();
+    }, [fields, pageImages, pageDimensions, updateInstance]);
+
+    return (
+        <>
+            <a
+                href={instance.url ?? '#'}
+                download={`filled-${pdfFile?.name || 'document.pdf'}`}
+                className={`w-full ${!instance.url || instance.loading ? 'pointer-events-none' : ''}`}
+            >
+                <Button 
+                className="w-full" 
+                disabled={instance.loading}
+                >
+                {instance.loading ? 'Generating...' : 'Download Filled PDF'}
+                </Button>
+            </a>
+            {instance.error && <p className="mt-2 text-sm text-destructive">Error: {instance.error}</p>}
+        </>
+    )
+}
+
 export function PdfControls({
   fields,
   selectedFieldId,
@@ -30,24 +65,7 @@ export function PdfControls({
   pageDimensions
 }: PdfControlsProps) {
 
-  const canGeneratePdf = pageImages.length > 0;
-
-  const [instance, updateInstance] = usePDF({
-    document: canGeneratePdf ? (
-      <GeneratedPdfDocument 
-        pageImages={pageImages}
-        pageDimensions={pageDimensions}
-        fields={fields}
-      />
-    ) : null,
-  });
-  
-  useEffect(() => {
-    if (canGeneratePdf) {
-      updateInstance();
-    }
-  }, [fields, pageImages, pageDimensions, updateInstance, canGeneratePdf]);
-
+  const canGeneratePdf = pdfFile && pageImages.length > 0;
   const selectedField = fields.find(f => f.id === selectedFieldId);
 
   return (
@@ -89,19 +107,18 @@ export function PdfControls({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <a
-            href={instance.url ?? '#'}
-            download={`filled-${pdfFile?.name || 'document.pdf'}`}
-            className={`w-full ${!instance.url || instance.loading ? 'pointer-events-none' : ''}`}
-          >
-            <Button 
-              className="w-full" 
-              disabled={!pdfFile || instance.loading || !canGeneratePdf}
-            >
-              {instance.loading ? 'Generating...' : 'Download Filled PDF'}
-            </Button>
-          </a>
-          {instance.error && <p className="mt-2 text-sm text-destructive">Error: {instance.error}</p>}
+            {canGeneratePdf ? (
+                <DownloadButton 
+                    fields={fields}
+                    pageImages={pageImages}
+                    pageDimensions={pageDimensions}
+                    pdfFile={pdfFile}
+                />
+            ) : (
+                <Button className="w-full" disabled>
+                    Download Filled PDF
+                </Button>
+            )}
         </CardContent>
       </Card>
     </>
