@@ -1,190 +1,145 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
-import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Printer, Eye, Wrench, Edit } from 'lucide-react';
-import { ReportPage } from '@/components/ReportPage';
-import { initialReportState, initialLayout } from '@/lib/initialReportState';
-import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Search, PlusCircle, Car } from 'lucide-react';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import type { FieldLayout, FieldPart, ImageData } from '@/lib/types';
-import { DataForm } from '@/components/DataForm';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import type { Report } from '@/lib/types';
+import Link from 'next/link';
 
-const validateAndCleanFieldPart = (part: any): FieldPart => {
-  const defaults: FieldPart = {
-    text: '',
-    x: 0,
-    y: 0,
-    width: 50,
-    height: 5,
-    isBold: false,
-    color: '#000000',
-    inputType: 'text',
-    options: [],
-    objectFit: 'cover'
-  };
-
-  if (typeof part !== 'object' || part === null) {
-    return { ...defaults, text: String(part || '') };
-  }
-
-  return {
-    text: part.text || '',
-    x: part.x || 0,
-    y: part.y || 0,
-    width: part.width || 50,
-    height: part.height || 5,
-    isBold: part.isBold || false,
-    color: part.color || '#000000',
-    inputType: part.inputType || 'text',
-    options: part.options || [],
-    objectFit: part.objectFit || 'cover'
-  };
-};
-
-export default function Home() {
-  const [reportData, setReportData] = useState(initialReportState);
-  const [layout, setLayout] = useState<FieldLayout[]>(initialLayout);
-  const [isPreview, setIsPreview] = useState(true);
-  const [isCalibrating, setIsCalibrating] = useState(false);
+export default function LandingPage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<Report[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [noResults, setNoResults] = useState(false);
+  const router = useRouter();
   const { firestore, user } = useFirebase();
 
   useEffect(() => {
-    if (user && firestore) {
-      const fetchLayout = async () => {
-        const layoutDocRef = doc(firestore, `layouts/${user.uid}`);
-        const layoutDoc = await getDoc(layoutDocRef);
-        if (layoutDoc.exists()) {
-          const data = layoutDoc.data();
-           if (data.fields && Array.isArray(data.fields)) {
-            const validatedFields = data.fields.map((f: any) => ({
-              ...f,
-              fieldType: f.fieldType || 'text', // Default to text for old data
-              label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
-              value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
-              placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
-            }));
-            setLayout(validatedFields as FieldLayout[]);
-          }
-        }
-      };
-      fetchLayout();
-    } else {
-      setLayout(initialLayout);
+    if (!user || !firestore || searchTerm.length < 3) {
+      setSearchResults([]);
+      setNoResults(false);
+      return;
     }
-  }, [user, firestore]);
 
-  const handleDataChange = (name: string, value: string | ImageData) => {
-    setReportData(prev => ({ ...prev, [name]: value }));
+    setIsSearching(true);
+    const debounceTimeout = setTimeout(async () => {
+      const reportsRef = collection(firestore, `reports`);
+      const q = query(
+        reportsRef,
+        where('userId', '==', user.uid),
+        where('vehicleId', '>=', searchTerm.toUpperCase()),
+        where('vehicleId', '<=', searchTerm.toUpperCase() + '\uf8ff'),
+        limit(10)
+      );
+
+      try {
+        const querySnapshot = await getDocs(q);
+        const results: Report[] = [];
+        querySnapshot.forEach((doc) => {
+          results.push({ id: doc.id, ...(doc.data() as Omit<Report, 'id'>) });
+        });
+        setSearchResults(results);
+        setNoResults(results.length === 0);
+      } catch (error) {
+        console.error("Error searching reports: ", error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(debounceTimeout);
+  }, [searchTerm, firestore, user]);
+
+  const handleCreateNew = () => {
+    if (searchTerm) {
+      router.push(`/report/${searchTerm.toUpperCase()}`);
+    }
   };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const { staticLabels, dynamicValues, imageValues } = useMemo(() => {
-    const staticLabels = layout.filter(f => f.fieldType === 'text').map(field => ({
-      id: `label-${field.id}`,
-      value: field.label.text,
-      x: field.label.x,
-      y: field.label.y,
-      width: field.label.width,
-      height: field.label.height,
-      isBold: field.label.isBold,
-      color: field.label.color,
-    }));
-
-    const dynamicValues = layout.filter(f => f.fieldType === 'text').map(field => {
-      const value = reportData[field.fieldId as keyof typeof reportData] || '';
-      return {
-        id: `value-${field.id}`,
-        value: value,
-        x: field.value.x,
-        y: field.value.y,
-        width: field.value.width,
-        height: field.value.height,
-isBold: field.value.isBold,
-        color: field.value.color,
-      };
-    });
-
-    const imageValues = layout.filter(f => f.fieldType === 'image').map(field => {
-        const imageData = reportData[field.fieldId] || { url: '', scale: 1, x: 0, y: 0 };
-        return {
-            id: `image-${field.id}`,
-            value: imageData,
-            x: field.placeholder!.x,
-            y: field.placeholder!.y,
-            width: field.placeholder!.width,
-            height: field.placeholder!.height,
-            objectFit: field.placeholder!.objectFit
-        };
-    });
-
-    return { staticLabels, dynamicValues, imageValues };
-  }, [layout, reportData]);
-
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && noResults && searchTerm) {
+      handleCreateNew();
+    }
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
-      <main className="flex flex-1 flex-col md:flex-row gap-4 p-4 lg:gap-6 lg:p-6 no-print">
-        <Card className="w-full md:w-1/3 lg:w-1/4 h-fit sticky top-6">
-            <CardContent className="pt-6">
-                <DataForm layout={layout} data={reportData} onDataChange={handleDataChange} />
-            </CardContent>
-        </Card>
-        
-        <div className="flex-1 flex flex-col gap-4">
-          <Card>
-            <CardContent className="pt-6 flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <Switch id="preview-mode" checked={isPreview} onCheckedChange={setIsPreview} />
-                  <Label htmlFor="preview-mode" className="flex items-center gap-2"><Eye size={16}/> Preview</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch id="calibration-mode" checked={isCalibrating} onCheckedChange={setIsCalibrating} />
-                  <Label htmlFor="calibration-mode" className="flex items-center gap-2"><Wrench size={16}/> Calibrate</Label>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Link href="/editor" passHref>
-                  <Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit Layout</Button>
-                </Link>
-                <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Print to PDF</Button>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
-            <div className={isPreview ? "preview-mode" : ""}>
-               <ReportPage 
-                  staticLabels={staticLabels} 
-                  dynamicValues={dynamicValues}
-                  imageValues={imageValues}
-                  isCalibrating={isCalibrating} 
+      <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-6">
+        <Card className="w-full max-w-2xl">
+          <CardHeader>
+            <CardTitle className="text-2xl">Vehicle Report Database</CardTitle>
+            <CardDescription>
+              Search for an existing report by vehicle registration number or create a new one.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex w-full items-center space-x-2">
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Enter Vehicle Registration No (e.g., ABC-1234)"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="pl-10 text-lg"
                 />
+              </div>
+              {noResults && searchTerm && (
+                <Button onClick={handleCreateNew}>
+                  <PlusCircle className="mr-2 h-5 w-5" />
+                  Create New Report
+                </Button>
+              )}
             </div>
-          </div>
-        </div>
+
+            <div className="mt-6 min-h-[150px]">
+              {isSearching ? (
+                <p className="text-center text-muted-foreground">Searching...</p>
+              ) : searchResults.length > 0 ? (
+                <ul className="space-y-2">
+                  {searchResults.map((report) => (
+                    <li key={report.id}>
+                      <Link href={`/report/${report.vehicleId}`} passHref>
+                        <div className="flex items-center p-3 rounded-md border bg-card hover:bg-muted transition-colors cursor-pointer">
+                           <Car className="mr-4 h-5 w-5 text-primary" />
+                           <div className='flex-grow'>
+                            <p className="font-semibold">{report.vehicleId}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {report.reportData?.manufacturer} {report.reportData?.model} ({report.reportData?.manufactureYear})
+                            </p>
+                           </div>
+                           <p className='text-sm text-muted-foreground'>
+                              Last updated: {new Date(report.updatedAt.seconds * 1000).toLocaleDateString()}
+                           </p>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : noResults ? (
+                 <div className="text-center p-6 border-2 border-dashed rounded-lg">
+                  <p className="text-muted-foreground">No reports found for '<span className='font-semibold text-foreground'>{searchTerm}</span>'.</p>
+                  <p className="text-sm text-muted-foreground mt-1">You can create a new one.</p>
+                </div>
+              ) : (
+                <div className="text-center p-6 border-2 border-dashed rounded-lg">
+                  <p className="text-muted-foreground">Enter a vehicle number to begin.</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </main>
-      
-      {/* Print-only view */}
-      <div className="hidden print-view">
-         <ReportPage 
-            staticLabels={staticLabels} 
-            dynamicValues={dynamicValues}
-            imageValues={imageValues}
-            isCalibrating={false} 
-          />
-      </div>
     </div>
   );
 }

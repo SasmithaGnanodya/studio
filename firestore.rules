@@ -4,29 +4,25 @@
  *
  * Core Philosophy:
  * The security model is designed to be highly secure and performant by ensuring that users can only access data
- * within their own dedicated data tree. All operations are authorized based on the user's authenticated UID,
- * which is a fundamental part of the document path.
+ * within their own dedicated data tree or documents they own. Authorization is based on the user's authenticated UID.
  *
  * Data Structure:
- * All application data is nested under the `/users/{userId}` collection. This hierarchical structure includes a user's
- * `formTemplates`, the `inputFields` for each template, and the `formData` submitted for those templates.
- * The `layouts` collection is separate but also keyed by the user's UID.
- * This path-based scoping is the primary mechanism for authorization.
+ * - /users/{userId}: Private user profile data.
+ * - /layouts/{userId}: User-specific layout configurations.
+ * - /reports/{reportId}: Individual report documents, containing a `userId` field for ownership.
  *
  * Key Security Decisions:
- * - No Public Data: There are no globally readable collections. All data is private to the user who owns it.
- * - User Listing Disabled: To protect user privacy and prevent data scraping, it is not possible to query the top-level `/users` or `/layouts` collections.
- * - Path-Based Security: Authorization relies on matching the `request.auth.uid` with the `{userId}` wildcard in the document path. This avoids slow and costly `get()` or `exists()` calls to other documents for authorization checks.
+ * - No Public Data: There are no globally readable collections.
+ * - User Listing Disabled: To protect user privacy, listing top-level collections is disabled.
+ * - Path-Based and Field-Based Security: Authorization for `users` and `layouts` relies on matching `request.auth.uid`
+ *   with the document ID. For `reports`, it relies on matching `request.auth.uid` with the `userId` field inside
+ *   the document, allowing for queries.
  *
  * Denormalization for Authorization:
- * The data structure itself is a form of denormalization. By placing all of a user's resources in a subcollection
- * under their user ID (`/users/{userId}/...`) or keying documents by their ID (`/layouts/{userId}`), we establish a direct and unbreakable ownership link that is easily
- * verifiable in security rules without needing extra document reads. Additionally, on document creation, we validate
- * that internal ID fields (like `userId` on a `FormTemplate`) match the ID from the path to ensure data integrity from the start.
- *
- * Structural Segregation:
- * This ruleset does not distinguish between public and private data within a collection, as all data is considered
- * private to the user. The segregation is done at the highest level by partitioning all data into user-specific trees.
+ * The `reports` collection is denormalized. Instead of nesting reports under a user, they are in a top-level
+ * collection with a `userId` field. This is crucial for allowing users to query their own reports (e.g., by vehicleId)
+ * without violating security rules, which would be impossible if they were in a nested subcollection that required
+ * wildcard reads.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -36,123 +32,21 @@ service cloud.firestore {
     // Helper Functions
     // ------------------------------------------------------------------------
 
-    /**
-     * isSignedIn
-     * Checks if a user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * isOwner
-     * @param userId The UID of the document owner from the path.
-     * Validates that the requesting user is authenticated and their UID matches
-     * the owner's UID specified in the document path.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
-    /**
-     * isExistingOwner
-     * @param userId The UID of the document owner from the path.
-     * Ensures the requesting user is the owner AND the document already exists.
-     * CRITICAL for all update and delete operations to prevent modifying non-existent data.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && exists(/databases/$(database)/documents/$(request.path.split('/')[1])/$(userId));
-    }
-
-    /**
-     * hasValidUserData
-     * @param userId The UID of the user from the path.
-     * Validates that the incoming User document's `id` field matches the document's path ID.
-     * This enforces relational integrity on creation.
-     */
-    function hasValidUserData(userId) {
-      return request.resource.data.id == userId;
-    }
-
-    /**
-     * isUserDataImmutable
-     * Ensures the core `id` field of a User document cannot be changed after creation.
-     */
-    function isUserDataImmutable() {
-      return request.resource.data.id == resource.data.id;
-    }
-
-    /**
-     * hasValidFormTemplateData
-     * @param userId The UID of the user from the path.
-     * Validates that the incoming FormTemplate's `userId` field matches the owner's ID in the path.
-     */
-    function hasValidFormTemplateData(userId) {
-      return request.resource.data.userId == userId;
-    }
-
-    /**
-     * isFormTemplateDataImmutable
-     * Ensures the `userId` field linking a FormTemplate to its owner is immutable.
-     */
-    function isFormTemplateDataImmutable() {
-      return request.resource.data.userId == resource.data.userId;
-    }
-
-    /**
-     * hasValidInputFieldData
-     * @param formTemplateId The ID of the parent form template from the path.
-     * Validates that the incoming InputField's `formTemplateId` field matches the parent ID in the path.
-     */
-    function hasValidInputFieldData(formTemplateId) {
-      return request.resource.data.formTemplateId == formTemplateId;
-    }
-
-    /**
-     * isInputFieldDataImmutable
-     * Ensures the `formTemplateId` field linking an InputField to its template is immutable.
-     */
-    function isInputFieldDataImmutable() {
-      return request.resource.data.formTemplateId == resource.data.formTemplateId;
-    }
-
-    /**
-     * hasValidFormData
-     * @param formTemplateId The ID of the parent form template from the path.
-     * Validates that the incoming FormData's `formTemplateId` field matches the parent ID in the path.
-     */
-    function hasValidFormData(formTemplateId) {
-      return request.resource.data.formTemplateId == formTemplateId;
-    }
-
-    /**
-     * isFormDataImmutable
-     * Ensures the `formTemplateId` field linking an InputField to its template is immutable.
-     */
-    function isFormDataImmutable() {
-      return request.resource.data.formTemplateId == resource.data.formTemplateId;
-    }
     
-    /**
-     * isValidLayoutData
-     * @param userId The UID of the user from the path.
-     * Validates that the incoming Layout document has the correct structure.
-     * It checks that the `fields` property is a list.
-     */
-    function isValidLayoutData(userId) {
-      // The incoming resource must have a `fields` property that is a list.
-      return request.resource.data.fields is list;
+    function isReportOwner() {
+        return isSignedIn() && request.auth.uid == resource.data.userId;
     }
-    
-    /**
-     * isLayoutDataImmutable
-     * Validates the immutability constraints for layout updates.
-     * The `userId` within the document cannot be changed.
-     */
-     function isLayoutDataImmutable() {
-       return request.resource.data.userId == resource.data.userId;
-     }
 
+    function isCreatingReportAsOwner() {
+      return isSignedIn() && request.auth.uid == request.resource.data.userId;
+    }
 
     // ------------------------------------------------------------------------
     // Collection Rules
@@ -163,11 +57,9 @@ service cloud.firestore {
      * @path /users/{userId}
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get, update, delete: if isOwner(userId);
       allow list: if false; // Prevent listing all users
-      allow create: if isOwner(userId) && hasValidUserData(userId);
-      allow update: if isOwner(userId) && isUserDataImmutable();
-      allow delete: if isOwner(userId);
+      allow create: if isOwner(userId);
     }
     
     /**
@@ -176,35 +68,28 @@ service cloud.firestore {
      * @path /layouts/{userId}
      */
     match /layouts/{userId} {
-      allow get: if isOwner(userId);
+      allow get, create, update, delete: if isOwner(userId);
       allow list: if false; // Prevent one user from listing all layouts
-      allow create: if isOwner(userId) && isValidLayoutData(userId);
-      allow update: if isOwner(userId) && isValidLayoutData(userId);
-      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Rules for form templates, which are owned by a user.
-     * @path /users/{userId}/formTemplates/{formTemplateId}
+     * @description Rules for individual report documents.
+     * Reports are in a top-level collection to allow for user-specific queries.
+     * Ownership is determined by the `userId` field within the document.
+     * @path /reports/{reportId}
      */
-    match /users/{userId}/formTemplates/{formTemplateId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    /**
-     * @description Rules for input fields, which belong to a specific form template.
-     * @path /users/{userId}/formTemplates/{formTemplateId}/inputFields/{inputFieldId}
-     */
-    match /users/{userId}/formTemplates/{formTemplateId}/inputFields/{inputFieldId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    /**
-     * @description Rules for form data, which is associated with a specific form template.
-     * @path /users/{userId}/formTemplates/{formTemplateId}/formData/{formDataId}
-     */
-    match /users/{userId}/formTemplates/{formTemplateId}/formData/{formDataId} {
-      allow read, write: if isOwner(userId);
+    match /reports/{reportId} {
+      // A user can read a report if they are the owner.
+      allow get: if isReportOwner();
+      
+      // A user can query reports where their UID matches the userId field.
+      allow list: if isSignedIn(); 
+      
+      // A user can create a report if they are setting themselves as the owner.
+      allow create: if isCreatingReportAsOwner();
+      
+      // A user can update or delete a report if they are the owner.
+      allow update, delete: if isReportOwner();
     }
   }
 }

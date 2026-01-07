@@ -19,7 +19,7 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
   const renderedFieldIds = new Set<string>();
 
   return (
-    <ScrollArea className="h-[calc(100vh-12rem)]">
+    <ScrollArea className="h-[calc(100vh-16rem)]">
       <div className="space-y-6 p-1">
         {layout.map((field) => {
           if (renderedFieldIds.has(field.fieldId)) {
@@ -62,6 +62,7 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
                     name={field.fieldId}
                     value={data[field.fieldId] || ''}
                     onChange={(e) => onDataChange(e.target.name, e.target.value)}
+                    disabled={field.fieldId === 'regNumber'}
                   />
                 )}
               </div>

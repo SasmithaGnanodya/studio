@@ -161,6 +161,38 @@
         }
       },
       "required": ["userId", "fields"]
+    },
+    "Report": {
+      "title": "Report",
+      "type": "object",
+      "description": "Represents a single, complete vehicle valuation report.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique ID of the report document."
+        },
+        "vehicleId": {
+          "type": "string",
+          "description": "The vehicle registration number, used for searching."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who created the report."
+        },
+        "reportData": {
+          "type": "object",
+          "description": "A key-value map of all data entered for the report."
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Timestamp when the report was created."
+        },
+        "updatedAt": {
+          "type": "number",
+          "description": "Timestamp when the report was last updated."
+        }
+      },
+      "required": ["id", "vehicleId", "userId", "reportData", "createdAt", "updatedAt"]
     }
   },
   "auth": {
@@ -189,74 +221,6 @@
         }
       },
       {
-        "path": "/users/{userId}/formTemplates/{formTemplateId}",
-        "definition": {
-          "entityName": "FormTemplate",
-          "schema": {
-            "$ref": "#/backend/entities/FormTemplate"
-          },
-          "description": "Collection of form templates owned by a specific user.  The userId is denormalized from the document, but is primarily enforced by the path.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the user who owns the form template."
-            },
-            {
-              "name": "formTemplateId",
-              "description": "The unique identifier of the form template."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/formTemplates/{formTemplateId}/inputFields/{inputFieldId}",
-        "definition": {
-          "entityName": "InputField",
-          "schema": {
-            "$ref": "#/backend/entities/InputField"
-          },
-          "description": "Collection of input fields associated with a specific form template.  Parent is the user and form template.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the user who owns the form template."
-            },
-            {
-              "name": "formTemplateId",
-              "description": "The unique identifier of the form template."
-            },
-            {
-              "name": "inputFieldId",
-              "description": "The unique identifier of the input field."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/formTemplates/{formTemplateId}/formData/{formDataId}",
-        "definition": {
-          "entityName": "FormData",
-          "schema": {
-            "$ref": "#/backend/entities/FormData"
-          },
-          "description": "Collection of form data associated with a specific form template.  Parent is the user and form template.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the user who owns the form template."
-            },
-            {
-              "name": "formTemplateId",
-              "description": "The unique identifier of the form template."
-            },
-            {
-              "name": "formDataId",
-              "description": "The unique identifier of the form data."
-            }
-          ]
-        }
-      },
-      {
         "path": "/layouts/{userId}",
         "definition": {
             "entityName": "Layout",
@@ -267,8 +231,19 @@
                 "description": "The UID of the user who owns this layout."
             }]
         }
+      },
+      {
+        "path": "/reports/{reportId}",
+        "definition": {
+          "entityName": "Report",
+          "schema": { "$ref": "#/entities/Report" },
+          "description": "Stores complete, individual valuation reports. Denormalized for easy searching.",
+          "params": [{
+            "name": "reportId",
+            "description": "The unique ID of the report."
+          }]
+        }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to provide a secure and scalable backend for the FormFlow PDF Filler application, emphasizing authorization independence, clarity, and adherence to Firestore best practices.\n\nThe primary goal is to eliminate the need for `get()` calls in security rules by denormalizing authorization data.  Since FormTemplates and associated data (InputFields, FormData) are owned by a specific user, we leverage path-based ownership using the `/users/{userId}` path. This simplifies security rules and allows atomic operations.\n\nAuthorization Independence (Denormalization): The `FormTemplates` collection is nested under `/users/{userId}`. This inherently associates each template with its owner. The `FormData` is linked to a specific `InputField` and `FormTemplate` via IDs. While we could nest `InputFields` and `FormData` further, the expected access patterns (listing all form data for a template) benefit from a flatter structure. This design facilitates secure `list` operations, because each collection has homogeneous security requirements (owned by the user in the path)."
+    ]
   }
 }

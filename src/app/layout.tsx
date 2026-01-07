@@ -4,8 +4,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'Valuation Report Generator',
-  description: 'Generate pixel-perfect valuation reports',
+  title: 'FormFlow PDF Filler',
+  description: 'Generate pixel-perfect PDF forms',
 };
 
 export default function RootLayout({

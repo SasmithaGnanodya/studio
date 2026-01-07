@@ -27,3 +27,12 @@ export type ImageData = {
   x: number;
   y: number;
 };
+
+export type Report = {
+  id: string;
+  vehicleId: string; // e.g. registration number
+  userId: string;
+  reportData: { [key: string]: any };
+  createdAt: number;
+  updatedAt: number;
+};
