@@ -37,10 +37,10 @@ export const DraggableField = ({ id, label, x, y, width, height, onDragStop, onC
     onClick(id); 
     setIsDragging(true);
     dragStartPos.current = { x: e.clientX, y: e.clientY };
-    elementStartPos.current = { x, y }; // Use x/y from props for start pos
+    elementStartPos.current = { x: position.x, y: position.y };
     e.preventDefault();
     e.stopPropagation();
-  }, [id, onClick, x, y]);
+  }, [id, onClick, position.x, position.y]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
