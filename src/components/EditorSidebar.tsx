@@ -56,7 +56,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
         <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[calc(100vh-200px)] pr-4">
+        <ScrollArea className="h-[calc(100vh-250px)] pr-4">
           <div className="space-y-6">
             {/* Parent Field Editor */}
             <div className="space-y-4 p-4 border rounded-lg">
@@ -123,15 +123,17 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Sub-field
                 </Button>
             </div>
-
-            {/* Actions */}
-            <div className="pt-4">
-                 <Button variant="destructive" onClick={() => onDelete(field.id)} className="w-full">
-                    <Trash className="mr-2 h-4 w-4" /> Delete Field
-                </Button>
-            </div>
           </div>
         </ScrollArea>
+        {/* Actions */}
+        <div className="pt-4 mt-4 border-t">
+              <Button variant="outline" onClick={onClose} className="w-full mb-2">
+                Close
+             </Button>
+             <Button variant="destructive" onClick={() => onDelete(field.id)} className="w-full">
+                <Trash className="mr-2 h-4 w-4" /> Delete Field
+            </Button>
+        </div>
       </CardContent>
     </Card>
   );
