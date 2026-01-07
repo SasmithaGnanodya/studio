@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import type { Field } from '@/app/page';
+import type { Field } from '@/types';
 
 type DraggableInputFieldProps = {
   field: Field;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
-import type { Field } from '@/app/page';
+import type { Field } from '@/types';
 
 type GeneratedPdfDocumentProps = {
   pageImages: string[];

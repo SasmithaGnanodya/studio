@@ -1,27 +1,37 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Header } from '@/components/header';
-import { PdfWorkspace } from '@/components/pdf-workspace';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Download, PlusCircle, Trash2, Upload } from 'lucide-react';
-import { usePDF } from '@react-pdf/renderer';
-import { GeneratedPdfDocument } from '@/components/generated-pdf-document';
+import { Upload, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from '@/components/ui/textarea';
+import type { Field } from '@/types';
 
-export type Field = {
-  id: string;
-  page: number;
-  x: number; // percentage
-  y: number; // percentage
-  width: number; // percentage
-  height: number; // percentage
-  value: string;
-};
+const PdfWorkspace = dynamic(() => import('@/components/pdf-workspace').then(mod => mod.PdfWorkspace), {
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-col items-center justify-center h-full text-center rounded-lg border-2 border-dashed">
+      <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      <h3 className="mt-4 text-lg font-semibold">Loading PDF Workspace...</h3>
+    </div>
+  ),
+});
+
+const PdfControls = dynamic(() => import('@/components/pdf-controls').then(mod => mod.PdfControls), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full md:w-80 lg:w-96 flex flex-col gap-4">
+      <Card>
+        <CardHeader><CardTitle>Loading Controls...</CardTitle></CardHeader>
+        <CardContent><Loader2 className="h-8 w-8 animate-spin" /></CardContent>
+      </Card>
+    </div>
+    ),
+});
+
 
 export default function Home() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -31,16 +41,6 @@ export default function Home() {
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   
   const { toast } = useToast();
-
-  const [instance, updateInstance] = usePDF({
-    document: (
-      <GeneratedPdfDocument 
-        pageImages={pageImages}
-        pageDimensions={pageDimensions}
-        fields={fields}
-      />
-    ),
-  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -87,13 +87,6 @@ export default function Home() {
     }
   };
 
-  const selectedField = fields.find(f => f.id === selectedFieldId);
-
-  useEffect(() => {
-    updateInstance();
-  }, [fields, pageImages, pageDimensions, updateInstance]);
-
-
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
@@ -113,58 +106,16 @@ export default function Home() {
             </CardContent>
           </Card>
           
-          <Card className="flex-1">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <PlusCircle className="h-5 w-5" />
-                <span>2. Add & Edit Fields</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground">Click on the PDF preview to add an input field. Select a field to edit its content here.</p>
-              {selectedField ? (
-                <div className="space-y-2">
-                  <Label htmlFor="field-content">Selected Field Content</Label>
-                  <Textarea
-                    id="field-content"
-                    className="min-h-[100px]"
-                    value={selectedField.value}
-                    onChange={(e) => updateField(selectedField.id, { value: e.target.value })}
-                  />
-                  <Button variant="destructive" size="sm" onClick={() => deleteField(selectedField.id)}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Field
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground italic border rounded-lg p-4 text-center">No field selected.</div>
-              )}
-            </CardContent>
-          </Card>
+          <PdfControls
+            fields={fields}
+            selectedFieldId={selectedFieldId}
+            updateField={updateField}
+            deleteField={deleteField}
+            pdfFile={pdfFile}
+            pageImages={pageImages}
+            pageDimensions={pageDimensions}
+          />
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Download className="h-5 w-5" />
-                <span>3. Export</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <a
-                href={instance.url ?? '#'}
-                download={`filled-${pdfFile?.name || 'document.pdf'}`}
-                className={`w-full ${!instance.url || instance.loading ? 'pointer-events-none' : ''}`}
-              >
-                <Button 
-                  className="w-full" 
-                  disabled={!pdfFile || instance.loading || !pageImages.length}
-                >
-                  {instance.loading ? 'Generating...' : 'Download Filled PDF'}
-                </Button>
-              </a>
-              {instance.error && <p className="mt-2 text-sm text-destructive">Error: {instance.error}</p>}
-            </CardContent>
-          </Card>
         </aside>
 
         <div className="flex-1 rounded-lg border bg-card shadow-sm p-4 min-h-[600px] md:min-h-0">
