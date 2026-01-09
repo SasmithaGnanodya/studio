@@ -1,4 +1,5 @@
 
+
 export type FieldPart = {
   text: string; // The static text for a label, or the data ID for a value
   x: number;
@@ -22,6 +23,14 @@ export type FieldLayout = {
   placeholder?: FieldPart; // Used for image fields
 };
 
+// New type for a complete layout document
+export type LayoutDocument = {
+  id: string;
+  fields: FieldLayout[];
+  version: number;
+  createdAt: { seconds: number; nanoseconds: number; };
+}
+
 export type ImageData = {
   url: string;
   scale: number;
@@ -30,11 +39,13 @@ export type ImageData = {
 };
 
 export type Report = {
-  id: string;
+  id:string;
   vehicleId: string; // e.g. registration number
   userId: string;
   userName?: string; // Add userName to the report
   reportData: { [key: string]: any };
   createdAt: { seconds: number, nanoseconds: number };
   updatedAt: { seconds: number, nanoseconds: number };
+  layoutId: string; // <-- Link to the layout version
 };
+

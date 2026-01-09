@@ -9,14 +9,14 @@
  *
  * Data Structure:
  * - /users/{userId}: Private user profile data.
- * - /layouts/shared: A single, shared layout configuration for all users.
+ * - /layouts/{layoutId}: Stores versioned layouts. `config` doc holds current version.
  * - /reports/{reportId}: Individual report documents, containing a `userId` field for ownership. This collection
  *   is readable by all signed-in users, but writable only by the owner or an admin.
  *
  * Key Security Decisions:
- * - Admin Override: A designated admin user can edit or delete any report and the shared layout.
+ * - Admin Override: A designated admin user can edit or delete any report and any layout.
  * - Public Report Data: The `reports` collection is readable by any signed-in user.
- * - Shared Layout: The `layouts/shared` document is readable by any signed-in user, but writable only by an admin.
+ * - Public Layout Data: The `layouts` collection is readable by any signed-in user, but writable only by an admin.
  * - User Listing Disabled: To protect user privacy, listing top-level collections like `users` is disabled.
  * - Path-Based and Field-Based Security: Authorization for `users` relies on matching `request.auth.uid`
  *   with the document ID. For `reports`, write authorization relies on matching `request.auth.uid` with the `userId` field inside
@@ -65,14 +65,14 @@ service cloud.firestore {
     }
     
     /**
-     * @description Rules for the shared form field layout.
-     * Any signed-in user can read the layout, but only an admin can change it.
-     * @path /layouts/shared
+     * @description Rules for the layout documents.
+     * Any signed-in user can read any layout version.
+     * Only an admin can create, update, or delete layouts.
+     * @path /layouts/{layoutId}
      */
     match /layouts/{layoutId} {
-      allow get: if isSignedIn() && layoutId == 'shared';
-      allow create, update, delete: if isAdmin() && layoutId == 'shared';
-      allow list: if false; // Prevent listing all layouts
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
 
     /**

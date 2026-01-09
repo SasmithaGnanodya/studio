@@ -7,16 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Printer, Eye, Wrench, Edit, Save, User as UserIcon } from 'lucide-react';
+import { Printer, Eye, Wrench, Save, User as UserIcon, RefreshCw, AlertTriangle } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, initialLayout } from '@/lib/initialReportState';
-import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp, updateDoc, limit } from 'firebase/firestore';
-import type { FieldLayout, FieldPart, ImageData, Report } from '@/lib/types';
+import type { FieldLayout, FieldPart, ImageData, Report, LayoutDocument } from '@/lib/types';
 import { DataForm } from '@/components/DataForm';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const validateAndCleanFieldPart = (part: any): FieldPart => {
   const defaults: FieldPart = {
@@ -57,6 +57,9 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const [reportCreator, setReportCreator] = useState<string | null>(null);
   const [reportData, setReportData] = useState(initialReportState);
   const [layout, setLayout] = useState<FieldLayout[]>(initialLayout);
+  const [layoutVersion, setLayoutVersion] = useState<number | null>(null);
+  const [latestLayoutId, setLatestLayoutId] = useState<string | null>(null);
+  const [isLatestLayout, setIsLatestLayout] = useState(true);
   const [isPreview, setIsPreview] = useState(true);
   const [isCalibrating, setIsCalibrating] = useState(false);
   const { firestore, user } = useFirebase();
@@ -70,76 +73,87 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     if (vehicleId) {
       document.title = vehicleId;
     }
-    // Return a cleanup function to reset the title
     return () => {
       document.title = 'FormFlow PDF Filler';
     };
   }, [vehicleId]);
 
-  // Fetch layout and report data
+  // Fetch layout config and then report data
   useEffect(() => {
     if (!user || !firestore) return;
 
-    // Fetch Layout
-    const fetchLayout = async () => {
-      const layoutDocRef = doc(firestore, 'layouts', 'shared');
-      const layoutDoc = await getDoc(layoutDocRef);
-      if (layoutDoc.exists()) {
-        const data = layoutDoc.data();
-         if (data.fields && Array.isArray(data.fields)) {
-          const validatedFields = data.fields.map((f: any) => ({
-            ...f,
-            fieldType: f.fieldType || 'text',
-            label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
-            value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
-            placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
-          }));
-          setLayout(validatedFields as FieldLayout[]);
-        }
-      }
-    };
-
-    // Fetch Report Data
-    const fetchReportData = async () => {
-        const reportsRef = collection(firestore, `reports`);
-        const q = query(reportsRef, where('vehicleId', '==', vehicleId), limit(1));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-            const reportDoc = querySnapshot.docs[0];
-            const report = reportDoc.data() as Omit<Report, 'id'>;
-            setReportId(reportDoc.id);
-            setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
-
-            if (report.userName) {
-              setReportCreator(report.userName);
-            } else if (report.userId) {
-              // Fallback for older reports: fetch user name from users collection
-              const userDocRef = doc(firestore, 'users', report.userId);
-              const userDoc = await getDoc(userDocRef);
-              if (userDoc.exists()) {
-                setReportCreator(userDoc.data()?.name || 'Unknown User');
-              }
-            }
-
-            toast({
-                title: "Report Loaded",
-                description: `Loaded existing report for ${vehicleId}.`,
-            });
-        } else {
-            setReportId(null); // Explicitly a new report
-            setReportCreator(user.displayName); // Current user is the creator
-            setReportData({ ...initialReportState, regNumber: vehicleId });
-            toast({
-                title: "New Report",
-                description: `Creating a new report for ${vehicleId}.`,
-            });
+    const fetchLayoutConfig = async () => {
+        const configRef = doc(firestore, 'layouts', 'config');
+        const configSnap = await getDoc(configRef);
+        if (configSnap.exists()) {
+            setLatestLayoutId(configSnap.data().currentId);
         }
     };
     
-    fetchLayout();
-    fetchReportData();
-  }, [user, firestore, vehicleId, toast]);
+    fetchLayoutConfig().then(() => {
+        fetchReportAndLayout();
+    });
+
+  }, [user, firestore, vehicleId]);
+
+  const fetchLayoutById = async (layoutId: string) => {
+    if (!firestore) return;
+    const layoutDocRef = doc(firestore, 'layouts', layoutId);
+    const layoutDoc = await getDoc(layoutDocRef);
+    if (layoutDoc.exists()) {
+      const data = layoutDoc.data() as LayoutDocument;
+      if (data.fields && Array.isArray(data.fields)) {
+        const validatedFields = data.fields.map((f: any) => ({
+          ...f,
+          fieldType: f.fieldType || 'text',
+          label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
+          value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
+          placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
+        }));
+        setLayout(validatedFields as FieldLayout[]);
+        setLayoutVersion(data.version);
+        return data;
+      }
+    }
+    return null;
+  }
+
+  const fetchReportAndLayout = async () => {
+      if (!firestore || !user || !latestLayoutId) return;
+
+      const reportsRef = collection(firestore, `reports`);
+      const q = query(reportsRef, where('vehicleId', '==', vehicleId), limit(1));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) { // Existing report
+          const reportDoc = querySnapshot.docs[0];
+          const report = reportDoc.data() as Report;
+          setReportId(reportDoc.id);
+          setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
+          
+          await fetchLayoutById(report.layoutId);
+          setIsLatestLayout(report.layoutId === latestLayoutId);
+
+          if (report.userName) setReportCreator(report.userName);
+          
+          toast({
+              title: "Report Loaded",
+              description: `Loaded existing report for ${vehicleId}.`,
+          });
+      } else { // New report
+          setReportId(null);
+          setReportCreator(user.displayName);
+          setReportData({ ...initialReportState, regNumber: vehicleId });
+          
+          await fetchLayoutById(latestLayoutId);
+          setIsLatestLayout(true);
+          
+          toast({
+              title: "New Report",
+              description: `Creating a new report for ${vehicleId}.`,
+          });
+      }
+  };
 
   const handleDataChange = (name: string, value: string | ImageData) => {
     setReportData(prev => ({ ...prev, [name]: value }));
@@ -153,12 +167,19 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
 
     try {
       const reportToSave = { ...reportData };
-      
+      const currentLayoutId = isLatestLayout ? latestLayoutId : (await getDoc(doc(firestore, 'reports', reportId!))).data()?.layoutId;
+
+      if (!currentLayoutId) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not determine layout version.' });
+        return;
+      }
+
       if (reportId) { // Existing report, update it
         const reportRef = doc(firestore, 'reports', reportId);
         await updateDoc(reportRef, {
           reportData: reportToSave,
           updatedAt: serverTimestamp(),
+          layoutId: currentLayoutId, // Ensure layoutId is persisted
         });
         toast({ title: 'Report Updated', description: 'Your changes have been saved.' });
       } else { // New report, create it
@@ -168,18 +189,30 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
           id: newReportRef.id,
           vehicleId,
           userId: user.uid,
-          userName: user.displayName, // Save user's name
+          userName: user.displayName,
           reportData: reportToSave,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
+          layoutId: currentLayoutId, // Link to the current layout version
         });
-        setReportId(newReportRef.id); // Set the new ID so subsequent saves are updates
+        setReportId(newReportRef.id);
         setReportCreator(user.displayName);
         toast({ title: 'Report Saved', description: 'New report has been saved successfully.' });
       }
     } catch (error) {
       console.error("Error saving report: ", error);
       toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save the report.' });
+    }
+  };
+
+  const handleUpgradeLayout = async () => {
+    if (latestLayoutId) {
+        await fetchLayoutById(latestLayoutId);
+        setIsLatestLayout(true);
+        toast({
+            title: "Layout Upgraded",
+            description: "Now using the latest layout. Don't forget to save the report to persist this change."
+        });
     }
   };
 
@@ -206,7 +239,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
         id: `value-${field.id}`,
         value: String(value), // Ensure value is a string
         x: field.value.x,
-        y: field.value.y,
+y: field.value.y,
         width: field.value.width,
         height: field.value.height,
         isBold: field.value.isBold,
@@ -249,6 +282,11 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
                            Created by: <span className='font-semibold'>{reportCreator}</span>
                         </CardDescription>
                     )}
+                     {layoutVersion !== null && (
+                        <CardDescription className="flex items-center gap-2 pt-2">
+                           Layout Version: <span className={`font-semibold ${isLatestLayout ? 'text-green-600' : 'text-amber-600'}`}>{layoutVersion}</span>
+                        </CardDescription>
+                    )}
                 </CardHeader>
                 <CardContent className="pt-0">
                     <DataForm layout={layout} data={reportData} onDataChange={handleDataChange} />
@@ -267,6 +305,11 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
                                     <CardDescription className="flex items-center gap-2 pt-2">
                                        <UserIcon size={14} className="text-muted-foreground" />
                                        Created by: <span className='font-semibold'>{reportCreator}</span>
+                                    </CardDescription>
+                                )}
+                                {layoutVersion !== null && (
+                                    <CardDescription className="flex items-center gap-2 pt-2">
+                                    Layout Version: <span className={`font-semibold ${isLatestLayout ? 'text-green-600' : 'text-amber-600'}`}>{layoutVersion}</span>
                                     </CardDescription>
                                 )}
                             </CardHeader>
@@ -293,6 +336,25 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
                 </div>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-2">
+                 {!isLatestLayout && (
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <Button variant="outline"><RefreshCw className="mr-2 h-4 w-4" /> Upgrade Layout</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure you want to upgrade?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will apply the latest layout to this report. Fields may shift, and new fields may be added. You should review the report carefully after upgrading. This action cannot be undone until you save the report.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleUpgradeLayout}>Upgrade</AlertDialogAction>
+                        </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                 )}
                 <Button onClick={handleSaveReport}><Save className="mr-2 h-4 w-4" /> Save Report</Button>
                 <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Print to PDF</Button>
               </div>
@@ -315,8 +377,8 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
       {/* Print-only view */}
       <div className="hidden print-view">
          <ReportPage 
-            staticLabels={staticLabels} 
-            dynamicValues={dynamicValues}
+            staticLabels={staticLabels} d
+            ynamicValues={dynamicValues}
             imageValues={imageValues}
             isCalibrating={false} 
           />

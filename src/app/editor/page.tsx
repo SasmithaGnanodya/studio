@@ -9,10 +9,10 @@ import { Save, Home, PlusCircle, Image as ImageIcon, ShieldOff } from 'lucide-re
 import Link from 'next/link';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { initialLayout, initialReportState } from '@/lib/initialReportState';
-import type { FieldLayout, FieldPart } from '@/lib/types';
+import type { FieldLayout, FieldPart, LayoutDocument } from '@/lib/types';
 import { EditorSidebar } from '@/components/EditorSidebar';
 import { ReportPage } from '@/components/ReportPage';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -76,27 +76,35 @@ export default function EditorPage() {
   }, [user, isUserLoading, router]);
 
 
-  // Fetch layout from Firestore on component mount
+  // Fetch the LATEST layout from Firestore on component mount
   useEffect(() => {
     if (user && firestore && user.email === ADMIN_EMAIL) {
-      const fetchLayout = async () => {
-        const layoutDocRef = doc(firestore, 'layouts', 'shared');
-        const layoutDoc = await getDoc(layoutDocRef);
-        if (layoutDoc.exists()) {
-          const data = layoutDoc.data();
-          if (data.fields && Array.isArray(data.fields)) {
-            const validatedFields = data.fields.map((f: any) => ({
-              ...f,
-              fieldType: f.fieldType || 'text', // Default to text for old data
-              label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
-              value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
-              placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
-            }));
-            setFields(validatedFields as FieldLayout[]);
-          }
+      const fetchLatestLayout = async () => {
+        const configRef = doc(firestore, 'layouts', 'config');
+        const configSnap = await getDoc(configRef);
+
+        if (configSnap.exists()) {
+            const currentLayoutId = configSnap.data().currentId;
+            if (currentLayoutId) {
+                const layoutDocRef = doc(firestore, 'layouts', currentLayoutId);
+                const layoutDoc = await getDoc(layoutDocRef);
+                if (layoutDoc.exists()) {
+                    const data = layoutDoc.data() as LayoutDocument;
+                     if (data.fields && Array.isArray(data.fields)) {
+                        const validatedFields = data.fields.map((f: any) => ({
+                          ...f,
+                          fieldType: f.fieldType || 'text', // Default to text for old data
+                          label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
+                          value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
+                          placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
+                        }));
+                        setFields(validatedFields as FieldLayout[]);
+                      }
+                }
+            }
         }
       };
-      fetchLayout();
+      fetchLatestLayout();
     }
   }, [user, firestore]);
 
@@ -226,32 +234,34 @@ export default function EditorPage() {
     }
 
     try {
-        const cleanedFields = JSON.parse(JSON.stringify(fields)).map((field: FieldLayout) => {
-          if (field.fieldType === 'text') {
-            if (typeof field.label === 'object' && field.label !== null) {
-              field.label.isBold = field.label.isBold || false;
-              field.label.color = field.label.color || '#000000';
-              field.label.fontSize = field.label.fontSize || 12;
+        await runTransaction(firestore, async (transaction) => {
+            const configRef = doc(firestore, 'layouts', 'config');
+            const configSnap = await transaction.get(configRef);
+            
+            let currentVersion = 0;
+            if (configSnap.exists()) {
+                currentVersion = configSnap.data().version || 0;
             }
-            if (typeof field.value === 'object' && field.value !== null) {
-              field.value.isBold = field.value.isBold || false;
-              field.value.color = field.value.color || '#000000';
-              field.value.inputType = field.value.inputType || 'text';
-              field.value.options = field.value.options || [];
-              field.value.fontSize = field.value.fontSize || 12;
-            }
-          } else if (field.fieldType === 'image') {
-            // No specific cleaning needed for image fields yet unless new properties are added
-          }
-          return field;
-        });
+            const newVersion = currentVersion + 1;
 
-        const layoutDocRef = doc(firestore, 'layouts', 'shared');
-        await setDoc(layoutDocRef, { fields: cleanedFields });
-        
-        toast({
-            title: "Layout Saved",
-            description: "Your field layout has been saved successfully.",
+            const newLayoutRef = doc(collection(firestore, 'layouts'));
+            const newLayoutData = {
+                id: newLayoutRef.id,
+                fields: fields,
+                version: newVersion,
+                createdAt: serverTimestamp(),
+            };
+
+            transaction.set(newLayoutRef, newLayoutData);
+            transaction.set(configRef, { 
+                version: newVersion,
+                currentId: newLayoutRef.id 
+            }, { merge: true });
+
+            toast({
+                title: "Layout Saved",
+                description: `New layout version (v${newVersion}) has been saved and is now live.`,
+            });
         });
     } catch (error) {
         console.error("Error saving layout: ", error);
@@ -350,7 +360,7 @@ export default function EditorPage() {
                 <Link href="/" passHref>
                     <Button variant="outline"><Home className="mr-2 h-4 w-4" /> Go to Form</Button>
                 </Link>
-                <Button onClick={handleSaveLayout}><Save className="mr-2 h-4 w-4" /> Save Layout</Button>
+                <Button onClick={handleSaveLayout}><Save className="mr-2 h-4 w-4" /> Save as New Version</Button>
             </div>
           </CardContent>
         </Card>
@@ -456,3 +466,4 @@ export default function EditorPage() {
     </div>
   );
 }
+
