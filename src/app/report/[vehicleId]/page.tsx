@@ -82,7 +82,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
 
     // Fetch Layout
     const fetchLayout = async () => {
-      const layoutDocRef = doc(firestore, `layouts/${user.uid}`);
+      const layoutDocRef = doc(firestore, 'layouts', 'shared');
       const layoutDoc = await getDoc(layoutDocRef);
       if (layoutDoc.exists()) {
         const data = layoutDoc.data();

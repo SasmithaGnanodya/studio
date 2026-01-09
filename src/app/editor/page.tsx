@@ -80,7 +80,7 @@ export default function EditorPage() {
   useEffect(() => {
     if (user && firestore && user.email === ADMIN_EMAIL) {
       const fetchLayout = async () => {
-        const layoutDocRef = doc(firestore, `layouts/${user.uid}`);
+        const layoutDocRef = doc(firestore, 'layouts', 'shared');
         const layoutDoc = await getDoc(layoutDocRef);
         if (layoutDoc.exists()) {
           const data = layoutDoc.data();
@@ -101,10 +101,14 @@ export default function EditorPage() {
   }, [user, firestore]);
 
   const updateFieldPosition = useCallback((id: string, xInPx: number, yInPx: number) => {
+      const fieldId = id.replace(/-(label|value|placeholder)$/, '');
+      const part = id.endsWith('-label') ? 'label' : id.endsWith('-value') ? 'value' : 'placeholder';
+      
       setFields(prev => prev.map(f => {
-          if (f.id === id) {
-              if (f.fieldType === 'image' && f.placeholder) {
-                  return { ...f, placeholder: { ...f.placeholder, x: PX_TO_MM(xInPx), y: PX_TO_MM(yInPx) } };
+          if (f.id === fieldId) {
+              const fieldPart = f[part as keyof FieldLayout] as FieldPart;
+              if (fieldPart) {
+                return { ...f, [part]: { ...fieldPart, x: PX_TO_MM(xInPx), y: PX_TO_MM(yInPx) } };
               }
           }
           return f;
@@ -112,11 +116,15 @@ export default function EditorPage() {
   }, []);
 
   const updateFieldSize = useCallback((id: string, widthInPx: number, heightInPx: number) => {
+      const fieldId = id.replace(/-(label|value|placeholder)$/, '');
+      const part = id.endsWith('-label') ? 'label' : id.endsWith('-value') ? 'value' : 'placeholder';
+
       setFields(prev => prev.map(f => {
-          if (f.id === id) {
-              if (f.fieldType === 'image' && f.placeholder) {
-                  return { ...f, placeholder: { ...f.placeholder, width: PX_TO_MM(widthInPx), height: PX_TO_MM(heightInPx) } };
-              }
+          if (f.id === fieldId) {
+               const fieldPart = f[part as keyof FieldLayout] as FieldPart;
+               if (fieldPart) {
+                return { ...f, [part]: { ...fieldPart, width: PX_TO_MM(widthInPx), height: PX_TO_MM(heightInPx) } };
+               }
           }
           return f;
       }));
@@ -238,7 +246,7 @@ export default function EditorPage() {
           return field;
         });
 
-        const layoutDocRef = doc(firestore, `layouts/${user.uid}`);
+        const layoutDocRef = doc(firestore, 'layouts', 'shared');
         await setDoc(layoutDocRef, { fields: cleanedFields });
         
         toast({
