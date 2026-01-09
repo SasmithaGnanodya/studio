@@ -7,7 +7,7 @@ import { Header } from '@/components/header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Search, PlusCircle, Car, LogIn } from 'lucide-react';
+import { Search, PlusCircle, Car, LogIn, User } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
@@ -156,9 +156,11 @@ export default function LandingPage() {
                             <Car className="mr-4 h-5 w-5 text-primary shrink-0" />
                             <div className='flex-grow overflow-hidden'>
                                 <p className="font-semibold truncate">{report.vehicleId}</p>
-                                <p className="text-sm text-muted-foreground truncate">
-                                    {report.reportData?.manufacturer} {report.reportData?.model} ({report.reportData?.manufactureYear})
+                                {report.userName && (
+                                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                   <User size={12}/> {report.userName}
                                 </p>
+                                )}
                             </div>
                             {report.updatedAt && (
                                 <p className='text-sm text-muted-foreground text-right shrink-0 ml-2'>
