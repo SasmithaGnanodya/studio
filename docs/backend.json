@@ -193,6 +193,42 @@
         }
       },
       "required": ["id", "vehicleId", "userId", "reportData", "createdAt", "updatedAt"]
+    },
+    "ReportHistory": {
+      "title": "ReportHistory",
+      "type": "object",
+      "description": "A snapshot of a report at a specific point in time, for auditing purposes.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique ID of the history entry."
+        },
+        "reportId": {
+          "type": "string",
+          "description": "The ID of the parent report."
+        },
+        "vehicleId": {
+          "type": "string",
+          "description": "The vehicle registration number at the time of saving."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who saved this version."
+        },
+        "userName": {
+          "type": "string",
+          "description": "The name of the user who saved this version."
+        },
+        "reportData": {
+          "type": "object",
+          "description": "A key-value map of all data entered for the report at this point in time."
+        },
+        "savedAt": {
+          "type": "number",
+          "description": "Timestamp when this version was saved."
+        }
+      },
+      "required": ["id", "reportId", "vehicleId", "userId", "userName", "reportData", "savedAt"]
     }
   },
   "auth": {
@@ -243,7 +279,27 @@
             "description": "The unique ID of the report."
           }]
         }
+      },
+      {
+        "path": "/reports/{reportId}/history/{historyId}",
+        "definition": {
+          "entityName": "ReportHistory",
+          "schema": { "$ref": "#/entities/ReportHistory" },
+          "description": "Stores snapshots of a report over time for auditing.",
+          "params": [
+            {
+              "name": "reportId",
+              "description": "The ID of the parent report."
+            },
+            {
+              "name": "historyId",
+              "description": "The unique ID of the history entry."
+            }
+          ]
+        }
       }
     ]
   }
 }
+
+    

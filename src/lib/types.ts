@@ -1,5 +1,6 @@
 
 
+
 export type FieldPart = {
   text: string; // The static text for a label, or the data ID for a value
   x: number;
@@ -49,5 +50,17 @@ export type Report = {
   layoutId: string; // <-- Link to the layout version
 };
 
+export type ReportHistory = {
+  id: string;
+  reportId: string;
+  vehicleId: string;
+  userId: string;
+  userName: string;
+  reportData: { [key: string]: any };
+  savedAt: { seconds: number; nanoseconds: number; };
+};
 
 
+
+
+    

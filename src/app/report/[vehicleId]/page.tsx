@@ -11,7 +11,7 @@ import { Printer, Eye, Wrench, Save, User as UserIcon, RefreshCw } from 'lucide-
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp, updateDoc, limit } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp, runTransaction } from 'firebase/firestore';
 import type { FieldLayout, FieldPart, ImageData, Report, LayoutDocument } from '@/lib/types';
 import { DataForm } from '@/components/DataForm';
 import { useToast } from '@/hooks/use-toast';
@@ -53,6 +53,8 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
 };
 
 export default function ReportBuilderPage({ params }: { params: { vehicleId: string } }) {
+  const resolvedParams = use(params);
+
   const [reportId, setReportId] = useState<string | null>(null);
   const [reportCreator, setReportCreator] = useState<string | null>(null);
   const [reportData, setReportData] = useState(initialReportState);
@@ -66,7 +68,6 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
   
-  const resolvedParams = use(params);
   const vehicleId = decodeURIComponent(resolvedParams.vehicleId);
 
   // Set document title for printing
@@ -116,7 +117,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
 
       // 2. Check for an existing report
       const reportsRef = collection(firestore, `reports`);
-      const q = query(reportsRef, where('vehicleId', '==', vehicleId), limit(1));
+      const q = query(reportsRef, where('vehicleId', '==', vehicleId), where('userId', '==', user.uid));
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) { // Existing report found
@@ -171,51 +172,76 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
 
   const handleSaveReport = async () => {
     if (!user || !firestore) {
-      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to save.' });
-      return;
+        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to save.' });
+        return;
     }
 
     if (!currentReportLayoutId) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not determine layout version for saving.' });
-      return;
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not determine layout version for saving.' });
+        return;
     }
+
+    const reportToSave = { ...reportData };
 
     try {
-      const reportToSave = { ...reportData };
+        await runTransaction(firestore, async (transaction) => {
+            if (reportId) { // Existing report
+                const reportRef = doc(firestore, 'reports', reportId);
+                const historyColRef = collection(reportRef, 'history');
+                const historyDocRef = doc(historyColRef);
 
-      if (reportId) { // Existing report, update it
-        const reportRef = doc(firestore, 'reports', reportId);
-        await updateDoc(reportRef, {
-          reportData: reportToSave,
-          updatedAt: serverTimestamp(),
-          layoutId: currentReportLayoutId, // Persist the potentially upgraded layout ID
-          userId: user.uid, // Update the userId to the current editor
-          userName: user.displayName, // Update the userName to the current editor
+                // Create a history entry with the current state before updating
+                const currentReportSnap = await transaction.get(reportRef);
+                if (currentReportSnap.exists()) {
+                    const currentReportData = currentReportSnap.data();
+                    transaction.set(historyDocRef, {
+                        id: historyDocRef.id,
+                        reportId: reportId,
+                        vehicleId: vehicleId,
+                        userId: currentReportData.userId,
+                        userName: currentReportData.userName,
+                        reportData: currentReportData.reportData,
+                        savedAt: currentReportData.updatedAt, // Timestamp of the previous save
+                    });
+                }
+
+                // Update the main report document
+                transaction.update(reportRef, {
+                    reportData: reportToSave,
+                    updatedAt: serverTimestamp(),
+                    layoutId: currentReportLayoutId,
+                    userId: user.uid,
+                    userName: user.displayName,
+                });
+
+                setReportCreator(user.displayName);
+                toast({ title: 'Report Updated', description: 'Your changes have been saved.' });
+
+            } else { // New report
+                const newReportRef = doc(collection(firestore, 'reports'));
+                
+                transaction.set(newReportRef, {
+                    id: newReportRef.id,
+                    vehicleId,
+                    userId: user.uid,
+                    userName: user.displayName,
+                    reportData: reportToSave,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                    layoutId: currentReportLayoutId,
+                });
+                
+                setReportId(newReportRef.id);
+                setReportCreator(user.displayName);
+                toast({ title: 'Report Saved', description: 'New report has been saved successfully.' });
+            }
         });
-        setReportCreator(user.displayName); // Update UI to show current editor as creator
-        toast({ title: 'Report Updated', description: 'Your changes have been saved.' });
-      } else { // New report, create it
-        const reportsRef = collection(firestore, 'reports');
-        const newReportRef = doc(reportsRef);
-        await setDoc(newReportRef, {
-          id: newReportRef.id,
-          vehicleId,
-          userId: user.uid,
-          userName: user.displayName,
-          reportData: reportToSave,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          layoutId: currentReportLayoutId, // Link to the layout version being used
-        });
-        setReportId(newReportRef.id);
-        setReportCreator(user.displayName);
-        toast({ title: 'Report Saved', description: 'New report has been saved successfully.' });
-      }
     } catch (error) {
-      console.error("Error saving report: ", error);
-      toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save the report.' });
+        console.error("Error saving report: ", error);
+        toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save the report.' });
     }
   };
+
 
   const handleUpgradeLayout = async () => {
     if (latestLayoutId) {
@@ -400,3 +426,5 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     </div>
   );
 }
+
+    

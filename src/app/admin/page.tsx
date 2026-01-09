@@ -9,7 +9,7 @@ import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, ShieldOff, Search } from 'lucide-react';
+import { Edit, ShieldOff, Search, History } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -173,10 +173,15 @@ export default function AdminPage() {
                                 <TableCell>
                                     {report.createdAt ? new Date(report.createdAt.seconds * 1000).toLocaleTimeString() : 'N/A'}
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right space-x-2">
+                                    <Link href={`/admin/history/${report.id}`} passHref>
+                                        <Button variant="ghost" size="sm">
+                                            <History className="mr-2 h-3 w-3" /> History
+                                        </Button>
+                                    </Link>
                                     <Link href={`/report/${report.vehicleId}`} passHref>
                                     <Button variant="outline" size="sm">
-                                        <Edit className="mr-2 h-3 w-3" /> View / Edit
+                                        <Edit className="mr-2 h-3 w-3" /> View
                                     </Button>
                                     </Link>
                                 </TableCell>
@@ -205,3 +210,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

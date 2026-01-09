@@ -2,24 +2,26 @@
 /**
  * This Firestore Security Ruleset enforces a security model where all authenticated users can read
  * all reports and layouts. Any authenticated user can update any report, but only admins can
- * manage layouts.
+ * manage layouts and view report history.
  *
  * Core Philosophy:
  * The security model is designed to be highly collaborative. Reading is open to all signed-in users.
  * Report updates are also open to all signed-in users to allow for multi-user editing workflows.
- * Layout modifications are a privileged action, restricted to admins.
+ * Layout modifications and history viewing are privileged actions, restricted to admins.
  *
  * Data Structure:
  * - /users/{userId}: Private user profile data. Only the owner can manage.
  * - /layouts/{layoutId}: Stores versioned layouts. Readable by all, writable only by an admin.
  * - /reports/{reportId}: Individual report documents. Readable and writable by all signed-in users, but can only be
  *   created by a user setting themselves as the owner.
+ * - /reports/{reportId}/history/{historyId}: Read-only audit trail of report saves. Only admins can read.
  *
  * Key Security Decisions:
- * - Admin Override: A designated admin user can edit or delete any report and any layout.
+ * - Admin Override: A designated admin user can edit or delete any report, any layout, and read all history.
  * - Public Report Data: The `reports` collection is readable by any signed-in user.
  * - Public Layout Data: The `layouts` collection is readable by any signed-in user, but writable only by an admin.
  * - Collaborative Report Editing: Any signed-in user can update any report.
+ * - Secure History: The `history` subcollection is only readable by admins to protect the audit trail.
  * - User Listing Disabled: To protect user privacy, listing top-level collections like `users` is disabled.
  */
 rules_version = '2';
@@ -73,8 +75,7 @@ service cloud.firestore {
 
     /**
      * @description Rules for individual report documents.
-     * All authenticated users can read/list all reports.
-     * Write permissions are more open for collaboration.
+     * Contains a `history` subcollection for auditing.
      * @path /reports/{reportId}
      */
     match /reports/{reportId} {
@@ -87,6 +88,19 @@ service cloud.firestore {
       // Any signed-in user can update a report. Admins can delete.
       allow update: if isSignedIn();
       allow delete: if isAdmin();
+      
+      /**
+       * @description Rules for the report history subcollection.
+       * This is an audit trail, so it's write-only for the system and read-only for admins.
+       * @path /reports/{reportId}/history/{historyId}
+       */
+      match /history/{historyId} {
+        allow get, list: if isAdmin();
+        allow create: if isSignedIn(); // Writes are handled via transaction in backend logic
+        allow update, delete: if false; // History is immutable
+      }
     }
   }
 }
+
+    
