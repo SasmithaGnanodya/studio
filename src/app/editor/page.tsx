@@ -480,7 +480,3 @@ export default function EditorPage() {
     </div>
   );
 }
-
-    
-
-    

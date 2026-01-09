@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Printer, Eye, Wrench, Save, User as UserIcon, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Printer, Eye, Wrench, Save, User as UserIcon, RefreshCw } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, initialLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
@@ -66,8 +66,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
   
-  const resolvedParams = use(params);
-  const vehicleId = decodeURIComponent(resolvedParams.vehicleId);
+  const vehicleId = decodeURIComponent(params.vehicleId);
 
   // Set document title for printing
   useEffect(() => {
@@ -78,32 +77,36 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
       document.title = 'FormFlow PDF Filler';
     };
   }, [vehicleId]);
+  
+  const fetchLayoutById = async (layoutId: string): Promise<LayoutDocument | null> => {
+    if (!firestore || !layoutId) return null;
+    const layoutDocRef = doc(firestore, 'layouts', layoutId);
+    const layoutDoc = await getDoc(layoutDocRef);
+    if (layoutDoc.exists()) {
+      return layoutDoc.data() as LayoutDocument;
+    }
+    return null;
+  }
+  
+  const applyLayout = (layoutData: LayoutDocument | null) => {
+    if (layoutData && layoutData.fields && Array.isArray(layoutData.fields)) {
+        const validatedFields = layoutData.fields.map((f: any) => ({
+            ...f,
+            fieldType: f.fieldType || 'text',
+            label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
+            value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
+            placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
+        }));
+        setLayout(validatedFields as FieldLayout[]);
+        setLayoutVersion(layoutData.version);
+    }
+  };
 
   // Combined fetch logic for layout and report
   useEffect(() => {
     if (!user || !firestore) return;
 
-    const fetchLayoutById = async (layoutId: string) => {
-        if (!firestore) return null;
-        const layoutDocRef = doc(firestore, 'layouts', layoutId);
-        const layoutDoc = await getDoc(layoutDocRef);
-        if (layoutDoc.exists()) {
-            const data = layoutDoc.data() as LayoutDocument;
-            if (data.fields && Array.isArray(data.fields)) {
-                const validatedFields = data.fields.map((f: any) => ({
-                    ...f,
-                    fieldType: f.fieldType || 'text',
-                    label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
-                    value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
-                    placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
-                }));
-                setLayout(validatedFields as FieldLayout[]);
-                setLayoutVersion(data.version);
-            }
-        }
-    };
-    
-    const fetchReportData = async () => {
+    const fetchReportAndLayout = async () => {
       // 1. Get the latest layout configuration first
       const configRef = doc(firestore, 'layouts', 'config');
       const configSnap = await getDoc(configRef);
@@ -127,12 +130,10 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
         setCurrentReportLayoutId(reportLayoutId);
         setIsLatestLayout(reportLayoutId === latestId);
         
-        // Ensure we have a layoutId before trying to fetch it.
-        // Fallback to latestId if the report doesn't have one.
-        if (reportLayoutId) {
-            await fetchLayoutById(reportLayoutId);
-        } else if (latestId) {
-            await fetchLayoutById(latestId);
+        const layoutToLoad = reportLayoutId || latestId;
+        if (layoutToLoad) {
+            const layoutData = await fetchLayoutById(layoutToLoad);
+            applyLayout(layoutData);
         }
         
         toast({
@@ -144,10 +145,11 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
         setReportCreator(user.displayName);
         setReportData({ ...initialReportState, regNumber: vehicleId });
         setIsLatestLayout(true);
+        setCurrentReportLayoutId(latestId);
         
         if (latestId) {
-            await fetchLayoutById(latestId); // Use the LATEST layout for new reports
-            setCurrentReportLayoutId(latestId);
+            const layoutData = await fetchLayoutById(latestId); // Use the LATEST layout for new reports
+            applyLayout(layoutData);
         }
         
         toast({
@@ -157,32 +159,10 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
       }
     };
 
-    fetchReportData();
+    fetchReportAndLayout();
 
   }, [user, firestore, vehicleId, toast]);
 
-
-  const fetchLayoutById = async (layoutId: string) => {
-    if (!firestore || !layoutId) return null; // Added guard for layoutId
-    const layoutDocRef = doc(firestore, 'layouts', layoutId);
-    const layoutDoc = await getDoc(layoutDocRef);
-    if (layoutDoc.exists()) {
-      const data = layoutDoc.data() as LayoutDocument;
-      if (data.fields && Array.isArray(data.fields)) {
-        const validatedFields = data.fields.map((f: any) => ({
-          ...f,
-          fieldType: f.fieldType || 'text',
-          label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
-          value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
-          placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
-        }));
-        setLayout(validatedFields as FieldLayout[]);
-        setLayoutVersion(data.version);
-        return data;
-      }
-    }
-    return null;
-  }
 
   const handleDataChange = (name: string, value: string | ImageData) => {
     setReportData(prev => ({ ...prev, [name]: value }));
@@ -235,8 +215,9 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
 
   const handleUpgradeLayout = async () => {
     if (latestLayoutId) {
-        await fetchLayoutById(latestLayoutId);
-        setCurrentReportLayoutId(latestLayoutId); // Set the current layout to the latest one
+        const layoutData = await fetchLayoutById(latestLayoutId);
+        applyLayout(layoutData);
+        setCurrentReportLayoutId(latestLayoutId);
         setIsLatestLayout(true);
         toast({
             title: "Layout Upgraded",
@@ -415,9 +396,3 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     </div>
   );
 }
-
-    
-
-    
-
-    
