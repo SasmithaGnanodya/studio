@@ -122,10 +122,18 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
         setReportId(reportDoc.id);
         setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
         setReportCreator(report.userName || null);
-        setCurrentReportLayoutId(report.layoutId);
-        setIsLatestLayout(report.layoutId === latestId);
 
-        await fetchLayoutById(report.layoutId); // Load the specific layout for this report
+        const reportLayoutId = report.layoutId;
+        setCurrentReportLayoutId(reportLayoutId);
+        setIsLatestLayout(reportLayoutId === latestId);
+        
+        // Ensure we have a layoutId before trying to fetch it.
+        // Fallback to latestId if the report doesn't have one.
+        if (reportLayoutId) {
+            await fetchLayoutById(reportLayoutId);
+        } else if (latestId) {
+            await fetchLayoutById(latestId);
+        }
         
         toast({
           title: "Report Loaded",
@@ -155,7 +163,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
 
 
   const fetchLayoutById = async (layoutId: string) => {
-    if (!firestore) return;
+    if (!firestore || !layoutId) return null; // Added guard for layoutId
     const layoutDocRef = doc(firestore, 'layouts', layoutId);
     const layoutDoc = await getDoc(layoutDocRef);
     if (layoutDoc.exists()) {
@@ -407,6 +415,8 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     </div>
   );
 }
+
+    
 
     
 
