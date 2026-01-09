@@ -48,7 +48,7 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
                        <SelectValue placeholder={`Select ${field.label.text}`} />
                      </SelectTrigger>
                      <SelectContent>
-                       {(field.value.options || []).map(option => (
+                       {(field.value.options || []).filter(Boolean).map(option => (
                          <SelectItem key={option} value={option}>{option}</SelectItem>
                        ))}
                      </SelectContent>
@@ -75,4 +75,3 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
     </ScrollArea>
   );
 };
-
