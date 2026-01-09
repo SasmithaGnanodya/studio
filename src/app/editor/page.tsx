@@ -38,7 +38,8 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
       color: '#000000',
       fontSize: 12,
       inputType: 'text',
-      options: []
+      options: [],
+      objectFit: 'cover',
     };
   
     if (typeof part !== 'object' || part === null) {
@@ -55,7 +56,8 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
       color: part.color ?? defaults.color,
       fontSize: part.fontSize ?? defaults.fontSize,
       inputType: part.inputType ?? defaults.inputType,
-      options: part.options ?? defaults.options
+      options: Array.isArray(part.options) ? part.options : defaults.options,
+      objectFit: part.objectFit ?? defaults.objectFit,
     };
 };
 
@@ -202,7 +204,7 @@ export default function EditorPage() {
         id: newId,
         fieldId: 'newImage',
         fieldType: 'image',
-        placeholder: { text: 'newImage', x: 10, y: 150, width: 90, height: 60, color: '#0000FF' },
+        placeholder: { text: 'newImage', x: 10, y: 150, width: 90, height: 60, color: '#0000FF', objectFit: 'cover' },
         // These are not used but required by the type, can be empty objects
         label: {} as any,
         value: {} as any,
@@ -233,6 +235,18 @@ export default function EditorPage() {
         return;
     }
 
+    // Create a deep copy and sanitize the data for Firestore
+    const sanitizedFields = JSON.parse(JSON.stringify(fields)).map((field: any) => {
+        if (field.fieldType === 'image') {
+            // Firestore does not support 'undefined'. Delete keys if they exist.
+            delete field.label;
+            delete field.value;
+        } else if (field.fieldType === 'text') {
+            delete field.placeholder;
+        }
+        return field;
+    });
+
     try {
         await runTransaction(firestore, async (transaction) => {
             const configRef = doc(firestore, 'layouts', 'config');
@@ -247,7 +261,7 @@ export default function EditorPage() {
             const newLayoutRef = doc(collection(firestore, 'layouts'));
             const newLayoutData = {
                 id: newLayoutRef.id,
-                fields: fields,
+                fields: sanitizedFields,
                 version: newVersion,
                 createdAt: serverTimestamp(),
             };
@@ -466,5 +480,7 @@ export default function EditorPage() {
     </div>
   );
 }
+
+    
 
     
