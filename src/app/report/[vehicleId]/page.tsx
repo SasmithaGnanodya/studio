@@ -61,8 +61,10 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const [isCalibrating, setIsCalibrating] = useState(false);
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
-  const { vehicleId: encodedVehicleId } = params;
-  const vehicleId = decodeURIComponent(encodedVehicleId);
+  
+  // Correctly unwrap params using the `use` hook
+  const resolvedParams = use(params);
+  const vehicleId = decodeURIComponent(resolvedParams.vehicleId);
 
   // Fetch layout and report data
   useEffect(() => {
@@ -315,3 +317,5 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     </div>
   );
 }
+
+    
