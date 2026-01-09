@@ -16,9 +16,9 @@ export type FieldPart = {
 
 export type FieldLayout = {
   id: string;
-  fieldId: string; // Connects to the key in initialReportState
-  fieldType: 'text' | 'image';
-  label: FieldPart; // Used for text fields
+  fieldId: string; // Connects to the key in initialReportState, or is a unique ID for staticText
+  fieldType: 'text' | 'image' | 'staticText';
+  label: FieldPart; // Used for text and staticText fields
   value: FieldPart; // Used for text fields
   placeholder?: FieldPart; // Used for image fields
 };
@@ -48,5 +48,6 @@ export type Report = {
   updatedAt: { seconds: number, nanoseconds: number };
   layoutId: string; // <-- Link to the layout version
 };
+
 
 

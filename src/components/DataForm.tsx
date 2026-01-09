@@ -18,10 +18,12 @@ type DataFormProps = {
 export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
   const renderedFieldIds = new Set<string>();
 
+  const dataFields = layout.filter(f => f.fieldType === 'text' || f.fieldType === 'image');
+
   return (
     <ScrollArea className="h-[calc(100vh-16rem)]">
       <div className="space-y-6 p-1">
-        {layout.map((field) => {
+        {dataFields.map((field) => {
           if (renderedFieldIds.has(field.fieldId)) {
             return null;
           }
@@ -73,3 +75,4 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
     </ScrollArea>
   );
 };
+

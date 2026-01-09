@@ -1,11 +1,11 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, use } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Save, Home, PlusCircle, Image as ImageIcon, ShieldOff } from 'lucide-react';
+import { Save, Home, PlusCircle, Image as ImageIcon, ShieldOff, Type } from 'lucide-react';
 import Link from 'next/link';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
@@ -62,12 +62,15 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
 };
 
 
-export default function EditorPage() {
+export default function EditorPage({ params }: { params: {} }) {
   const [fields, setFields] = useState<FieldLayout[]>(initialLayout);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const { firestore, user, isUserLoading } = useFirebase();
   const { toast } = useToast();
   const router = useRouter();
+
+  const resolvedParams = use(params);
+
 
   // Admin check
   useEffect(() => {
@@ -96,8 +99,8 @@ export default function EditorPage() {
                         const validatedFields = data.fields.map((f: any) => ({
                           ...f,
                           fieldType: f.fieldType || 'text', // Default to text for old data
-                          label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
-                          value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
+                          label: f.fieldType === 'image' ? ({} as FieldPart) : validateAndCleanFieldPart(f.label),
+                          value: f.fieldType === 'text' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
                           placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
                         }));
                         setFields(validatedFields as FieldLayout[]);
@@ -188,7 +191,7 @@ export default function EditorPage() {
     setSelectedFieldId(baseId);
   };
   
-  const handleAddNewField = (type: 'text' | 'image') => {
+  const handleAddNewField = (type: 'text' | 'image' | 'staticText') => {
     const newId = `${type}_${Date.now()}`;
     if (type === 'text') {
       const newField: FieldLayout = {
@@ -199,17 +202,25 @@ export default function EditorPage() {
         value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
       };
       setFields(prev => [...prev, newField]);
-    } else { // image
+    } else if (type === 'image') {
        const newImageField: FieldLayout = {
         id: newId,
         fieldId: 'newImage',
         fieldType: 'image',
         placeholder: { text: 'newImage', x: 10, y: 150, width: 90, height: 60, color: '#0000FF', objectFit: 'cover' },
-        // These are not used but required by the type, can be empty objects
-        label: {} as any,
-        value: {} as any,
+        label: {} as any, // Not used
+        value: {} as any, // Not used
       };
       setFields(prev => [...prev, newImageField]);
+    } else if (type === 'staticText') {
+      const newStaticField: FieldLayout = {
+        id: newId,
+        fieldId: `static_${newId}`, // Unique ID, not tied to data
+        fieldType: 'staticText',
+        label: { text: 'Static Text', x: 10, y: 50, width: 80, height: 10, isBold: true, color: '#000000', fontSize: 16 },
+        value: {} as any, // Not used
+      };
+      setFields(prev => [...prev, newStaticField]);
     }
     setSelectedFieldId(newId);
   }
@@ -238,10 +249,12 @@ export default function EditorPage() {
     // Create a deep copy and sanitize the data for Firestore
     const sanitizedFields = JSON.parse(JSON.stringify(fields)).map((field: any) => {
         if (field.fieldType === 'image') {
-            // Firestore does not support 'undefined'. Delete keys if they exist.
             delete field.label;
             delete field.value;
         } else if (field.fieldType === 'text') {
+            delete field.placeholder;
+        } else if (field.fieldType === 'staticText') {
+            delete field.value;
             delete field.placeholder;
         }
         return field;
@@ -288,7 +301,7 @@ export default function EditorPage() {
   };
   
   const { staticLabels, valuePlaceholders, imagePlaceholders } = useMemo(() => {
-    const staticLabels = fields.filter(f => f.fieldType === 'text').map(field => ({
+    const staticLabels = fields.filter(f => f.fieldType === 'text' || f.fieldType === 'staticText').map(field => ({
       id: `label-${field.id}`,
       value: field.label.text,
       x: field.label.x,
@@ -370,6 +383,7 @@ export default function EditorPage() {
             <h2 className="text-xl font-semibold self-start">Layout Editor</h2>
             <div className="flex flex-wrap items-center justify-center gap-2">
                 <Button variant="outline" onClick={() => handleAddNewField('text')}><PlusCircle className="mr-2 h-4 w-4" /> Add Text Field</Button>
+                <Button variant="outline" onClick={() => handleAddNewField('staticText')}><Type className="mr-2 h-4 w-4" /> Add Static Text</Button>
                 <Button variant="outline" onClick={() => handleAddNewField('image')}><ImageIcon className="mr-2 h-4 w-4" /> Add Image</Button>
                 <Link href="/" passHref>
                     <Button variant="outline"><Home className="mr-2 h-4 w-4" /> Go to Form</Button>
@@ -448,6 +462,23 @@ export default function EditorPage() {
                 />
               ])}
 
+              {/* Draggable handles for static text fields */}
+              {fields.filter(f => f.fieldType === 'staticText').map(field => (
+                <DraggableField
+                  key={`label-drag-${field.id}`}
+                  id={`${field.id}-label`}
+                  x={MM_TO_PX(field.label.x)}
+                  y={MM_TO_PX(field.label.y)}
+                  width={MM_TO_PX(field.label.width)}
+                  height={MM_TO_PX(field.label.height)}
+                  onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'label', x, y)}
+                  onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'label', w, h)}
+                  onClick={handleSelectField}
+                  isSelected={field.id === selectedFieldId}
+                  borderColor='orange'
+                />
+              ))}
+
                {/* Draggable handles for images */}
                {fields.filter(f => f.fieldType === 'image' && f.placeholder).map(field => (
                 <DraggableField
@@ -480,3 +511,4 @@ export default function EditorPage() {
     </div>
   );
 }
+

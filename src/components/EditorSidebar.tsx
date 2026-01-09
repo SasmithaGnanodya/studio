@@ -44,6 +44,58 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
     onUpdate(field.id, { fieldId: e.target.value });
   }
 
+  const renderStaticTextEditor = (part: 'label') => {
+    const data = field[part];
+    if (!data) return null;
+    const title = 'Static Text';
+
+    return (
+      <div className="flex-1 px-4 py-2">
+        <h3 className="font-semibold mb-2">{title}</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
+          <div className="space-y-1 sm:col-span-6">
+            <Label htmlFor={`${part}-text`} className="text-xs">Text</Label>
+            <Input 
+              id={`${part}-text`} 
+              name="text"
+              className="h-8"
+              value={data.text || ''} 
+              onChange={(e) => handlePartChange(part, 'text', e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor={`${part}-x`} className="text-xs">X (mm)</Label>
+            <Input id={`${part}-x`} name="x" type="number" value={data.x || 0} onChange={(e) => handlePartChange(part, 'x', e.target.value)} className="h-8" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor={`${part}-y`} className="text-xs">Y (mm)</Label>
+            <Input id={`${part}-y`} name="y" type="number" value={data.y || 0} onChange={(e) => handlePartChange(part, 'y', e.target.value)} className="h-8" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor={`${part}-width`} className="text-xs">Width (mm)</Label>
+            <Input id={`${part}-width`} name="width" type="number" value={data.width || 0} onChange={(e) => handlePartChange(part, 'width', e.target.value)} className="h-8" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor={`${part}-height`} className="text-xs">Height (mm)</Label>
+            <Input id={`${part}-height`} name="height" type="number" value={data.height || 0} onChange={(e) => handlePartChange(part, 'height', e.target.value)} className="h-8" />
+          </div>
+           <div className="space-y-1">
+            <Label htmlFor={`${part}-color`} className="text-xs">Color</Label>
+            <Input id={`${part}-color`} name="color" type="color" value={data.color || '#000000'} onChange={(e) => handlePartChange(part, 'color', e.target.value)} className="h-8 p-1" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor={`${part}-fontSize`} className="text-xs">Size (pt)</Label>
+            <Input id={`${part}-fontSize`} name="fontSize" type="number" value={data.fontSize || 12} onChange={(e) => handlePartChange(part, 'fontSize', e.target.value)} className="h-8" />
+          </div>
+           <div className="flex items-center space-x-2 pt-5 sm:col-span-6">
+            <Checkbox id={`${part}-bold`} checked={data.isBold || false} onCheckedChange={(checked) => handlePartChange(part, 'isBold', checked as boolean)} />
+            <Label htmlFor={`${part}-bold`} className="text-xs font-normal">Bold</Label>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const renderTextPartEditor = (part: 'label' | 'value') => {
     const data = field[part];
     if (!data) return null;
@@ -171,14 +223,26 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
             </div>
              <div className='mt-4'>
                  <Label htmlFor="fieldId">Field ID (for data linking)</Label>
-                 <Input id="fieldId" value={field.fieldId} onChange={handleFieldIdChange} className="font-mono mt-1" />
+                 <Input 
+                   id="fieldId"
+                   value={field.fieldId}
+                   onChange={handleFieldIdChange}
+                   className="font-mono mt-1"
+                   disabled={field.fieldType === 'staticText'}
+                 />
              </div>
         </div>
 
         {/* Mobile-only field ID */}
         <div className='p-4 border-b block md:hidden'>
             <Label htmlFor="fieldId-mobile">Field ID (for data linking)</Label>
-            <Input id="fieldId-mobile" value={field.fieldId} onChange={handleFieldIdChange} className="font-mono mt-1" />
+            <Input 
+              id="fieldId-mobile"
+              value={field.fieldId}
+              onChange={handleFieldIdChange}
+              className="font-mono mt-1"
+              disabled={field.fieldType === 'staticText'}
+            />
         </div>
 
         <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x">
@@ -187,6 +251,8 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                 {renderTextPartEditor('label')}
                 {renderTextPartEditor('value')}
             </>
+            ) : field.fieldType === 'staticText' ? (
+              renderStaticTextEditor('label')
             ) : (
             renderImagePartEditor()
             )}

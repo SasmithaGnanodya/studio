@@ -84,8 +84,8 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
         const validatedFields = layoutData.fields.map((f: any) => ({
             ...f,
             fieldType: f.fieldType || 'text',
-            label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
-            value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
+            label: f.fieldType === 'image' ? ({} as FieldPart) : validateAndCleanFieldPart(f.label),
+            value: f.fieldType === 'text' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
             placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
         }));
         setLayout(validatedFields as FieldLayout[]);
@@ -232,7 +232,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   };
 
   const { staticLabels, dynamicValues, imageValues } = useMemo(() => {
-    const staticLabels = layout.filter(f => f.fieldType === 'text').map(field => ({
+    const staticLabels = layout.filter(f => f.fieldType === 'text' || f.fieldType === 'staticText').map(field => ({
       id: `label-${field.id}`,
       value: field.label.text,
       x: field.label.x,
@@ -397,3 +397,4 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     </div>
   );
 }
+
