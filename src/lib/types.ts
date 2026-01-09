@@ -33,6 +33,7 @@ export type Report = {
   id: string;
   vehicleId: string; // e.g. registration number
   userId: string;
+  userName?: string; // Add userName to the report
   reportData: { [key: string]: any };
   createdAt: { seconds: number, nanoseconds: number };
   updatedAt: { seconds: number, nanoseconds: number };

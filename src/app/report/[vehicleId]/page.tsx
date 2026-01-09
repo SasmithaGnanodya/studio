@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Printer, Eye, Wrench, Edit, Save } from 'lucide-react';
+import { Printer, Eye, Wrench, Edit, Save, User as UserIcon } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, initialLayout } from '@/lib/initialReportState';
 import Link from 'next/link';
@@ -54,13 +54,14 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
 
 export default function ReportBuilderPage({ params }: { params: { vehicleId: string } }) {
   const [reportId, setReportId] = useState<string | null>(null);
+  const [reportCreator, setReportCreator] = useState<string | null>(null);
   const [reportData, setReportData] = useState(initialReportState);
   const [layout, setLayout] = useState<FieldLayout[]>(initialLayout);
   const [isPreview, setIsPreview] = useState(true);
   const [isCalibrating, setIsCalibrating] = useState(false);
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
-  const { vehicleId: encodedVehicleId } = use(params);
+  const { vehicleId: encodedVehicleId } = params;
   const vehicleId = decodeURIComponent(encodedVehicleId);
 
   // Fetch layout and report data
@@ -89,7 +90,6 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     // Fetch Report Data
     const fetchReportData = async () => {
         const reportsRef = collection(firestore, `reports`);
-        // Query now searches all reports, not just the user's
         const q = query(reportsRef, where('vehicleId', '==', vehicleId), limit(1));
         const querySnapshot = await getDocs(q);
 
@@ -98,12 +98,25 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
             const report = reportDoc.data() as Omit<Report, 'id'>;
             setReportId(reportDoc.id);
             setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
+
+            if (report.userName) {
+              setReportCreator(report.userName);
+            } else if (report.userId) {
+              // Fallback for older reports: fetch user name from users collection
+              const userDocRef = doc(firestore, 'users', report.userId);
+              const userDoc = await getDoc(userDocRef);
+              if (userDoc.exists()) {
+                setReportCreator(userDoc.data()?.name || 'Unknown User');
+              }
+            }
+
             toast({
                 title: "Report Loaded",
                 description: `Loaded existing report for ${vehicleId}.`,
             });
         } else {
             setReportId(null); // Explicitly a new report
+            setReportCreator(user.displayName); // Current user is the creator
             setReportData({ ...initialReportState, regNumber: vehicleId });
             toast({
                 title: "New Report",
@@ -143,11 +156,13 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
           id: newReportRef.id,
           vehicleId,
           userId: user.uid,
+          userName: user.displayName, // Save user's name
           reportData: reportToSave,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
         setReportId(newReportRef.id); // Set the new ID so subsequent saves are updates
+        setReportCreator(user.displayName);
         toast({ title: 'Report Saved', description: 'New report has been saved successfully.' });
       }
     } catch (error) {
@@ -216,6 +231,12 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
                     <CardDescription>
                         Vehicle No: <span className='font-semibold text-primary'>{vehicleId}</span>
                     </CardDescription>
+                     {reportCreator && (
+                        <CardDescription className="flex items-center gap-2 pt-2">
+                           <UserIcon size={14} className="text-muted-foreground" />
+                           Created by: <span className='font-semibold'>{reportCreator}</span>
+                        </CardDescription>
+                    )}
                 </CardHeader>
                 <CardContent className="pt-0">
                     <DataForm layout={layout} data={reportData} onDataChange={handleDataChange} />
@@ -225,11 +246,17 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
                 <Accordion type="single" collapsible>
                     <AccordionItem value="item-1">
                         <AccordionTrigger className='bg-card px-4 rounded-t-lg'>
-                             <CardHeader className="p-0">
+                             <CardHeader className="p-0 text-left">
                                 <CardTitle>Report Data</CardTitle>
                                 <CardDescription>
                                     Vehicle No: <span className='font-semibold text-primary'>{vehicleId}</span>
                                 </CardDescription>
+                                {reportCreator && (
+                                    <CardDescription className="flex items-center gap-2 pt-2">
+                                       <UserIcon size={14} className="text-muted-foreground" />
+                                       Created by: <span className='font-semibold'>{reportCreator}</span>
+                                    </CardDescription>
+                                )}
                             </CardHeader>
                         </AccordionTrigger>
                         <AccordionContent className='bg-card p-4 rounded-b-lg'>
