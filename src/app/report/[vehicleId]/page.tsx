@@ -58,6 +58,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const [reportData, setReportData] = useState(initialReportState);
   const [layout, setLayout] = useState<FieldLayout[]>(initialLayout);
   const [layoutVersion, setLayoutVersion] = useState<number | null>(null);
+  const [currentReportLayoutId, setCurrentReportLayoutId] = useState<string | null>(null);
   const [latestLayoutId, setLatestLayoutId] = useState<string | null>(null);
   const [isLatestLayout, setIsLatestLayout] = useState(true);
   const [isPreview, setIsPreview] = useState(true);
@@ -86,12 +87,15 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
         const configRef = doc(firestore, 'layouts', 'config');
         const configSnap = await getDoc(configRef);
         if (configSnap.exists()) {
-            setLatestLayoutId(configSnap.data().currentId);
+            const configData = configSnap.data();
+            setLatestLayoutId(configData.currentId);
+            return configData.currentId;
         }
+        return null;
     };
     
-    fetchLayoutConfig().then(() => {
-        fetchReportAndLayout();
+    fetchLayoutConfig().then((latestId) => {
+        fetchReportAndLayout(latestId);
     });
 
   }, [user, firestore, vehicleId]);
@@ -118,8 +122,8 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     return null;
   }
 
-  const fetchReportAndLayout = async () => {
-      if (!firestore || !user || !latestLayoutId) return;
+  const fetchReportAndLayout = async (latestId: string | null) => {
+      if (!firestore || !user) return;
 
       const reportsRef = collection(firestore, `reports`);
       const q = query(reportsRef, where('vehicleId', '==', vehicleId), limit(1));
@@ -130,9 +134,10 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
           const report = reportDoc.data() as Report;
           setReportId(reportDoc.id);
           setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
+          setCurrentReportLayoutId(report.layoutId);
           
           await fetchLayoutById(report.layoutId);
-          setIsLatestLayout(report.layoutId === latestLayoutId);
+          setIsLatestLayout(report.layoutId === latestId);
 
           if (report.userName) setReportCreator(report.userName);
           
@@ -145,7 +150,10 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
           setReportCreator(user.displayName);
           setReportData({ ...initialReportState, regNumber: vehicleId });
           
-          await fetchLayoutById(latestLayoutId);
+          if (latestId) {
+            await fetchLayoutById(latestId);
+            setCurrentReportLayoutId(latestId);
+          }
           setIsLatestLayout(true);
           
           toast({
@@ -165,21 +173,20 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
       return;
     }
 
+    if (!currentReportLayoutId) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not determine layout version for saving.' });
+      return;
+    }
+
     try {
       const reportToSave = { ...reportData };
-      const currentLayoutId = isLatestLayout ? latestLayoutId : (await getDoc(doc(firestore, 'reports', reportId!))).data()?.layoutId;
-
-      if (!currentLayoutId) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not determine layout version.' });
-        return;
-      }
 
       if (reportId) { // Existing report, update it
         const reportRef = doc(firestore, 'reports', reportId);
         await updateDoc(reportRef, {
           reportData: reportToSave,
           updatedAt: serverTimestamp(),
-          layoutId: currentLayoutId, // Ensure layoutId is persisted
+          layoutId: currentReportLayoutId, // Persist the potentially upgraded layout ID
         });
         toast({ title: 'Report Updated', description: 'Your changes have been saved.' });
       } else { // New report, create it
@@ -193,7 +200,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
           reportData: reportToSave,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-          layoutId: currentLayoutId, // Link to the current layout version
+          layoutId: currentReportLayoutId, // Link to the layout version being used
         });
         setReportId(newReportRef.id);
         setReportCreator(user.displayName);
@@ -208,6 +215,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const handleUpgradeLayout = async () => {
     if (latestLayoutId) {
         await fetchLayoutById(latestLayoutId);
+        setCurrentReportLayoutId(latestLayoutId); // Set the current layout to the latest one
         setIsLatestLayout(true);
         toast({
             title: "Layout Upgraded",
@@ -239,7 +247,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
         id: `value-${field.id}`,
         value: String(value), // Ensure value is a string
         x: field.value.x,
-y: field.value.y,
+        y: field.value.y,
         width: field.value.width,
         height: field.value.height,
         isBold: field.value.isBold,
@@ -377,8 +385,8 @@ y: field.value.y,
       {/* Print-only view */}
       <div className="hidden print-view">
          <ReportPage 
-            staticLabels={staticLabels} d
-            ynamicValues={dynamicValues}
+            staticLabels={staticLabels} 
+            dynamicValues={dynamicValues}
             imageValues={imageValues}
             isCalibrating={false} 
           />
@@ -386,3 +394,5 @@ y: field.value.y,
     </div>
   );
 }
+
+    
