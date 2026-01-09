@@ -3,7 +3,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useFirebase } from '@/firebase';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,27 +25,31 @@ export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (isUserLoading) return; // Wait until user auth state is resolved
+    if (isUserLoading) return;
 
     if (!user || user.email !== ADMIN_EMAIL) {
-      router.replace('/'); // Redirect non-admins
+      router.replace('/');
       return;
     }
 
     if (firestore) {
-      const fetchReports = async () => {
-        setIsLoading(true);
-        const reportsRef = collection(firestore, 'reports');
-        const q = query(reportsRef, orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
+      setIsLoading(true);
+      const reportsRef = collection(firestore, 'reports');
+      const q = query(reportsRef, orderBy('createdAt', 'desc'));
+
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const fetchedReports: Report[] = [];
         querySnapshot.forEach((doc) => {
           fetchedReports.push({ id: doc.id, ...(doc.data() as Omit<Report, 'id'>) });
         });
         setReports(fetchedReports);
         setIsLoading(false);
-      };
-      fetchReports();
+      }, (error) => {
+        console.error("Error fetching real-time reports: ", error);
+        setIsLoading(false);
+      });
+
+      return () => unsubscribe(); // Cleanup subscription on component unmount
     }
   }, [user, firestore, isUserLoading, router]);
 
@@ -162,7 +166,7 @@ export default function AdminPage() {
                                 <TableCell className="font-mono">{report.vehicleId}</TableCell>
                                 <TableCell>{report.userName || 'Unknown'}</TableCell>
                                 <TableCell>
-                                    {new Date(report.createdAt.seconds * 1000).toLocaleTimeString()}
+                                    {report.createdAt ? new Date(report.createdAt.seconds * 1000).toLocaleTimeString() : 'N/A'}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <Link href={`/report/${report.vehicleId}`} passHref>
