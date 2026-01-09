@@ -11,14 +11,15 @@
  * - /users/{userId}: Private user profile data.
  * - /layouts/{userId}: User-specific layout configurations.
  * - /reports/{reportId}: Individual report documents, containing a `userId` field for ownership. This collection
- *   is readable by all signed-in users, but writable only by the owner.
+ *   is readable by all signed-in users, but writable only by the owner or an admin.
  *
  * Key Security Decisions:
+ * - Admin Override: A designated admin user can edit or delete any report.
  * - Public Report Data: The `reports` collection is readable by any signed-in user.
  * - User Listing Disabled: To protect user privacy, listing top-level collections like `users` and `layouts` is disabled.
  * - Path-Based and Field-Based Security: Authorization for `users` and `layouts` relies on matching `request.auth.uid`
  *   with the document ID. For `reports`, write authorization relies on matching `request.auth.uid` with the `userId` field inside
- *   the document.
+ *   the document or checking for admin status.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -30,6 +31,10 @@ service cloud.firestore {
 
     function isSignedIn() {
       return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'sasmithagnanodya@gmail.com';
     }
 
     function isOwner(userId) {
@@ -71,7 +76,7 @@ service cloud.firestore {
     /**
      * @description Rules for individual report documents.
      * All authenticated users can read/list all reports.
-     * Write permissions (create, update, delete) are restricted to the owner.
+     * Write permissions (create, update, delete) are restricted to the owner or an admin.
      * @path /reports/{reportId}
      */
     match /reports/{reportId} {
@@ -81,8 +86,8 @@ service cloud.firestore {
       // A user can create a report if they are setting themselves as the owner.
       allow create: if isCreatingReportAsOwner();
       
-      // A user can update or delete a report only if they are the owner.
-      allow update, delete: if isReportOwner();
+      // A user can update or delete a report only if they are the owner OR if they are an admin.
+      allow update, delete: if isReportOwner() || isAdmin();
     }
   }
 }
