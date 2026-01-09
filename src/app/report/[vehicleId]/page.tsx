@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Printer, Eye, Wrench, Save, User as UserIcon, RefreshCw } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
-import { initialReportState, initialLayout } from '@/lib/initialReportState';
+import { initialReportState } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp, updateDoc, limit } from 'firebase/firestore';
 import type { FieldLayout, FieldPart, ImageData, Report, LayoutDocument } from '@/lib/types';
@@ -56,7 +56,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const [reportId, setReportId] = useState<string | null>(null);
   const [reportCreator, setReportCreator] = useState<string | null>(null);
   const [reportData, setReportData] = useState(initialReportState);
-  const [layout, setLayout] = useState<FieldLayout[]>(initialLayout);
+  const [layout, setLayout] = useState<FieldLayout[]>([]);
   const [layoutVersion, setLayoutVersion] = useState<number | null>(null);
   const [currentReportLayoutId, setCurrentReportLayoutId] = useState<string | null>(null);
   const [latestLayoutId, setLatestLayoutId] = useState<string | null>(null);
@@ -66,7 +66,8 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
   
-  const vehicleId = decodeURIComponent(params.vehicleId);
+  const resolvedParams = use(Promise.resolve(params));
+  const vehicleId = decodeURIComponent(resolvedParams.vehicleId);
 
   // Set document title for printing
   useEffect(() => {
@@ -77,17 +78,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
       document.title = 'FormFlow PDF Filler';
     };
   }, [vehicleId]);
-  
-  const fetchLayoutById = async (layoutId: string): Promise<LayoutDocument | null> => {
-    if (!firestore || !layoutId) return null;
-    const layoutDocRef = doc(firestore, 'layouts', layoutId);
-    const layoutDoc = await getDoc(layoutDocRef);
-    if (layoutDoc.exists()) {
-      return layoutDoc.data() as LayoutDocument;
-    }
-    return null;
-  }
-  
+
   const applyLayout = (layoutData: LayoutDocument | null) => {
     if (layoutData && layoutData.fields && Array.isArray(layoutData.fields)) {
         const validatedFields = layoutData.fields.map((f: any) => ({
@@ -101,6 +92,16 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
         setLayoutVersion(layoutData.version);
     }
   };
+  
+  const fetchLayoutById = async (layoutId: string): Promise<LayoutDocument | null> => {
+      if (!firestore || !layoutId) return null;
+      const layoutDocRef = doc(firestore, 'layouts', layoutId);
+      const layoutDoc = await getDoc(layoutDocRef);
+      if (layoutDoc.exists()) {
+        return layoutDoc.data() as LayoutDocument;
+      }
+      return null;
+  }
 
   // Combined fetch logic for layout and report
   useEffect(() => {
