@@ -160,7 +160,7 @@ export default function AdminPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Vehicle ID</TableHead>
-                                <TableHead>Created By</TableHead>
+                                <TableHead>Last Saved By</TableHead>
                                 <TableHead>Created At</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -176,7 +176,7 @@ export default function AdminPage() {
                                 <TableCell className="text-right">
                                     <Link href={`/report/${report.vehicleId}`} passHref>
                                     <Button variant="outline" size="sm">
-                                        <Edit className="mr-2 h-3 w-3" /> Edit
+                                        <Edit className="mr-2 h-3 w-3" /> View / Edit
                                     </Button>
                                     </Link>
                                 </TableCell>

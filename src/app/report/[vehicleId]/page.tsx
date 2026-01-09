@@ -189,7 +189,10 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
           reportData: reportToSave,
           updatedAt: serverTimestamp(),
           layoutId: currentReportLayoutId, // Persist the potentially upgraded layout ID
+          userId: user.uid, // Update the userId to the current editor
+          userName: user.displayName, // Update the userName to the current editor
         });
+        setReportCreator(user.displayName); // Update UI to show current editor as creator
         toast({ title: 'Report Updated', description: 'Your changes have been saved.' });
       } else { // New report, create it
         const reportsRef = collection(firestore, 'reports');
@@ -290,7 +293,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
                      {reportCreator && (
                         <CardDescription className="flex items-center gap-2 pt-2">
                            <UserIcon size={14} className="text-muted-foreground" />
-                           Created by: <span className='font-semibold'>{reportCreator}</span>
+                           Last saved by: <span className='font-semibold'>{reportCreator}</span>
                         </CardDescription>
                     )}
                      {layoutVersion !== null && (
@@ -315,7 +318,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
                                 {reportCreator && (
                                     <CardDescription className="flex items-center gap-2 pt-2">
                                        <UserIcon size={14} className="text-muted-foreground" />
-                                       Created by: <span className='font-semibold'>{reportCreator}</span>
+                                       Last saved by: <span className='font-semibold'>{reportCreator}</span>
                                     </CardDescription>
                                 )}
                                 {layoutVersion !== null && (
@@ -397,4 +400,3 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     </div>
   );
 }
-

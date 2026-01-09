@@ -1,26 +1,26 @@
 
 /**
  * This Firestore Security Ruleset enforces a security model where all authenticated users can read
- * all reports, but can only write, update, or delete their own data.
+ * all reports and layouts. Any authenticated user can update any report, but only admins can
+ * manage layouts.
  *
  * Core Philosophy:
- * The security model is designed to be collaborative for reading data but strict for modifications.
- * Authorization for write operations is based on the user's authenticated UID.
+ * The security model is designed to be highly collaborative. Reading is open to all signed-in users.
+ * Report updates are also open to all signed-in users to allow for multi-user editing workflows.
+ * Layout modifications are a privileged action, restricted to admins.
  *
  * Data Structure:
- * - /users/{userId}: Private user profile data.
- * - /layouts/{layoutId}: Stores versioned layouts. `config` doc holds current version.
- * - /reports/{reportId}: Individual report documents, containing a `userId` field for ownership. This collection
- *   is readable by all signed-in users, but writable only by the owner or an admin.
+ * - /users/{userId}: Private user profile data. Only the owner can manage.
+ * - /layouts/{layoutId}: Stores versioned layouts. Readable by all, writable only by an admin.
+ * - /reports/{reportId}: Individual report documents. Readable and writable by all signed-in users, but can only be
+ *   created by a user setting themselves as the owner.
  *
  * Key Security Decisions:
  * - Admin Override: A designated admin user can edit or delete any report and any layout.
  * - Public Report Data: The `reports` collection is readable by any signed-in user.
  * - Public Layout Data: The `layouts` collection is readable by any signed-in user, but writable only by an admin.
+ * - Collaborative Report Editing: Any signed-in user can update any report.
  * - User Listing Disabled: To protect user privacy, listing top-level collections like `users` is disabled.
- * - Path-Based and Field-Based Security: Authorization for `users` relies on matching `request.auth.uid`
- *   with the document ID. For `reports`, write authorization relies on matching `request.auth.uid` with the `userId` field inside
- *   the document or checking for admin status.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -40,10 +40,6 @@ service cloud.firestore {
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
-    }
-    
-    function isReportOwner() {
-        return isSignedIn() && request.auth.uid == resource.data.userId;
     }
 
     function isCreatingReportAsOwner() {
@@ -78,7 +74,7 @@ service cloud.firestore {
     /**
      * @description Rules for individual report documents.
      * All authenticated users can read/list all reports.
-     * Write permissions (create, update, delete) are restricted to the owner or an admin.
+     * Write permissions are more open for collaboration.
      * @path /reports/{reportId}
      */
     match /reports/{reportId} {
@@ -88,8 +84,9 @@ service cloud.firestore {
       // A user can create a report if they are setting themselves as the owner.
       allow create: if isCreatingReportAsOwner();
       
-      // A user can update or delete a report only if they are the owner OR if they are an admin.
-      allow update, delete: if isReportOwner() || isAdmin();
+      // Any signed-in user can update a report. Admins can delete.
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
     }
   }
 }
