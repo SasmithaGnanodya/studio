@@ -9,15 +9,16 @@
  *
  * Data Structure:
  * - /users/{userId}: Private user profile data.
- * - /layouts/{userId}: User-specific layout configurations.
+ * - /layouts/shared: A single, shared layout configuration for all users.
  * - /reports/{reportId}: Individual report documents, containing a `userId` field for ownership. This collection
  *   is readable by all signed-in users, but writable only by the owner or an admin.
  *
  * Key Security Decisions:
- * - Admin Override: A designated admin user can edit or delete any report.
+ * - Admin Override: A designated admin user can edit or delete any report and the shared layout.
  * - Public Report Data: The `reports` collection is readable by any signed-in user.
- * - User Listing Disabled: To protect user privacy, listing top-level collections like `users` and `layouts` is disabled.
- * - Path-Based and Field-Based Security: Authorization for `users` and `layouts` relies on matching `request.auth.uid`
+ * - Shared Layout: The `layouts/shared` document is readable by any signed-in user, but writable only by an admin.
+ * - User Listing Disabled: To protect user privacy, listing top-level collections like `users` is disabled.
+ * - Path-Based and Field-Based Security: Authorization for `users` relies on matching `request.auth.uid`
  *   with the document ID. For `reports`, write authorization relies on matching `request.auth.uid` with the `userId` field inside
  *   the document or checking for admin status.
  */
@@ -64,13 +65,14 @@ service cloud.firestore {
     }
     
     /**
-     * @description Rules for a user's form field layout.
-     * A user can only access their own layout.
-     * @path /layouts/{userId}
+     * @description Rules for the shared form field layout.
+     * Any signed-in user can read the layout, but only an admin can change it.
+     * @path /layouts/shared
      */
-    match /layouts/{userId} {
-      allow get, create, update, delete: if isOwner(userId);
-      allow list: if false; // Prevent one user from listing all layouts
+    match /layouts/{layoutId} {
+      allow get: if isSignedIn() && layoutId == 'shared';
+      allow create, update, delete: if isAdmin() && layoutId == 'shared';
+      allow list: if false; // Prevent listing all layouts
     }
 
     /**
