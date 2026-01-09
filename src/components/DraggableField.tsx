@@ -19,8 +19,22 @@ type DraggableFieldProps = {
 };
 
 export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeStop, onClick, isSelected, borderColor = 'blue', isImage = false }: DraggableFieldProps) => {
+  // Internal state for smooth dragging without causing parent re-renders on every mouse move
+  const [position, setPosition] = useState({ x, y });
+  const [size, setSize] = useState({ width, height });
+
+  // Update internal state if props change from outside (e.g., loading new layout)
+  useEffect(() => {
+    setPosition({ x, y });
+  }, [x, y]);
+
+  useEffect(() => {
+    setSize({ width, height });
+  }, [width, height]);
+
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState<string | null>(null);
+
   const dragStartPos = useRef({ x: 0, y: 0 });
   const elementStartRect = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
@@ -28,19 +42,19 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
     onClick(id);
     const target = e.target as HTMLElement;
     const resizeHandle = target.dataset.resize;
+    
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    elementStartRect.current = { x: position.x, y: position.y, width: size.width, height: size.height };
 
     if (resizeHandle) {
         setIsResizing(resizeHandle);
-        elementStartRect.current = { x, y, width, height };
-        dragStartPos.current = { x: e.clientX, y: e.clientY };
     } else {
         setIsDragging(true);
-        dragStartPos.current = { x: e.clientX, y: e.clientY };
-        elementStartRect.current = { x, y, width: 0, height: 0 }; // Width/height not needed for drag
     }
+
     e.preventDefault();
     e.stopPropagation();
-  }, [id, onClick, x, y, width, height]);
+  }, [id, onClick, position, size]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     const dx = e.clientX - dragStartPos.current.x;
@@ -64,27 +78,33 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
             newY += dy;
         }
         
-        onDragStop(id, newX, newY); // This should update position
-        onResizeStop(id, Math.max(10, newWidth), Math.max(10, newHeight));
+        setPosition({ x: newX, y: newY });
+        setSize({ width: Math.max(10, newWidth), height: Math.max(10, newHeight) });
+
     } else if (isDragging) {
-        const newX = x + dx;
-        const newY = y + dy;
-        onDragStop(id, newX, newY);
+        const newX = elementStartRect.current.x + dx;
+        const newY = elementStartRect.current.y + dy;
+        setPosition({ x: newX, y: newY });
     }
-  }, [isDragging, isResizing, id, onDragStop, onResizeStop, x, y]);
+  }, [isDragging, isResizing]);
 
   const handleMouseUp = useCallback(() => {
+    if (isDragging) {
+      onDragStop(id, position.x, position.y);
+    }
+    if (isResizing) {
+      onDragStop(id, position.x, position.y); // Also update position on resize
+      onResizeStop(id, size.width, size.height);
+    }
+
     setIsDragging(false);
     setIsResizing(null);
-  }, []);
+  }, [isDragging, isResizing, id, position, size, onDragStop, onResizeStop]);
 
   useEffect(() => {
     if (isDragging || isResizing) {
       window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    } else {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.addEventListener('mouseup', handleMouseUp, { once: true }); // Use once to auto-cleanup
     }
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
@@ -95,10 +115,10 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
 
   const containerStyle: React.CSSProperties = {
     position: 'absolute',
-    left: `${x}px`,
-    top: `${y}px`,
-    width: `${width}px`,
-    height: `${height}px`,
+    left: `${position.x}px`,
+    top: `${position.y}px`,
+    width: `${size.width}px`,
+    height: `${size.height}px`,
     cursor: isDragging ? 'grabbing' : 'grab',
     border: isSelected ? `2px solid ${borderColor}` : `1px dashed ${borderColor}`,
     backgroundColor: isSelected ? 'rgba(0, 123, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
@@ -107,6 +127,7 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    transition: (isDragging || isResizing) ? 'none' : 'all 0.1s ease', // No transition while dragging
   };
   
   const resizeHandleStyle: React.CSSProperties = {
@@ -143,5 +164,3 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
     </div>
   );
 };
-
-    
