@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, use } from 'react';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,7 +66,8 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
   
-  const vehicleId = decodeURIComponent(params.vehicleId);
+  const resolvedParams = use(params);
+  const vehicleId = decodeURIComponent(resolvedParams.vehicleId);
 
   // Set document title for printing
   useEffect(() => {
