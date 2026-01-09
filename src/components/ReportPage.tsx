@@ -80,7 +80,7 @@ const renderImageField = (field: PrintImageField) => {
   );
 };
 
-export const ReportPage = ({ staticLabels, dynamicValues, imageValues, isCalibrating }: ReportPageProps) => {
+export const ReportPage = ({ staticLabels = [], dynamicValues = [], imageValues = [], isCalibrating }: ReportPageProps) => {
   return (
     <div className={`report-page ${isCalibrating ? 'calibration-mode' : ''}`}>
       {/* Render static labels */}
