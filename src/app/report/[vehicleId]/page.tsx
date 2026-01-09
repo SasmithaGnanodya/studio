@@ -117,7 +117,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
 
       // 2. Check for an existing report
       const reportsRef = collection(firestore, `reports`);
-      const q = query(reportsRef, where('vehicleId', '==', vehicleId), where('userId', '==', user.uid));
+      const q = query(reportsRef, where('vehicleId', '==', vehicleId));
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) { // Existing report found
@@ -185,6 +185,8 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
 
     try {
         await runTransaction(firestore, async (transaction) => {
+            const newTimestamp = serverTimestamp();
+            
             if (reportId) { // Existing report
                 const reportRef = doc(firestore, 'reports', reportId);
                 const historyColRef = collection(reportRef, 'history');
@@ -208,7 +210,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
                 // Update the main report document
                 transaction.update(reportRef, {
                     reportData: reportToSave,
-                    updatedAt: serverTimestamp(),
+                    updatedAt: newTimestamp,
                     layoutId: currentReportLayoutId,
                     userId: user.uid,
                     userName: user.displayName,
@@ -226,9 +228,21 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
                     userId: user.uid,
                     userName: user.displayName,
                     reportData: reportToSave,
-                    createdAt: serverTimestamp(),
-                    updatedAt: serverTimestamp(),
+                    createdAt: newTimestamp,
+                    updatedAt: newTimestamp,
                     layoutId: currentReportLayoutId,
+                });
+                
+                // Also create the first history entry for the new report
+                const historyDocRef = doc(collection(newReportRef, 'history'));
+                transaction.set(historyDocRef, {
+                    id: historyDocRef.id,
+                    reportId: newReportRef.id,
+                    vehicleId: vehicleId,
+                    userId: user.uid,
+                    userName: user.displayName,
+                    reportData: reportToSave,
+                    savedAt: newTimestamp,
                 });
                 
                 setReportId(newReportRef.id);
