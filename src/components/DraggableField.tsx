@@ -36,7 +36,7 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
     } else {
         setIsDragging(true);
         dragStartPos.current = { x: e.clientX, y: e.clientY };
-        elementStartRect.current = { x, y, width, height };
+        elementStartRect.current = { x, y, width: 0, height: 0 }; // Width/height not needed for drag
     }
     e.preventDefault();
     e.stopPropagation();
@@ -49,21 +49,29 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
     if (isResizing) {
         let newWidth = elementStartRect.current.width;
         let newHeight = elementStartRect.current.height;
-        
+        let newX = elementStartRect.current.x;
+        let newY = elementStartRect.current.y;
+
         if (isResizing.includes('right')) newWidth += dx;
-        if (isResizing.includes('left')) newWidth -= dx;
         if (isResizing.includes('bottom')) newHeight += dy;
-        if (isResizing.includes('top')) newHeight -= dy;
         
-        // The drag stop for resize has to be different because it only updates size, not position
-        // The position is updated via the drag handle
+        if (isResizing.includes('left')) {
+            newWidth -= dx;
+            newX += dx;
+        }
+        if (isResizing.includes('top')) {
+            newHeight -= dy;
+            newY += dy;
+        }
+        
+        onDragStop(id, newX, newY); // This should update position
         onResizeStop(id, Math.max(10, newWidth), Math.max(10, newHeight));
     } else if (isDragging) {
-        const newX = elementStartRect.current.x + dx;
-        const newY = elementStartRect.current.y + dy;
+        const newX = x + dx;
+        const newY = y + dy;
         onDragStop(id, newX, newY);
     }
-  }, [isDragging, isResizing, id, onDragStop, onResizeStop]);
+  }, [isDragging, isResizing, id, onDragStop, onResizeStop, x, y]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -125,7 +133,7 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
                 <div data-resize="top-left" style={{...resizeHandleStyle, top: '-5px', left: '-5px', cursor: 'nwse-resize'}}></div>
                 <div data-resize="top-right" style={{...resizeHandleStyle, top: '-5px', right: '-5px', cursor: 'nesw-resize'}}></div>
                 <div data-resize="bottom-left" style={{...resizeHandleStyle, bottom: '-5px', left: '-5px', cursor: 'nesw-resize'}}></div>
-                <div data-resize="bottom-right" style={{...resizeHandleStyle, bottom: '-5-px', right: '-5px', cursor: 'nwse-resize'}}></div>
+                <div data-resize="bottom-right" style={{...resizeHandleStyle, bottom: '-5px', right: '-5px', cursor: 'nwse-resize'}}></div>
                 <div data-resize="top" style={{...resizeHandleStyle, top: '-5px', left: 'calc(50% - 5px)', cursor: 'ns-resize'}}></div>
                 <div data-resize="bottom" style={{...resizeHandleStyle, bottom: '-5px', left: 'calc(50% - 5px)', cursor: 'ns-resize'}}></div>
                 <div data-resize="left" style={{...resizeHandleStyle, top: 'calc(50% - 5px)', left: '-5px', cursor: 'ew-resize'}}></div>
@@ -135,3 +143,5 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
     </div>
   );
 };
+
+    

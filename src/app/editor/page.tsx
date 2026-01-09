@@ -335,7 +335,7 @@ export default function EditorPage() {
         </div>
         
         <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
-          <div className="relative mx-auto w-fit">
+          <div className="relative mx-auto w-fit preview-mode">
               <ReportPage 
                 staticLabels={staticLabels} 
                 dynamicValues={valuePlaceholders} 
@@ -387,6 +387,7 @@ export default function EditorPage() {
                   onClick={handleSelectField}
                   isSelected={field.id === selectedFieldId}
                   borderColor='purple'
+                  isImage={true}
                 />
               ))}
           </div>
