@@ -23,7 +23,7 @@ export default function LandingPage() {
   const { firestore, user, isUserLoading } = useFirebase();
 
   useEffect(() => {
-    if (!user || !firestore || searchTerm.length < 3) {
+    if (!user || !firestore || searchTerm.length < 1) {
       setSearchResults([]);
       setNoResults(false);
       return;
@@ -32,9 +32,9 @@ export default function LandingPage() {
     setIsSearching(true);
     const debounceTimeout = setTimeout(async () => {
       const reportsRef = collection(firestore, `reports`);
+      // Query now searches all reports, not just the user's
       const q = query(
         reportsRef,
-        where('userId', '==', user.uid),
         where('vehicleId', '>=', searchTerm.toUpperCase()),
         where('vehicleId', '<=', searchTerm.toUpperCase() + '\uf8ff'),
         limit(10)
@@ -196,5 +196,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    

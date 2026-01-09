@@ -89,7 +89,8 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     // Fetch Report Data
     const fetchReportData = async () => {
         const reportsRef = collection(firestore, `reports`);
-        const q = query(reportsRef, where('vehicleId', '==', vehicleId), where('userId', '==', user.uid), limit(1));
+        // Query now searches all reports, not just the user's
+        const q = query(reportsRef, where('vehicleId', '==', vehicleId), limit(1));
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
@@ -287,5 +288,3 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     </div>
   );
 }
-
-    
