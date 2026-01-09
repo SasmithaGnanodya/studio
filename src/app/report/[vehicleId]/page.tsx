@@ -66,6 +66,17 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const resolvedParams = use(params);
   const vehicleId = decodeURIComponent(resolvedParams.vehicleId);
 
+  // Set document title for printing
+  useEffect(() => {
+    if (vehicleId) {
+      document.title = vehicleId;
+    }
+    // Return a cleanup function to reset the title
+    return () => {
+      document.title = 'FormFlow PDF Filler';
+    };
+  }, [vehicleId]);
+
   // Fetch layout and report data
   useEffect(() => {
     if (!user || !firestore) return;
