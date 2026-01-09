@@ -9,10 +9,11 @@ import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, ShieldOff } from 'lucide-react';
+import { Edit, ShieldOff, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 
 const ADMIN_EMAIL = 'sasmithagnanodya@gmail.com';
 
@@ -21,6 +22,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (isUserLoading) return; // Wait until user auth state is resolved
@@ -47,8 +49,15 @@ export default function AdminPage() {
     }
   }, [user, firestore, isUserLoading, router]);
 
+  const filteredReports = useMemo(() => {
+    if (!searchTerm) return reports;
+    return reports.filter(report => 
+      report.vehicleId.toUpperCase().includes(searchTerm.toUpperCase())
+    );
+  }, [reports, searchTerm]);
+
   const reportsByDay = useMemo(() => {
-    return reports.reduce((acc, report) => {
+    return filteredReports.reduce((acc, report) => {
       if (!report.createdAt) return acc;
       const date = new Date(report.createdAt.seconds * 1000).toLocaleDateString('en-CA');
       if (!acc[date]) {
@@ -57,7 +66,7 @@ export default function AdminPage() {
       acc[date].push(report);
       return acc;
     }, {} as Record<string, Report[]>);
-  }, [reports]);
+  }, [filteredReports]);
 
   const renderContent = () => {
     if (isLoading || isUserLoading) {
@@ -112,18 +121,30 @@ export default function AdminPage() {
         )
     }
 
+    const reportDays = Object.keys(reportsByDay);
+
     return (
         <Card>
             <CardHeader>
-            <CardTitle>Admin Panel</CardTitle>
-            <CardDescription>Overview of all valuation reports in the system.</CardDescription>
+                <CardTitle>Admin Panel</CardTitle>
+                <CardDescription>Overview of all valuation reports in the system.</CardDescription>
+                 <div className="relative pt-4">
+                    <Search className="absolute left-3 top-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                        type="text"
+                        placeholder="Search by Vehicle ID..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 w-full md:w-1/2 lg:w-1/3"
+                    />
+                </div>
             </CardHeader>
             <CardContent className="space-y-6">
-            {Object.entries(reportsByDay).map(([day, dailyReports]) => (
+            {reportDays.length > 0 ? reportDays.map((day) => (
                 <div key={day}>
                 <h3 className="text-lg font-semibold">
                     {new Date(day).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    <span className="ml-2 text-sm font-normal text-muted-foreground">({dailyReports.length} reports)</span>
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">({reportsByDay[day].length} reports)</span>
                 </h3>
                 <div className="border rounded-md mt-2">
                     <Table>
@@ -136,7 +157,7 @@ export default function AdminPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {dailyReports.map((report) => (
+                            {reportsByDay[day].map((report) => (
                                 <TableRow key={report.id}>
                                 <TableCell className="font-mono">{report.vehicleId}</TableCell>
                                 <TableCell>{report.userName || 'Unknown'}</TableCell>
@@ -156,7 +177,11 @@ export default function AdminPage() {
                     </Table>
                 </div>
                 </div>
-            ))}
+            )) : (
+                <div className="text-center py-10">
+                    <p className="text-muted-foreground">No reports found{searchTerm ? ` for "${searchTerm}"` : ""}.</p>
+                </div>
+            )}
             </CardContent>
         </Card>
     )
