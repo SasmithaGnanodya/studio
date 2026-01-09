@@ -132,15 +132,20 @@ export default function AdminPage() {
             <CardHeader>
                 <CardTitle>Admin Panel</CardTitle>
                 <CardDescription>Overview of all valuation reports in the system.</CardDescription>
-                 <div className="relative pt-4">
-                    <Search className="absolute left-3 top-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input
-                        type="text"
-                        placeholder="Search by Vehicle ID..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 w-full md:w-1/2 lg:w-1/3"
-                    />
+                 <div className="relative pt-4 flex items-center gap-4">
+                    <div className="relative flex-grow">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input
+                            type="text"
+                            placeholder="Search by Vehicle ID..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 w-full"
+                        />
+                    </div>
+                    <Link href="/editor" passHref>
+                        <Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit Layout</Button>
+                    </Link>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">

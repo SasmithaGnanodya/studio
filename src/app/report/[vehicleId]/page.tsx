@@ -62,7 +62,6 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
   
-  // Correctly unwrap params using the `use` hook
   const resolvedParams = use(params);
   const vehicleId = decodeURIComponent(resolvedParams.vehicleId);
 
@@ -295,9 +294,6 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
               </div>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <Button onClick={handleSaveReport}><Save className="mr-2 h-4 w-4" /> Save Report</Button>
-                <Link href="/editor" passHref>
-                  <Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit Layout</Button>
-                </Link>
                 <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Print to PDF</Button>
               </div>
             </CardContent>
@@ -328,5 +324,3 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     </div>
   );
 }
-
-    

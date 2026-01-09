@@ -4,8 +4,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Save, Home, PlusCircle, Image as ImageIcon } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Save, Home, PlusCircle, Image as ImageIcon, ShieldOff } from 'lucide-react';
 import Link from 'next/link';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
@@ -16,12 +16,16 @@ import type { FieldLayout, FieldPart } from '@/lib/types';
 import { EditorSidebar } from '@/components/EditorSidebar';
 import { ReportPage } from '@/components/ReportPage';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useRouter } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Standard DPI for screen, used for mm to px conversion
 const DPI = 96;
 const INCH_PER_MM = 0.0393701;
 const MM_TO_PX = (mm: number) => mm * INCH_PER_MM * DPI;
 const PX_TO_MM = (px: number) => px / (INCH_PER_MM * DPI);
+
+const ADMIN_EMAIL = 'sasmithagnanodya@gmail.com';
 
 const validateAndCleanFieldPart = (part: any): FieldPart => {
   const defaults: FieldPart = {
@@ -59,12 +63,22 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
 export default function EditorPage() {
   const [fields, setFields] = useState<FieldLayout[]>(initialLayout);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
-  const { firestore, user } = useFirebase();
+  const { firestore, user, isUserLoading } = useFirebase();
   const { toast } = useToast();
+  const router = useRouter();
+
+  // Admin check
+  useEffect(() => {
+    if (isUserLoading) return;
+    if (!user || user.email !== ADMIN_EMAIL) {
+      router.replace('/');
+    }
+  }, [user, isUserLoading, router]);
+
 
   // Fetch layout from Firestore on component mount
   useEffect(() => {
-    if (user && firestore) {
+    if (user && firestore && user.email === ADMIN_EMAIL) {
       const fetchLayout = async () => {
         const layoutDocRef = doc(firestore, `layouts/${user.uid}`);
         const layoutDoc = await getDoc(layoutDocRef);
@@ -286,10 +300,39 @@ export default function EditorPage() {
 
   const selectedField = fields.find(f => f.id === selectedFieldId) || null;
 
-  return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
-      <Header />
-      <main className="flex-1 flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+  const renderContent = () => {
+    if (isUserLoading) {
+      return (
+        <div className="flex justify-center items-center h-full">
+           <Card className="w-full max-w-md p-8">
+              <CardContent className="flex flex-col items-center gap-4">
+                  <Skeleton className="w-24 h-8" />
+                  <Skeleton className="w-full h-10" />
+                  <Skeleton className="w-full h-40" />
+              </CardContent>
+            </Card>
+        </div>
+      );
+    }
+    
+    if (!user || user.email !== ADMIN_EMAIL) {
+        return (
+            <div className="flex justify-center items-center h-full">
+                <Card className="text-center max-w-md">
+                    <CardHeader>
+                        <CardTitle>Access Denied</CardTitle>
+                        <CardDescription>You do not have permission to view this page.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ShieldOff className="mx-auto h-16 w-16 text-destructive" />
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    return (
+      <>
         <Card>
           <CardContent className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <h2 className="text-xl font-semibold self-start">Layout Editor</h2>
@@ -392,9 +435,16 @@ export default function EditorPage() {
               ))}
           </div>
         </div>
+      </>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+      <Header />
+      <main className="flex-1 flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+        {renderContent()}
       </main>
     </div>
   );
 }
-
-    
