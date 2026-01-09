@@ -79,26 +79,80 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     };
   }, [vehicleId]);
 
-  // Fetch layout config and then report data
+  // Combined fetch logic for layout and report
   useEffect(() => {
     if (!user || !firestore) return;
 
-    const fetchLayoutConfig = async () => {
-        const configRef = doc(firestore, 'layouts', 'config');
-        const configSnap = await getDoc(configRef);
-        if (configSnap.exists()) {
-            const configData = configSnap.data();
-            setLatestLayoutId(configData.currentId);
-            return configData.currentId;
+    const fetchLayoutById = async (layoutId: string) => {
+        if (!firestore) return null;
+        const layoutDocRef = doc(firestore, 'layouts', layoutId);
+        const layoutDoc = await getDoc(layoutDocRef);
+        if (layoutDoc.exists()) {
+            const data = layoutDoc.data() as LayoutDocument;
+            if (data.fields && Array.isArray(data.fields)) {
+                const validatedFields = data.fields.map((f: any) => ({
+                    ...f,
+                    fieldType: f.fieldType || 'text',
+                    label: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.label) : ({} as FieldPart),
+                    value: f.fieldType !== 'image' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
+                    placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
+                }));
+                setLayout(validatedFields as FieldLayout[]);
+                setLayoutVersion(data.version);
+            }
         }
-        return null;
     };
     
-    fetchLayoutConfig().then((latestId) => {
-        fetchReportAndLayout(latestId);
-    });
+    const fetchReportData = async () => {
+      // 1. Get the latest layout configuration first
+      const configRef = doc(firestore, 'layouts', 'config');
+      const configSnap = await getDoc(configRef);
+      const latestId = configSnap.exists() ? configSnap.data().currentId : null;
+      setLatestLayoutId(latestId);
 
-  }, [user, firestore, vehicleId]);
+      // 2. Check for an existing report
+      const reportsRef = collection(firestore, `reports`);
+      const q = query(reportsRef, where('vehicleId', '==', vehicleId), limit(1));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) { // Existing report found
+        const reportDoc = querySnapshot.docs[0];
+        const report = reportDoc.data() as Report;
+        
+        setReportId(reportDoc.id);
+        setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
+        setReportCreator(report.userName || null);
+        setCurrentReportLayoutId(report.layoutId);
+        setIsLatestLayout(report.layoutId === latestId);
+
+        await fetchLayoutById(report.layoutId); // Load the specific layout for this report
+        
+        toast({
+          title: "Report Loaded",
+          description: `Loaded existing report for ${vehicleId}.`,
+        });
+      } else { // This is a new report
+        setReportId(null);
+        setReportCreator(user.displayName);
+        setReportData({ ...initialReportState, regNumber: vehicleId });
+        setIsLatestLayout(true);
+        
+        if (latestId) {
+            await fetchLayoutById(latestId); // Use the LATEST layout for new reports
+            setCurrentReportLayoutId(latestId);
+        }
+        
+        toast({
+          title: "New Report",
+          description: `Creating a new report for ${vehicleId}.`,
+        });
+      }
+    };
+
+    fetchReportData();
+
+  }, [user, firestore, vehicleId, toast]);
+
 
   const fetchLayoutById = async (layoutId: string) => {
     if (!firestore) return;
@@ -121,47 +175,6 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     }
     return null;
   }
-
-  const fetchReportAndLayout = async (latestId: string | null) => {
-      if (!firestore || !user) return;
-
-      const reportsRef = collection(firestore, `reports`);
-      const q = query(reportsRef, where('vehicleId', '==', vehicleId), limit(1));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) { // Existing report
-          const reportDoc = querySnapshot.docs[0];
-          const report = reportDoc.data() as Report;
-          setReportId(reportDoc.id);
-          setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
-          setCurrentReportLayoutId(report.layoutId);
-          
-          await fetchLayoutById(report.layoutId);
-          setIsLatestLayout(report.layoutId === latestId);
-
-          if (report.userName) setReportCreator(report.userName);
-          
-          toast({
-              title: "Report Loaded",
-              description: `Loaded existing report for ${vehicleId}.`,
-          });
-      } else { // New report
-          setReportId(null);
-          setReportCreator(user.displayName);
-          setReportData({ ...initialReportState, regNumber: vehicleId });
-          
-          if (latestId) {
-            await fetchLayoutById(latestId);
-            setCurrentReportLayoutId(latestId);
-          }
-          setIsLatestLayout(true);
-          
-          toast({
-              title: "New Report",
-              description: `Creating a new report for ${vehicleId}.`,
-          });
-      }
-  };
 
   const handleDataChange = (name: string, value: string | ImageData) => {
     setReportData(prev => ({ ...prev, [name]: value }));
@@ -394,5 +407,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
     </div>
   );
 }
+
+    
 
     

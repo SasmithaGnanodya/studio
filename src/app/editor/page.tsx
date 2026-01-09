@@ -28,35 +28,35 @@ const PX_TO_MM = (px: number) => px / (INCH_PER_MM * DPI);
 const ADMIN_EMAIL = 'sasmithagnanodya@gmail.com';
 
 const validateAndCleanFieldPart = (part: any): FieldPart => {
-  const defaults: FieldPart = {
-    text: '',
-    x: 0,
-    y: 0,
-    width: 50,
-    height: 5,
-    isBold: false,
-    color: '#000000',
-    fontSize: 12,
-    inputType: 'text',
-    options: []
-  };
-
-  if (typeof part !== 'object' || part === null) {
-    return { ...defaults, text: String(part || '') };
-  }
-
-  return {
-    text: part.text || '',
-    x: part.x || 0,
-    y: part.y || 0,
-    width: part.width || 50,
-    height: part.height || 5,
-    isBold: part.isBold || false,
-    color: part.color || '#000000',
-    fontSize: part.fontSize || 12,
-    inputType: part.inputType || 'text',
-    options: part.options || []
-  };
+    const defaults: FieldPart = {
+      text: '',
+      x: 0,
+      y: 0,
+      width: 50,
+      height: 5,
+      isBold: false,
+      color: '#000000',
+      fontSize: 12,
+      inputType: 'text',
+      options: []
+    };
+  
+    if (typeof part !== 'object' || part === null) {
+      return { ...defaults, text: String(part || '') };
+    }
+  
+    return {
+      text: part.text ?? defaults.text,
+      x: part.x ?? defaults.x,
+      y: part.y ?? defaults.y,
+      width: part.width ?? defaults.width,
+      height: part.height ?? defaults.height,
+      isBold: part.isBold ?? defaults.isBold,
+      color: part.color ?? defaults.color,
+      fontSize: part.fontSize ?? defaults.fontSize,
+      inputType: part.inputType ?? defaults.inputType,
+      options: part.options ?? defaults.options
+    };
 };
 
 
@@ -467,3 +467,4 @@ export default function EditorPage() {
   );
 }
 
+    
