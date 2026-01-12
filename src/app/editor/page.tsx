@@ -63,13 +63,14 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
 
 
 export default function EditorPage({ params }: { params: {} }) {
+  const resolvedParams = use(params);
   const [fields, setFields] = useState<FieldLayout[]>(initialLayout);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const { firestore, user, isUserLoading } = useFirebase();
   const { toast } = useToast();
   const router = useRouter();
 
-  const resolvedParams = use(params);
+
 
 
   // Admin check

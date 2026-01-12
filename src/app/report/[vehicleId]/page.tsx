@@ -116,7 +116,7 @@ function PasswordGate({ onPasswordCorrect }: { onPasswordCorrect: () => void }) 
 
 export default function ReportBuilderPage({ params }: { params: { vehicleId: string } }) {
   const resolvedParams = use(params);
-
+  
   const [reportId, setReportId] = useState<string | null>(null);
   const [reportCreator, setReportCreator] = useState<string | null>(null);
   const [reportData, setReportData] = useState(initialReportState);
