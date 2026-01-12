@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com'];
+
 export default function LandingPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Report[]>([]);
@@ -25,6 +27,10 @@ export default function LandingPage() {
 
   const router = useRouter();
   const { firestore, user, isUserLoading } = useFirebase();
+
+  const isAdmin = useMemo(() => {
+    return user?.email && ADMIN_EMAILS.includes(user.email);
+  }, [user]);
 
   // Effect for handling live search results
   useEffect(() => {
@@ -63,9 +69,9 @@ export default function LandingPage() {
     return () => clearTimeout(debounceTimeout);
   }, [searchTerm, firestore, user]);
 
-  // Effect for fetching all reports for the history list
+  // Effect for fetching all reports for the history list (for admins)
    useEffect(() => {
-    if (user && firestore) {
+    if (user && firestore && isAdmin) {
       setIsLoadingReports(true);
       const reportsRef = collection(firestore, 'reports');
       const q = query(reportsRef, orderBy('updatedAt', 'desc'));
@@ -87,7 +93,7 @@ export default function LandingPage() {
         setAllReports([]);
         setIsLoadingReports(false);
     }
-  }, [user, firestore]);
+  }, [user, firestore, isAdmin]);
 
   const handleCreateNew = () => {
     if (searchTerm) {
@@ -98,6 +104,10 @@ export default function LandingPage() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && noResults && searchTerm) {
       handleCreateNew();
+    } else if (e.key === 'Enter' && searchResults.length > 0) {
+      router.push(`/report/${searchResults[0].vehicleId}`);
+    } else if (e.key === 'Enter' && searchTerm) {
+      router.push(`/report/${searchTerm.toUpperCase()}`);
     }
   }
   
@@ -228,50 +238,52 @@ export default function LandingPage() {
             </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>All Reports</CardTitle>
-            <CardDescription>A list of all reports in the system, sorted by the most recently updated.</CardDescription>
-          </CardHeader>
-          <CardContent>
-             <div className="border rounded-md">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Vehicle ID</TableHead>
-                      <TableHead>Last Saved By</TableHead>
-                      <TableHead className="text-right">Last Updated</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoadingReports ? (
-                       [...Array(5)].map((_, i) => (
-                        <TableRow key={i}>
-                          <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                          <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                          <TableCell className="text-right"><Skeleton className="h-5 w-28 ml-auto" /></TableCell>
-                        </TableRow>
-                      ))
-                    ) : allReports.length > 0 ? (
-                      allReports.map((report) => (
-                        <TableRow key={report.id} className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/report/${report.vehicleId}`)}>
-                          <TableCell className="font-mono">{report.vehicleId}</TableCell>
-                          <TableCell>{report.userName || 'N/A'}</TableCell>
-                          <TableCell className="text-right">
-                            {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleString() : 'N/A'}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle>All Reports</CardTitle>
+              <CardDescription>A list of all reports in the system, sorted by the most recently updated.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-md">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={3} className="text-center h-24">No reports found.</TableCell>
+                        <TableHead>Vehicle ID</TableHead>
+                        <TableHead>Last Saved By</TableHead>
+                        <TableHead className="text-right">Last Updated</TableHead>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-             </div>
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoadingReports ? (
+                        [...Array(5)].map((_, i) => (
+                          <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                            <TableCell className="text-right"><Skeleton className="h-5 w-28 ml-auto" /></TableCell>
+                          </TableRow>
+                        ))
+                      ) : allReports.length > 0 ? (
+                        allReports.map((report) => (
+                          <TableRow key={report.id} className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/report/${report.vehicleId}`)}>
+                            <TableCell className="font-mono">{report.vehicleId}</TableCell>
+                            <TableCell>{report.userName || 'N/A'}</TableCell>
+                            <TableCell className="text-right">
+                              {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleString() : 'N/A'}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center h-24">No reports found.</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }
