@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const ADMIN_EMAIL = 'sasmithagnanodya@gmail.com';
+const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com'];
 
 export default function ReportHistoryPage({ params }: { params: { reportId: string } }) {
   const resolvedParams = use(params);
@@ -30,7 +30,7 @@ export default function ReportHistoryPage({ params }: { params: { reportId: stri
   useEffect(() => {
     if (isUserLoading) return;
 
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email)) {
       router.replace('/');
       return;
     }
@@ -100,7 +100,7 @@ export default function ReportHistoryPage({ params }: { params: { reportId: stri
       );
     }
 
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email)) {
         return (
             <Card className="text-center">
                 <CardHeader>
@@ -170,5 +170,3 @@ export default function ReportHistoryPage({ params }: { params: { reportId: stri
     </div>
   );
 }
-
-    

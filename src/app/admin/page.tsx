@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 
-const ADMIN_EMAIL = 'sasmithagnanodya@gmail.com';
+const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com'];
 
 export default function AdminPage() {
   const { user, firestore, isUserLoading } = useFirebase();
@@ -27,7 +27,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (isUserLoading) return;
 
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email)) {
       router.replace('/');
       return;
     }
@@ -111,7 +111,7 @@ export default function AdminPage() {
         );
     }
     
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email)) {
         return (
             <Card className="text-center">
                 <CardHeader>
@@ -210,5 +210,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    

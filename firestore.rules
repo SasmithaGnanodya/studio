@@ -37,7 +37,7 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return isSignedIn() && request.auth.token.email == 'sasmithagnanodya@gmail.com';
+      return isSignedIn() && request.auth.token.email in ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com'];
     }
 
     function isOwner(userId) {
@@ -102,5 +102,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

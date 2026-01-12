@@ -3,11 +3,11 @@ import Link from 'next/link';
 import { UserNav } from './UserNav';
 import { useFirebase } from '@/firebase';
 
-const ADMIN_EMAIL = 'sasmithagnanodya@gmail.com';
+const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com'];
 
 export function Header() {
   const { user } = useFirebase();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
 
   return (
     <header className="border-b bg-card sticky top-0 z-10 no-print">

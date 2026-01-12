@@ -25,7 +25,7 @@ const INCH_PER_MM = 0.0393701;
 const MM_TO_PX = (mm: number) => mm * INCH_PER_MM * DPI;
 const PX_TO_MM = (px: number) => px / (INCH_PER_MM * DPI);
 
-const ADMIN_EMAIL = 'sasmithagnanodya@gmail.com';
+const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com'];
 
 const validateAndCleanFieldPart = (part: any): FieldPart => {
     const defaults: FieldPart = {
@@ -75,7 +75,7 @@ export default function EditorPage({ params }: { params: {} }) {
   // Admin check
   useEffect(() => {
     if (isUserLoading) return;
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email)) {
       router.replace('/');
     }
   }, [user, isUserLoading, router]);
@@ -83,7 +83,7 @@ export default function EditorPage({ params }: { params: {} }) {
 
   // Fetch the LATEST layout from Firestore on component mount
   useEffect(() => {
-    if (user && firestore && user.email === ADMIN_EMAIL) {
+    if (user && firestore && user.email && ADMIN_EMAILS.includes(user.email)) {
       const fetchLatestLayout = async () => {
         const configRef = doc(firestore, 'layouts', 'config');
         const configSnap = await getDoc(configRef);
@@ -360,7 +360,7 @@ export default function EditorPage({ params }: { params: {} }) {
       );
     }
     
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email)) {
         return (
             <div className="flex justify-center items-center h-full">
                 <Card className="text-center max-w-md">
@@ -511,4 +511,3 @@ export default function EditorPage({ params }: { params: {} }) {
     </div>
   );
 }
-
