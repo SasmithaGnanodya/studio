@@ -6,7 +6,7 @@ import { useFirebase } from '@/firebase';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Edit, ShieldOff, Search, History, Save, TrendingUp } from 'lucide-react';
@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { startOfDay, startOfWeek, startOfMonth } from 'date-fns';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
+const INITIAL_VISIBLE_REPORTS = 6;
 
 function PasswordManager({ firestore }: { firestore: any }) {
     const [password, setPassword] = useState('');
@@ -131,6 +132,7 @@ export default function AdminPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [visibleReportsCount, setVisibleReportsCount] = useState(INITIAL_VISIBLE_REPORTS);
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -157,7 +159,7 @@ export default function AdminPage() {
         setIsLoading(false);
       });
 
-      return () => unsubscribe(); // Cleanup subscription on component unmount
+      return () => unsubscribe();
     }
   }, [user, firestore, isUserLoading, router]);
 
@@ -168,54 +170,40 @@ export default function AdminPage() {
     );
   }, [reports, searchTerm]);
 
-  const reportsByDay = useMemo(() => {
-    return filteredReports.reduce((acc, report) => {
-      if (!report.createdAt) return acc;
-      const date = new Date(report.createdAt.seconds * 1000).toLocaleDateString('en-CA');
-      if (!acc[date]) {
-        acc[date] = [];
-      }
-      acc[date].push(report);
-      return acc;
-    }, {} as Record<string, Report[]>);
-  }, [filteredReports]);
+  const handleShowMore = () => {
+    setVisibleReportsCount(prevCount => prevCount + INITIAL_VISIBLE_REPORTS);
+  };
+  
+  const visibleReports = useMemo(() => {
+      return filteredReports.slice(0, visibleReportsCount);
+  }, [filteredReports, visibleReportsCount]);
+
 
   const renderContent = () => {
     if (isLoading || isUserLoading) {
         return (
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-8 w-1/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <Skeleton className="h-10 w-1/3" />
-                        <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead><Skeleton className="h-5 w-24" /></TableHead>
-                                        <TableHead><Skeleton className="h-5 w-32" /></TableHead>
-                                        <TableHead><Skeleton className="h-5 w-20" /></TableHead>
-                                        <TableHead><Skeleton className="h-5 w-16" /></TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {[...Array(3)].map((_, i) => (
-                                        <TableRow key={i}>
-                                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
-                                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
-                                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
-                                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
+                    <Skeleton className="h-40 w-full" />
+                    <Skeleton className="h-40 w-full" />
+                </div>
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-8 w-1/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                         <div className="relative pt-4 flex items-center gap-4">
+                           <Skeleton className="h-10 w-full" />
+                         </div>
+                    </CardHeader>
+                    <CardContent>
+                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[...Array(6)].map((_, i) => (
+                           <Skeleton key={i} className="h-48 w-full" />
+                        ))}
+                       </div>
+                    </CardContent>
+                </Card>
+            </div>
         );
     }
     
@@ -232,8 +220,6 @@ export default function AdminPage() {
             </Card>
         )
     }
-
-    const reportDays = Object.keys(reportsByDay);
 
     return (
     <div className="space-y-6">
@@ -264,51 +250,42 @@ export default function AdminPage() {
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
-            {reportDays.length > 0 ? reportDays.map((day) => (
-                <div key={day}>
-                <h3 className="text-lg font-semibold">
-                    {new Date(day).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    <span className="ml-2 text-sm font-normal text-muted-foreground">({reportsByDay[day].length} reports)</span>
-                </h3>
-                <div className="border rounded-md mt-2">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Vehicle ID</TableHead>
-                                <TableHead>Last Saved By</TableHead>
-                                <TableHead>Created At</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {reportsByDay[day].map((report) => (
-                                <TableRow key={report.id}>
-                                <TableCell className="font-mono">{report.vehicleId}</TableCell>
-                                <TableCell>{report.userName || 'Unknown'}</TableCell>
-                                <TableCell>
-                                    {report.createdAt ? new Date(report.createdAt.seconds * 1000).toLocaleTimeString() : 'N/A'}
-                                </TableCell>
-                                <TableCell className="text-right space-x-2">
-                                    <Link href={`/admin/history/${report.id}`} passHref>
-                                        <Button variant="ghost" size="sm">
-                                            <History className="mr-2 h-3 w-3" /> History
-                                        </Button>
-                                    </Link>
-                                    <Link href={`/report/${report.vehicleId}`} passHref>
-                                    <Button variant="outline" size="sm">
-                                        <Edit className="mr-2 h-3 w-3" /> View
+            {visibleReports.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {visibleReports.map(report => (
+                        <Card key={report.id}>
+                             <CardHeader>
+                                <CardTitle className="font-mono text-primary">{report.vehicleId}</CardTitle>
+                                <CardDescription>Last Saved By: {report.userName || 'Unknown'}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Last Updated: {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleString() : 'N/A'}
+                                </p>
+                            </CardContent>
+                            <CardFooter className="flex justify-end gap-2">
+                                <Link href={`/admin/history/${report.id}`} passHref>
+                                    <Button variant="ghost" size="sm">
+                                        <History className="mr-2 h-3 w-3" /> History
                                     </Button>
-                                    </Link>
-                                </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                                </Link>
+                                <Link href={`/report/${report.vehicleId}`} passHref>
+                                <Button variant="outline" size="sm">
+                                    <Edit className="mr-2 h-3 w-3" /> View
+                                </Button>
+                                </Link>
+                            </CardFooter>
+                        </Card>
+                    ))}
                 </div>
-                </div>
-            )) : (
+            ) : (
                 <div className="text-center py-10">
                     <p className="text-muted-foreground">No reports found{searchTerm ? ` for "${searchTerm}"` : ""}.</p>
+                </div>
+            )}
+             {filteredReports.length > visibleReportsCount && (
+                <div className="mt-6 text-center">
+                    <Button onClick={handleShowMore} variant="secondary">See More</Button>
                 </div>
             )}
             </CardContent>
