@@ -244,7 +244,9 @@ export default function AdminPage() {
         <Card>
             <CardHeader>
                 <CardTitle>All Reports</CardTitle>
-                <CardDescription>Overview of all valuation reports in the system.</CardDescription>
+                <CardDescription>
+                  {`Overview of all ${reports.length} valuation reports in the system.`}
+                </CardDescription>
                  <div className="relative pt-4 flex items-center gap-4">
                     <div className="relative flex-grow">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
