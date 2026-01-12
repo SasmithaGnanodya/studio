@@ -10,7 +10,7 @@ export function Header() {
   const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
 
   return (
-    <header className="border-b bg-card sticky top-0 z-10 no-print">
+    <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10 no-print">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center">
           <Link href="/" passHref>

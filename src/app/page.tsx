@@ -24,7 +24,7 @@ function ReportStats({ reports }: { reports: Report[] }) {
     }, [reports]);
 
     return (
-         <Card>
+         <Card className="bg-card/50 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
@@ -150,7 +150,7 @@ export default function LandingPage() {
   const renderContent = () => {
     if (isUserLoading) {
       return (
-        <Card className="w-full max-w-4xl">
+        <Card className="w-full max-w-4xl bg-card/50 backdrop-blur-sm">
           <CardHeader>
              <Skeleton className="h-8 w-3/4" />
              <Skeleton className="h-4 w-1/2" />
@@ -169,9 +169,9 @@ export default function LandingPage() {
 
     if (!user) {
       return (
-        <Card className="w-full max-w-3xl text-left">
+        <Card className="w-full max-w-3xl text-left bg-card/50 backdrop-blur-sm border-primary/20 shadow-primary/10 shadow-2xl">
             <CardHeader className="text-center">
-                <CardTitle className="text-3xl font-bold">Welcome to the Valuation Report Generator</CardTitle>
+                <CardTitle className="text-3xl font-bold text-primary">Welcome to the Valuation Report Generator</CardTitle>
                 <CardDescription className="text-lg">
                   A powerful tool to create, manage, and collaborate on vehicle valuation reports.
                 </CardDescription>
@@ -179,17 +179,17 @@ export default function LandingPage() {
             <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
                     <div className="space-y-2">
-                        <FileText className="mx-auto h-10 w-10 text-primary" />
+                        <FileText className="mx-auto h-10 w-10 text-accent" />
                         <h3 className="font-semibold">Dynamic Reports</h3>
                         <p className="text-sm text-muted-foreground">Instantly create new reports or search for existing ones by vehicle ID. Enjoy a live preview as you fill in data.</p>
                     </div>
                     <div className="space-y-2">
-                        <Wrench className="mx-auto h-10 w-10 text-primary" />
+                        <Wrench className="mx-auto h-10 w-10 text-accent" />
                         <h3 className="font-semibold">Layout Customization</h3>
                         <p className="text-sm text-muted-foreground">Admins can visually drag, drop, resize, and configure every field on the report, creating perfect, versioned layouts.</p>
                     </div>
                     <div className="space-y-2">
-                        <Shield className="mx-auto h-10 w-10 text-primary" />
+                        <Shield className="mx-auto h-10 w-10 text-accent" />
                         <h3 className="font-semibold">Admin Control</h3>
                         <p className="text-sm text-muted-foreground">A secure admin panel provides a full overview of all reports and access to a detailed save history for auditing.</p>
                     </div>
@@ -209,7 +209,7 @@ export default function LandingPage() {
       <div className="w-full max-w-4xl space-y-6">
         <div className="grid gap-6 md:grid-cols-3">
             <div className="md:col-span-2">
-                <Card>
+                <Card className="bg-card/50 backdrop-blur-sm">
                     <CardHeader>
                     <CardTitle className="text-2xl">Vehicle Report Database</CardTitle>
                     <CardDescription>
@@ -277,7 +277,7 @@ export default function LandingPage() {
         </div>
 
         {isAdmin && (
-          <Card>
+          <Card className="bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle>All Reports</CardTitle>
               <CardDescription>A list of all reports in the system, sorted by the most recently updated.</CardDescription>
@@ -335,7 +335,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+    <div className="flex min-h-screen w-full flex-col">
       <Header />
       <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-6">
         {renderContent()}
