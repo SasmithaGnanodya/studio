@@ -292,29 +292,19 @@ export default function LandingPage() {
               ) : visibleReports.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {visibleReports.map(report => (
-                        <Card key={report.id}>
-                             <CardHeader>
-                                <CardTitle className="font-mono text-primary">{report.vehicleId}</CardTitle>
-                                <CardDescription>Last Saved By: {report.userName || 'Unknown'}</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground">
-                                    Last Updated: {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleString() : 'N/A'}
-                                </p>
-                            </CardContent>
-                            <CardFooter className="flex justify-end gap-2">
-                                <Link href={`/admin/history/${report.id}`} passHref>
-                                    <Button variant="ghost" size="sm">
-                                        <History className="mr-2 h-3 w-3" /> History
-                                    </Button>
-                                </Link>
-                                <Link href={`/report/${report.vehicleId}`} passHref>
-                                <Button variant="outline" size="sm">
-                                    <Edit className="mr-2 h-3 w-3" /> View
-                                </Button>
-                                </Link>
-                            </CardFooter>
-                        </Card>
+                        <Link key={report.id} href={`/report/${report.vehicleId}`} passHref>
+                            <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer">
+                                <CardHeader>
+                                    <CardTitle className="font-mono text-primary">{report.vehicleId}</CardTitle>
+                                    <CardDescription>Last Saved By: {report.userName || 'Unknown'}</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">
+                                        Last Updated: {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleString() : 'N/A'}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </Link>
                     ))}
                 </div>
               ) : (
@@ -343,3 +333,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
