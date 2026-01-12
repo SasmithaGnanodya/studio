@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Printer, Eye, Wrench, Save, User as UserIcon, RefreshCw } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Printer, Eye, Wrench, Save, User as UserIcon, RefreshCw, LockKeyhole, AlertTriangle } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
@@ -17,6 +18,8 @@ import { DataForm } from '@/components/DataForm';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
+const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com'];
 
 const validateAndCleanFieldPart = (part: any): FieldPart => {
   const defaults: FieldPart = {
@@ -52,6 +55,65 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
   };
 };
 
+function PasswordGate({ onPasswordCorrect }: { onPasswordCorrect: () => void }) {
+    const { firestore } = useFirebase();
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handlePasswordSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError('');
+        const settingsRef = doc(firestore, 'config', 'settings');
+        try {
+            const docSnap = await getDoc(settingsRef);
+            if (docSnap.exists() && docSnap.data().privateDataPassword === password) {
+                onPasswordCorrect();
+            } else {
+                setError('Incorrect password. Please try again.');
+            }
+        } catch (err) {
+            setError('Failed to verify password.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    return (
+        <div className="flex-1 flex items-center justify-center">
+            <Card className="w-full max-w-sm">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><LockKeyhole /> Secure Access</CardTitle>
+                    <CardDescription>Please enter the password to view this report's details.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                             <Label htmlFor="password">Password</Label>
+                             <Input 
+                                id="password"
+                                type="password" 
+                                value={password} 
+                                onChange={(e) => setPassword(e.target.value)} 
+                                required
+                             />
+                        </div>
+                        {error && (
+                            <p className="text-sm text-destructive flex items-center gap-2">
+                                <AlertTriangle size={14} /> {error}
+                            </p>
+                        )}
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? 'Verifying...' : 'Unlock Report'}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
 export default function ReportBuilderPage({ params }: { params: { vehicleId: string } }) {
   const resolvedParams = use(params);
 
@@ -65,10 +127,23 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   const [isLatestLayout, setIsLatestLayout] = useState(true);
   const [isPreview, setIsPreview] = useState(true);
   const [isCalibrating, setIsCalibrating] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false); // New state for password access
+  
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
   
   const vehicleId = decodeURIComponent(resolvedParams.vehicleId);
+
+  const isAdmin = useMemo(() => {
+    return user?.email && ADMIN_EMAILS.includes(user.email);
+  }, [user]);
+
+  // Immediately authorize admins
+  useEffect(() => {
+      if (isAdmin) {
+          setIsAuthorized(true);
+      }
+  }, [isAdmin]);
 
   // Set document title for printing
   useEffect(() => {
@@ -106,7 +181,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
 
   // Combined fetch logic for layout and report
   useEffect(() => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !isAuthorized) return; // Wait for authorization
 
     const fetchReportAndLayout = async () => {
       // 1. Get the latest layout configuration first
@@ -163,7 +238,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
 
     fetchReportAndLayout();
 
-  }, [user, firestore, vehicleId, toast]);
+  }, [user, firestore, vehicleId, toast, isAuthorized]);
 
 
   const handleDataChange = (name: string, value: string | ImageData) => {
@@ -322,123 +397,129 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
-      <main className="flex flex-1 flex-col lg:flex-row gap-4 p-4 lg:gap-6 lg:p-6 no-print">
-        <div className="w-full lg:w-1/3 xl:w-1/4 lg:h-[calc(100vh-6rem)] lg:sticky lg:top-20">
-            <Card className="hidden lg:block h-full">
-                <CardHeader>
-                    <CardTitle>Report Data</CardTitle>
-                    <CardDescription>
-                        Vehicle No: <span className='font-semibold text-primary'>{vehicleId}</span>
-                    </CardDescription>
-                     {reportCreator && (
-                        <CardDescription className="flex items-center gap-2 pt-2">
-                           <UserIcon size={14} className="text-muted-foreground" />
-                           Last saved by: <span className='font-semibold'>{reportCreator}</span>
-                        </CardDescription>
-                    )}
-                     {layoutVersion !== null && (
-                        <CardDescription className="flex items-center gap-2 pt-2">
-                           Layout Version: <span className={`font-semibold ${isLatestLayout ? 'text-green-600' : 'text-amber-600'}`}>{layoutVersion}</span>
-                        </CardDescription>
-                    )}
-                </CardHeader>
-                <CardContent className="pt-0">
-                    <DataForm layout={layout} data={reportData} onDataChange={handleDataChange} />
-                </CardContent>
-            </Card>
-            <div className="block lg:hidden">
-                <Accordion type="single" collapsible>
-                    <AccordionItem value="item-1">
-                        <AccordionTrigger className='bg-card px-4 rounded-t-lg'>
-                             <CardHeader className="p-0 text-left">
-                                <CardTitle>Report Data</CardTitle>
-                                <CardDescription>
-                                    Vehicle No: <span className='font-semibold text-primary'>{vehicleId}</span>
+       <main className="flex flex-1 flex-col lg:flex-row gap-4 p-4 lg:gap-6 lg:p-6 no-print">
+         {!isAuthorized ? (
+            <PasswordGate onPasswordCorrect={() => setIsAuthorized(true)} />
+         ) : (
+            <>
+                <div className="w-full lg:w-1/3 xl:w-1/4 lg:h-[calc(100vh-6rem)] lg:sticky lg:top-20">
+                    <Card className="hidden lg:block h-full">
+                        <CardHeader>
+                            <CardTitle>Report Data</CardTitle>
+                            <CardDescription>
+                                Vehicle No: <span className='font-semibold text-primary'>{vehicleId}</span>
+                            </CardDescription>
+                             {reportCreator && (
+                                <CardDescription className="flex items-center gap-2 pt-2">
+                                   <UserIcon size={14} className="text-muted-foreground" />
+                                   Last saved by: <span className='font-semibold'>{reportCreator}</span>
                                 </CardDescription>
-                                {reportCreator && (
-                                    <CardDescription className="flex items-center gap-2 pt-2">
-                                       <UserIcon size={14} className="text-muted-foreground" />
-                                       Last saved by: <span className='font-semibold'>{reportCreator}</span>
-                                    </CardDescription>
-                                )}
-                                {layoutVersion !== null && (
-                                    <CardDescription className="flex items-center gap-2 pt-2">
-                                    Layout Version: <span className={`font-semibold ${isLatestLayout ? 'text-green-600' : 'text-amber-600'}`}>{layoutVersion}</span>
-                                    </CardDescription>
-                                )}
-                            </CardHeader>
-                        </AccordionTrigger>
-                        <AccordionContent className='bg-card p-4 rounded-b-lg'>
+                            )}
+                             {layoutVersion !== null && (
+                                <CardDescription className="flex items-center gap-2 pt-2">
+                                   Layout Version: <span className={`font-semibold ${isLatestLayout ? 'text-green-600' : 'text-amber-600'}`}>{layoutVersion}</span>
+                                </CardDescription>
+                            )}
+                        </CardHeader>
+                        <CardContent className="pt-0">
                             <DataForm layout={layout} data={reportData} onDataChange={handleDataChange} />
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-            </div>
-        </div>
-        
-        <div className="flex-1 flex flex-col gap-4">
-          <Card>
-            <CardContent className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center space-x-4 self-start">
-                <div className="flex items-center space-x-2">
-                  <Switch id="preview-mode" checked={isPreview} onCheckedChange={setIsPreview} />
-                  <Label htmlFor="preview-mode" className="flex items-center gap-2"><Eye size={16}/> Preview</Label>
+                        </CardContent>
+                    </Card>
+                    <div className="block lg:hidden">
+                        <Accordion type="single" collapsible>
+                            <AccordionItem value="item-1">
+                                <AccordionTrigger className='bg-card px-4 rounded-t-lg'>
+                                     <CardHeader className="p-0 text-left">
+                                        <CardTitle>Report Data</CardTitle>
+                                        <CardDescription>
+                                            Vehicle No: <span className='font-semibold text-primary'>{vehicleId}</span>
+                                        </CardDescription>
+                                        {reportCreator && (
+                                            <CardDescription className="flex items-center gap-2 pt-2">
+                                               <UserIcon size={14} className="text-muted-foreground" />
+                                               Last saved by: <span className='font-semibold'>{reportCreator}</span>
+                                            </CardDescription>
+                                        )}
+                                        {layoutVersion !== null && (
+                                            <CardDescription className="flex items-center gap-2 pt-2">
+                                            Layout Version: <span className={`font-semibold ${isLatestLayout ? 'text-green-600' : 'text-amber-600'}`}>{layoutVersion}</span>
+                                            </CardDescription>
+                                        )}
+                                    </CardHeader>
+                                </AccordionTrigger>
+                                <AccordionContent className='bg-card p-4 rounded-b-lg'>
+                                    <DataForm layout={layout} data={reportData} onDataChange={handleDataChange} />
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                    </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Switch id="calibration-mode" checked={isCalibrating} onCheckedChange={setIsCalibrating} />
-                  <Label htmlFor="calibration-mode" className="flex items-center gap-2"><Wrench size={16}/> Calibrate</Label>
+                
+                <div className="flex-1 flex flex-col gap-4">
+                  <Card>
+                    <CardContent className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center space-x-4 self-start">
+                        <div className="flex items-center space-x-2">
+                          <Switch id="preview-mode" checked={isPreview} onCheckedChange={setIsPreview} />
+                          <Label htmlFor="preview-mode" className="flex items-center gap-2"><Eye size={16}/> Preview</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch id="calibration-mode" checked={isCalibrating} onCheckedChange={setIsCalibrating} />
+                          <Label htmlFor="calibration-mode" className="flex items-center gap-2"><Wrench size={16}/> Calibrate</Label>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                         {!isLatestLayout && (
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                   <Button variant="outline"><RefreshCw className="mr-2 h-4 w-4" /> Upgrade Layout</Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure you want to upgrade?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will apply the latest layout to this report. Fields may shift, and new fields may be added. You should review the report carefully after upgrading. This action cannot be undone until you save the report.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleUpgradeLayout}>Upgrade</AlertDialogAction>
+                                </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                         )}
+                        <Button onClick={handleSaveReport}><Save className="mr-2 h-4 w-4" /> Save Report</Button>
+                        <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Print to PDF</Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
+                    <div className={`relative mx-auto w-fit ${isPreview ? "preview-mode" : ""}`}>
+                       <ReportPage 
+                          staticLabels={staticLabels} 
+                          dynamicValues={dynamicValues}
+                          imageValues={imageValues}
+                          isCalibrating={isCalibrating} 
+                        />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                 {!isLatestLayout && (
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                           <Button variant="outline"><RefreshCw className="mr-2 h-4 w-4" /> Upgrade Layout</Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure you want to upgrade?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This will apply the latest layout to this report. Fields may shift, and new fields may be added. You should review the report carefully after upgrading. This action cannot be undone until you save the report.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleUpgradeLayout}>Upgrade</AlertDialogAction>
-                        </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                 )}
-                <Button onClick={handleSaveReport}><Save className="mr-2 h-4 w-4" /> Save Report</Button>
-                <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Print to PDF</Button>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
-            <div className={`relative mx-auto w-fit ${isPreview ? "preview-mode" : ""}`}>
-               <ReportPage 
-                  staticLabels={staticLabels} 
-                  dynamicValues={dynamicValues}
-                  imageValues={imageValues}
-                  isCalibrating={isCalibrating} 
-                />
-            </div>
-          </div>
-        </div>
+            </>
+         )}
       </main>
       
       {/* Print-only view */}
-      <div className="hidden print-view">
-         <ReportPage 
-            staticLabels={staticLabels} 
-            dynamicValues={dynamicValues}
-            imageValues={imageValues}
-            isCalibrating={false} 
-          />
-      </div>
+      {isAuthorized && (
+          <div className="hidden print-view">
+             <ReportPage 
+                staticLabels={staticLabels} 
+                dynamicValues={dynamicValues}
+                imageValues={imageValues}
+                isCalibrating={false} 
+              />
+          </div>
+      )}
     </div>
   );
 }
-
-    

@@ -3,19 +3,78 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useFirebase } from '@/firebase';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, ShieldOff, Search, History } from 'lucide-react';
+import { Edit, ShieldOff, Search, History, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com'];
+
+function PasswordManager({ firestore }: { firestore: any }) {
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const fetchPassword = async () => {
+            const settingsRef = doc(firestore, 'config', 'settings');
+            const docSnap = await getDoc(settingsRef);
+            if (docSnap.exists()) {
+                setPassword(docSnap.data().privateDataPassword || '');
+            }
+            setIsLoading(false);
+        };
+        fetchPassword();
+    }, [firestore]);
+
+    const handleSavePassword = async () => {
+        const settingsRef = doc(firestore, 'config', 'settings');
+        try {
+            await setDoc(settingsRef, { privateDataPassword: password }, { merge: true });
+            toast({
+                title: 'Password Saved',
+                description: 'The private data password has been updated.',
+            });
+        } catch (error) {
+            console.error("Error saving password: ", error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Could not save the password.',
+            });
+        }
+    };
+    
+    if (isLoading) {
+        return <Skeleton className="h-24 w-full" />
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Private Data Password</CardTitle>
+                <CardDescription>Set the password non-admins must enter to view report details.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center gap-4">
+                <Input
+                    type="text"
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                />
+                <Button onClick={handleSavePassword}><Save className="mr-2 h-4 w-4" /> Save</Button>
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function AdminPage() {
   const { user, firestore, isUserLoading } = useFirebase();
@@ -128,9 +187,11 @@ export default function AdminPage() {
     const reportDays = Object.keys(reportsByDay);
 
     return (
+    <div className="space-y-6">
+        <PasswordManager firestore={firestore} />
         <Card>
             <CardHeader>
-                <CardTitle>Admin Panel</CardTitle>
+                <CardTitle>All Reports</CardTitle>
                 <CardDescription>Overview of all valuation reports in the system.</CardDescription>
                  <div className="relative pt-4 flex items-center gap-4">
                     <div className="relative flex-grow">
@@ -198,6 +259,7 @@ export default function AdminPage() {
             )}
             </CardContent>
         </Card>
+    </div>
     )
   }
 

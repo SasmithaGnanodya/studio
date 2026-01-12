@@ -15,14 +15,7 @@
  * - /reports/{reportId}: Individual report documents. Readable and writable by all signed-in users, but can only be
  *   created by a user setting themselves as the owner.
  * - /reports/{reportId}/history/{historyId}: Read-only audit trail of report saves. Only admins can read.
- *
- * Key Security Decisions:
- * - Admin Override: A designated admin user can edit or delete any report, any layout, and read all history.
- * - Public Report Data: The `reports` collection is readable by any signed-in user.
- * - Public Layout Data: The `layouts` collection is readable by any signed-in user, but writable only by an admin.
- * - Collaborative Report Editing: Any signed-in user can update any report.
- * - Secure History: The `history` subcollection is only readable by admins to protect the audit trail.
- * - User Listing Disabled: To protect user privacy, listing top-level collections like `users` is disabled.
+ * - /config/settings: App-wide settings, like the private data password. Writable only by admins.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -51,6 +44,15 @@ service cloud.firestore {
     // ------------------------------------------------------------------------
     // Collection Rules
     // ------------------------------------------------------------------------
+
+    /**
+     * @description Rules for app-wide configuration settings.
+     * @path /config/settings
+     */
+    match /config/settings {
+      allow get: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
 
     /**
      * @description Rules for a user's own profile document.
