@@ -9,19 +9,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Search, PlusCircle, Car, LogIn, User } from 'lucide-react';
 import { useFirebase } from '@/firebase';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, onSnapshot, orderBy } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function LandingPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Report[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [noResults, setNoResults] = useState(false);
+  const [allReports, setAllReports] = useState<Report[]>([]);
+  const [isLoadingReports, setIsLoadingReports] = useState(true);
+
   const router = useRouter();
   const { firestore, user, isUserLoading } = useFirebase();
 
+  // Effect for handling live search results
   useEffect(() => {
     if (!user || !firestore || searchTerm.length < 1) {
       setSearchResults([]);
@@ -32,7 +37,6 @@ export default function LandingPage() {
     setIsSearching(true);
     const debounceTimeout = setTimeout(async () => {
       const reportsRef = collection(firestore, `reports`);
-      // Query now searches all reports, not just the user's
       const q = query(
         reportsRef,
         where('vehicleId', '>=', searchTerm.toUpperCase()),
@@ -59,6 +63,32 @@ export default function LandingPage() {
     return () => clearTimeout(debounceTimeout);
   }, [searchTerm, firestore, user]);
 
+  // Effect for fetching all reports for the history list
+   useEffect(() => {
+    if (user && firestore) {
+      setIsLoadingReports(true);
+      const reportsRef = collection(firestore, 'reports');
+      const q = query(reportsRef, orderBy('updatedAt', 'desc'));
+
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const fetchedReports: Report[] = [];
+        querySnapshot.forEach((doc) => {
+          fetchedReports.push({ id: doc.id, ...(doc.data() as Omit<Report, 'id'>) });
+        });
+        setAllReports(fetchedReports);
+        setIsLoadingReports(false);
+      }, (error) => {
+        console.error("Error fetching all reports: ", error);
+        setIsLoadingReports(false);
+      });
+
+      return () => unsubscribe();
+    } else {
+        setAllReports([]);
+        setIsLoadingReports(false);
+    }
+  }, [user, firestore]);
+
   const handleCreateNew = () => {
     if (searchTerm) {
       router.push(`/report/${searchTerm.toUpperCase()}`);
@@ -79,7 +109,7 @@ export default function LandingPage() {
   const renderContent = () => {
     if (isUserLoading) {
       return (
-        <Card className="w-full max-w-2xl">
+        <Card className="w-full max-w-4xl">
           <CardHeader>
              <Skeleton className="h-8 w-3/4" />
              <Skeleton className="h-4 w-1/2" />
@@ -100,15 +130,15 @@ export default function LandingPage() {
       return (
         <Card className="w-full max-w-2xl text-center">
             <CardHeader>
-                <CardTitle className="text-2xl">Welcome!</CardTitle>
+                <CardTitle className="text-2xl">Welcome to the Valuation Report Generator</CardTitle>
                 <CardDescription>
-                Please sign in to manage your vehicle reports.
+                  Create, search, and manage vehicle valuation reports with ease.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <LogIn className="mx-auto h-12 w-12 text-muted-foreground" />
                 <p className="mt-4 text-sm text-muted-foreground">
-                    Sign in using the button in the top-right corner to get started.
+                    Please sign in to get started.
                 </p>
             </CardContent>
         </Card>
@@ -116,7 +146,8 @@ export default function LandingPage() {
     }
 
     return (
-        <Card className="w-full max-w-2xl">
+      <div className="w-full max-w-4xl space-y-6">
+        <Card>
             <CardHeader>
             <CardTitle className="text-2xl">Vehicle Report Database</CardTitle>
             <CardDescription>
@@ -129,7 +160,7 @@ export default function LandingPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                     type="text"
-                    placeholder="Enter Vehicle Registration No"
+                    placeholder="Enter Vehicle Registration No to Search or Create"
                     value={searchTerm}
                     onChange={handleSearchChange}
                     onKeyDown={handleKeyDown}
@@ -144,7 +175,7 @@ export default function LandingPage() {
                 )}
             </div>
 
-            <div className="mt-6 min-h-[150px]">
+            <div className="mt-6 min-h-[100px]">
                 {isSearching ? (
                 <p className="text-center text-muted-foreground">Searching...</p>
                 ) : searchResults.length > 0 ? (
@@ -156,18 +187,7 @@ export default function LandingPage() {
                             <Car className="mr-4 h-5 w-5 text-primary shrink-0" />
                             <div className='flex-grow overflow-hidden'>
                                 <p className="font-semibold truncate">{report.vehicleId}</p>
-                                {report.userName && (
-                                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                   <User size={12}/> {report.userName}
-                                </p>
-                                )}
                             </div>
-                            {report.updatedAt && (
-                                <p className='text-sm text-muted-foreground text-right shrink-0 ml-2'>
-                                    <span className='hidden sm:inline'>Last updated: </span>
-                                    {new Date(report.updatedAt.seconds * 1000).toLocaleDateString()}
-                                </p>
-                            )}
                         </div>
                         </Link>
                     </li>
@@ -176,16 +196,64 @@ export default function LandingPage() {
                 ) : noResults ? (
                     <div className="text-center p-6 border-2 border-dashed rounded-lg">
                     <p className="text-muted-foreground">No reports found for '<span className='font-semibold text-foreground'>{searchTerm}</span>'.</p>
-                    <p className="text-sm text-muted-foreground mt-1">You can create a new one.</p>
+                    <p className="text-sm text-muted-foreground mt-1">You can create a new one now.</p>
                 </div>
                 ) : (
-                <div className="text-center p-6 border-2 border-dashed rounded-lg">
-                    <p className="text-muted-foreground">Enter a vehicle number to begin.</p>
-                </div>
+                  !searchTerm && (
+                    <div className="text-center p-6 border-2 border-dashed rounded-lg">
+                      <p className="text-muted-foreground">Enter a vehicle number to begin searching.</p>
+                    </div>
+                  )
                 )}
             </div>
             </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>All Reports</CardTitle>
+            <CardDescription>A list of all reports in the system, sorted by the most recently updated.</CardDescription>
+          </CardHeader>
+          <CardContent>
+             <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Vehicle ID</TableHead>
+                      <TableHead>Last Saved By</TableHead>
+                      <TableHead className="text-right">Last Updated</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoadingReports ? (
+                       [...Array(5)].map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                          <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                          <TableCell className="text-right"><Skeleton className="h-5 w-28 ml-auto" /></TableCell>
+                        </TableRow>
+                      ))
+                    ) : allReports.length > 0 ? (
+                      allReports.map((report) => (
+                        <TableRow key={report.id} className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/report/${report.vehicleId}`)}>
+                          <TableCell className="font-mono">{report.vehicleId}</TableCell>
+                          <TableCell>{report.userName || 'N/A'}</TableCell>
+                          <TableCell className="text-right">
+                            {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleString() : 'N/A'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center h-24">No reports found.</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+             </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -198,3 +266,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
