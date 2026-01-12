@@ -7,7 +7,7 @@ import { Header } from '@/components/header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Search, PlusCircle, Car, LogIn, User } from 'lucide-react';
+import { Search, PlusCircle, Car, LogIn, User, FileText, Wrench, Shield } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { collection, query, where, getDocs, limit, onSnapshot, orderBy } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
@@ -128,18 +128,37 @@ export default function LandingPage() {
 
     if (!user) {
       return (
-        <Card className="w-full max-w-2xl text-center">
-            <CardHeader>
-                <CardTitle className="text-2xl">Welcome to the Valuation Report Generator</CardTitle>
-                <CardDescription>
-                  Create, search, and manage vehicle valuation reports with ease.
+        <Card className="w-full max-w-3xl text-left">
+            <CardHeader className="text-center">
+                <CardTitle className="text-3xl font-bold">Welcome to the Valuation Report Generator</CardTitle>
+                <CardDescription className="text-lg">
+                  A powerful tool to create, manage, and collaborate on vehicle valuation reports.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
-                <LogIn className="mx-auto h-12 w-12 text-muted-foreground" />
-                <p className="mt-4 text-sm text-muted-foreground">
-                    Please sign in to get started.
-                </p>
+            <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                    <div className="space-y-2">
+                        <FileText className="mx-auto h-10 w-10 text-primary" />
+                        <h3 className="font-semibold">Dynamic Reports</h3>
+                        <p className="text-sm text-muted-foreground">Instantly create new reports or search for existing ones by vehicle ID. Enjoy a live preview as you fill in data.</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Wrench className="mx-auto h-10 w-10 text-primary" />
+                        <h3 className="font-semibold">Layout Customization</h3>
+                        <p className="text-sm text-muted-foreground">Admins can visually drag, drop, resize, and configure every field on the report, creating perfect, versioned layouts.</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Shield className="mx-auto h-10 w-10 text-primary" />
+                        <h3 className="font-semibold">Admin Control</h3>
+                        <p className="text-sm text-muted-foreground">A secure admin panel provides a full overview of all reports and access to a detailed save history for auditing.</p>
+                    </div>
+                </div>
+
+                <div className="text-center pt-4 border-t">
+                    <p className="mt-4 text-base text-muted-foreground">
+                        Please sign in to access the dashboard and begin.
+                    </p>
+                </div>
             </CardContent>
         </Card>
       );
@@ -266,4 +285,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
