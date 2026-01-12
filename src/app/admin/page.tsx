@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 
-const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com'];
+const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
 function PasswordManager({ firestore }: { firestore: any }) {
     const [password, setPassword] = useState('');

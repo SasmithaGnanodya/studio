@@ -25,7 +25,7 @@ const INCH_PER_MM = 0.0393701;
 const MM_TO_PX = (mm: number) => mm * INCH_PER_MM * DPI;
 const PX_TO_MM = (px: number) => px / (INCH_PER_MM * DPI);
 
-const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com'];
+const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
 const validateAndCleanFieldPart = (part: any): FieldPart => {
     const defaults: FieldPart = {

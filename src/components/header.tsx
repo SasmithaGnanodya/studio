@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { UserNav } from './UserNav';
 import { useFirebase } from '@/firebase';
 
-const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com'];
+const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
 export function Header() {
   const { user } = useFirebase();
