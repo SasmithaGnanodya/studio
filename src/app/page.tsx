@@ -6,16 +6,16 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Search, PlusCircle, Car, FileText, Wrench, Shield, TrendingUp } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Search, PlusCircle, Car, FileText, Wrench, Shield, Edit, History } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { collection, query, where, getDocs, limit, onSnapshot, orderBy } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
+const INITIAL_VISIBLE_REPORTS = 6;
 
 function ReportStats({ reports }: { reports: Report[] }) {
     const totalCount = useMemo(() => {
@@ -46,6 +46,7 @@ export default function LandingPage() {
   const [noResults, setNoResults] = useState(false);
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [isLoadingReports, setIsLoadingReports] = useState(true);
+  const [visibleReportsCount, setVisibleReportsCount] = useState(INITIAL_VISIBLE_REPORTS);
 
   const router = useRouter();
   const { firestore, user, isUserLoading } = useFirebase();
@@ -137,6 +138,14 @@ export default function LandingPage() {
     const formattedValue = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     setSearchTerm(formattedValue);
   };
+  
+  const handleShowMore = () => {
+    setVisibleReportsCount(prevCount => prevCount + INITIAL_VISIBLE_REPORTS);
+  };
+  
+  const visibleReports = useMemo(() => {
+      return allReports.slice(0, visibleReportsCount);
+  }, [allReports, visibleReportsCount]);
 
   const renderContent = () => {
     if (isUserLoading) {
@@ -273,43 +282,51 @@ export default function LandingPage() {
               <CardTitle>All Reports</CardTitle>
               <CardDescription>A list of all reports in the system, sorted by the most recently updated.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="border rounded-md">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Vehicle ID</TableHead>
-                        <TableHead>Last Saved By</TableHead>
-                        <TableHead className="text-right">Last Updated</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isLoadingReports ? (
-                        [...Array(5)].map((_, i) => (
-                          <TableRow key={i}>
-                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                            <TableCell className="text-right"><Skeleton className="h-5 w-28 ml-auto" /></TableCell>
-                          </TableRow>
-                        ))
-                      ) : allReports.length > 0 ? (
-                        allReports.map((report) => (
-                          <TableRow key={report.id} className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/report/${report.vehicleId}`)}>
-                            <TableCell className="font-mono">{report.vehicleId}</TableCell>
-                            <TableCell>{report.userName || 'N/A'}</TableCell>
-                            <TableCell className="text-right">
-                              {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleString() : 'N/A'}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={3} className="text-center h-24">No reports found.</TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-              </div>
+            <CardContent className="space-y-6">
+              {isLoadingReports ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[...Array(6)].map((_, i) => (
+                     <Skeleton key={i} className="h-48 w-full" />
+                  ))}
+                </div>
+              ) : visibleReports.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {visibleReports.map(report => (
+                        <Card key={report.id}>
+                             <CardHeader>
+                                <CardTitle className="font-mono text-primary">{report.vehicleId}</CardTitle>
+                                <CardDescription>Last Saved By: {report.userName || 'Unknown'}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Last Updated: {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleString() : 'N/A'}
+                                </p>
+                            </CardContent>
+                            <CardFooter className="flex justify-end gap-2">
+                                <Link href={`/admin/history/${report.id}`} passHref>
+                                    <Button variant="ghost" size="sm">
+                                        <History className="mr-2 h-3 w-3" /> History
+                                    </Button>
+                                </Link>
+                                <Link href={`/report/${report.vehicleId}`} passHref>
+                                <Button variant="outline" size="sm">
+                                    <Edit className="mr-2 h-3 w-3" /> View
+                                </Button>
+                                </Link>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <p className="text-muted-foreground">No reports found.</p>
+                </div>
+              )}
+               {allReports.length > visibleReportsCount && (
+                <div className="mt-6 text-center">
+                    <Button onClick={handleShowMore} variant="secondary">See More</Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
