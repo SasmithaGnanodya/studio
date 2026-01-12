@@ -20,47 +20,22 @@ import { startOfDay, startOfWeek, startOfMonth } from 'date-fns';
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
 function ReportStats({ reports }: { reports: Report[] }) {
-    const [filter, setFilter] = useState('all');
-
-    const filteredCount = useMemo(() => {
+    const totalCount = useMemo(() => {
         if (!reports || reports.length === 0) return 0;
-        
-        const now = new Date();
-        switch (filter) {
-            case 'today':
-                const todayStart = startOfDay(now);
-                return reports.filter(r => r.createdAt && new Date(r.createdAt.seconds * 1000) >= todayStart).length;
-            case 'week':
-                const weekStart = startOfWeek(now);
-                return reports.filter(r => r.createdAt && new Date(r.createdAt.seconds * 1000) >= weekStart).length;
-            case 'month':
-                const monthStart = startOfMonth(now);
-                return reports.filter(r => r.createdAt && new Date(r.createdAt.seconds * 1000) >= monthStart).length;
-            case 'all':
-            default:
-                return reports.length;
-        }
-    }, [reports, filter]);
-    
+        return reports.length;
+    }, [reports]);
+
     return (
          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Report Statistics</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{filteredCount}</div>
+                <div className="text-2xl font-bold">{totalCount}</div>
                 <p className="text-xs text-muted-foreground">
-                    Total reports for the selected period
+                    Total reports generated in the system.
                 </p>
-                <Tabs defaultValue="all" onValueChange={setFilter} className="mt-4">
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="today">Today</TabsTrigger>
-                        <TabsTrigger value="week">This Week</TabsTrigger>
-                        <TabsTrigger value="month">This Month</TabsTrigger>
-                        <TabsTrigger value="all">All Time</TabsTrigger>
-                    </TabsList>
-                </Tabs>
             </CardContent>
         </Card>
     )
@@ -349,5 +324,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
