@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Printer, Save, LockKeyhole, AlertTriangle } from 'lucide-react';
+import { Printer, Save, LockKeyhole, AlertTriangle, LayoutTemplate } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, collection, query, where, getDocs, serverTimestamp, runTransaction } from 'firebase/firestore';
-import type { ImageData, Report } from '@/lib/types';
+import type { ImageData, Report, LayoutDocument, FieldLayout } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
@@ -46,7 +46,7 @@ function PasswordGate({ onPasswordCorrect }: { onPasswordCorrect: () => void }) 
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm border-primary/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><LockKeyhole className="text-primary" /> Secure Access</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-primary"><LockKeyhole className="h-5 w-5" /> Secure Access</CardTitle>
           <CardDescription>Enter password to unlock this report.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -73,6 +73,10 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   const [reportId, setReportId] = useState<string | null>(null);
   const [reportData, setReportData] = useState(initialReportState);
+  const [currentLayout, setCurrentLayout] = useState<FieldLayout[]>(fixedLayout);
+  const [layoutVersion, setLayoutVersion] = useState<number>(0);
+  const [latestLayoutId, setLatestLayoutId] = useState<string | null>(null);
+  
   const [isFilling, setIsFilling] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,11 +88,23 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   useEffect(() => { if (isAdmin) setIsAuthorized(true); }, [isAdmin]);
 
+  // Fetch report data and the latest layout config
   useEffect(() => {
     if (!user || !firestore || !isAuthorized) return;
 
-    const fetchReport = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
+      
+      // 1. Fetch latest layout config
+      const configRef = doc(firestore, 'layouts', 'config');
+      const configSnap = await getDoc(configRef);
+      let latestId = null;
+      if (configSnap.exists()) {
+          latestId = configSnap.data().currentId;
+          setLatestLayoutId(latestId);
+      }
+
+      // 2. Fetch the report
       const reportsRef = collection(firestore, 'reports');
       const q = query(reportsRef, where('vehicleId', '==', vehicleId));
       const querySnapshot = await getDocs(q);
@@ -97,13 +113,37 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const report = querySnapshot.docs[0].data() as Report;
         setReportId(querySnapshot.docs[0].id);
         setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
+        
+        // Use the report's specific layout version if it has one
+        if (report.layoutId) {
+            const layoutDoc = await getDoc(doc(firestore, 'layouts', report.layoutId));
+            if (layoutDoc.exists()) {
+                setCurrentLayout(layoutDoc.data().fields);
+                setLayoutVersion(layoutDoc.data().version);
+            }
+        } else if (latestId) {
+            // Fallback to latest global layout
+            const latestDoc = await getDoc(doc(firestore, 'layouts', latestId));
+            if (latestDoc.exists()) {
+                setCurrentLayout(latestDoc.data().fields);
+                setLayoutVersion(latestDoc.data().version);
+            }
+        }
       } else {
+        // New report: Use latest global layout
         setReportData({ ...initialReportState, regNumber: vehicleId });
+        if (latestId) {
+            const latestDoc = await getDoc(doc(firestore, 'layouts', latestId));
+            if (latestDoc.exists()) {
+                setCurrentLayout(latestDoc.data().fields);
+                setLayoutVersion(latestDoc.data().version);
+            }
+        }
       }
       setIsLoading(false);
     };
 
-    fetchReport();
+    fetchData();
   }, [user, firestore, vehicleId, isAuthorized]);
 
   const handleDataChange = (fieldId: string, value: string | ImageData) => {
@@ -116,43 +156,76 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     try {
       await runTransaction(firestore, async (transaction) => {
         const now = serverTimestamp();
+        // Always link new/updated reports to the layout currently being used in the view
+        // (Or latest if upgrading)
+        const configRef = doc(firestore, 'layouts', 'config');
+        const configSnap = await transaction.get(configRef);
+        const activeLayoutId = configSnap.exists() ? configSnap.data().currentId : null;
+
         if (reportId) {
           const reportRef = doc(firestore, 'reports', reportId);
           transaction.update(reportRef, {
             reportData: reportData,
             updatedAt: now,
             userId: user.uid,
-            userName: user.displayName,
+            userName: user.displayName || user.email,
           });
+          
+          // Add history entry
+          const historyRef = doc(collection(firestore, 'reports', reportId, 'history'));
+          transaction.set(historyRef, {
+              reportId,
+              vehicleId,
+              userId: user.uid,
+              userName: user.displayName || user.email,
+              reportData: reportData,
+              savedAt: now,
+              layoutId: activeLayoutId
+          });
+
         } else {
           const newReportRef = doc(collection(firestore, 'reports'));
           transaction.set(newReportRef, {
             id: newReportRef.id,
             vehicleId,
             userId: user.uid,
-            userName: user.displayName,
+            userName: user.displayName || user.email,
             reportData: reportData,
             createdAt: now,
             updatedAt: now,
+            layoutId: activeLayoutId
           });
           setReportId(newReportRef.id);
         }
       });
       toast({ title: "Success", description: "Report saved successfully." });
     } catch (e) {
+      console.error(e);
       toast({ variant: "destructive", title: "Error", description: "Failed to save report." });
     }
   };
 
+  const upgradeLayout = async () => {
+      if (!latestLayoutId || !firestore) return;
+      setIsLoading(true);
+      const latestDoc = await getDoc(doc(firestore, 'layouts', latestLayoutId));
+      if (latestDoc.exists()) {
+          setCurrentLayout(latestDoc.data().fields);
+          setLayoutVersion(latestDoc.data().version);
+          toast({ title: "Layout Upgraded", description: "Using latest template version." });
+      }
+      setIsLoading(false);
+  }
+
   const { staticLabels, dynamicValues, imageValues } = useMemo(() => {
-    const labels = fixedLayout.filter(f => f.fieldType === 'staticText').map(f => ({
+    const labels = currentLayout.filter(f => f.fieldType === 'staticText' || f.fieldType === 'text').map(f => ({
       ...f.label,
       id: `l-${f.id}`,
       fieldId: f.fieldId,
       value: f.label.text
     }));
 
-    const values = fixedLayout.filter(f => f.fieldType === 'text').map(f => ({
+    const values = currentLayout.filter(f => f.fieldType === 'text').map(f => ({
       ...f.value,
       id: `v-${f.id}`,
       fieldId: f.fieldId,
@@ -161,7 +234,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       options: f.value.options
     }));
 
-    const images = fixedLayout.filter(f => f.fieldType === 'image').map(f => ({
+    const images = currentLayout.filter(f => f.fieldType === 'image').map(f => ({
       ...f.placeholder!,
       id: `i-${f.id}`,
       fieldId: f.fieldId,
@@ -169,7 +242,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     }));
 
     return { staticLabels: labels, dynamicValues: values, imageValues: images };
-  }, [reportData]);
+  }, [reportData, currentLayout]);
 
   if (!isAuthorized) return <PasswordGate onPasswordCorrect={() => setIsAuthorized(true)} />;
 
@@ -177,18 +250,28 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     <div className="flex min-h-screen flex-col bg-muted/10">
       <Header />
       <main className="flex-1 flex flex-col p-4 no-print">
-        <Card className="mb-6 border-primary/10">
+        <Card className="mb-6 border-primary/20 shadow-sm">
           <CardContent className="pt-6 flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-6">
               <div className="flex items-center space-x-2">
                 <Switch id="fill-mode" checked={isFilling} onCheckedChange={setIsFilling} />
-                <Label htmlFor="fill-mode">Filling Mode</Label>
+                <Label htmlFor="fill-mode" className="cursor-pointer">Filling Mode</Label>
               </div>
-              <div className="text-sm font-medium">Vehicle: <span className="text-primary">{vehicleId}</span></div>
+              <div className="text-sm font-medium">Vehicle: <span className="text-primary font-mono">{vehicleId}</span></div>
+              <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Layout v{layoutVersion}</div>
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleSave} className="bg-primary hover:bg-primary/90"><Save className="mr-2 h-4 w-4" /> Save</Button>
-              <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" /> Print</Button>
+              {isAdmin && latestLayoutId && (
+                  <Button variant="outline" size="sm" onClick={upgradeLayout}>
+                      <LayoutTemplate className="mr-2 h-4 w-4" /> Upgrade Layout
+                  </Button>
+              )}
+              <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Save className="mr-2 h-4 w-4" /> Save
+              </Button>
+              <Button variant="outline" onClick={() => window.print()}>
+                  <Printer className="mr-2 h-4 w-4" /> Print
+              </Button>
             </div>
           </CardContent>
         </Card>
