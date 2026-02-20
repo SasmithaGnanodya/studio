@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -7,13 +6,17 @@ import { Header } from '@/components/header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter, Calendar, Hash, Fingerprint } from 'lucide-react';
+import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter, Calendar as CalendarIcon, Hash, Fingerprint } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const INITIAL_VISIBLE_REPORTS = 6;
@@ -24,12 +27,10 @@ const INITIAL_VISIBLE_REPORTS = 6;
 function getIdentifiers(report: Report) {
   const data = report.reportData || {};
   
-  // Try to find Engine Number in top-level or any reportData field that looks like it
   const engine = report.engineNumber || 
                  data.engineNumber || 
                  Object.entries(data).find(([k]) => 
                    k.toLowerCase().includes('engine') || 
-                   k.toLowerCase().includes('motor') ||
                    k.toLowerCase().includes('engno')
                  )?.[1] || 
                  'N/A';
@@ -38,8 +39,7 @@ function getIdentifiers(report: Report) {
                   data.chassisNumber || 
                   Object.entries(data).find(([k]) => 
                     k.toLowerCase().includes('chassis') || 
-                    k.toLowerCase().includes('serial') ||
-                    k.toLowerCase().includes('chas')
+                    k.toLowerCase().includes('serial')
                   )?.[1] || 
                   'N/A';
 
@@ -55,7 +55,7 @@ function getIdentifiers(report: Report) {
     engine: String(engine).toUpperCase().trim(),
     chassis: String(chassis).toUpperCase().trim(),
     reportNum: String(reportNum).toUpperCase().trim(),
-    date: report.reportDate || data.date || data.reportDate || data.inspectionDate || 'N/A'
+    date: report.reportDate || data.reportDate || data.date || 'N/A'
   };
 }
 
@@ -187,8 +187,7 @@ export default function LandingPage() {
   }
   
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedValue = e.target.value.toUpperCase();
-    setSearchTerm(formattedValue);
+    setSearchTerm(e.target.value.toUpperCase());
   };
   
   const handleShowMore = () => {
@@ -199,289 +198,131 @@ export default function LandingPage() {
       return uniqueReports.slice(0, visibleReportsCount);
   }, [uniqueReports, visibleReportsCount]);
 
-  const renderContent = () => {
-    if (isUserLoading) {
-      return (
-        <Card className="w-full max-w-4xl bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-             <Skeleton className="h-8 w-3/4" />
-             <Skeleton className="h-4 w-1/2" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex w-full items-center space-x-2">
-               <Skeleton className="h-12 w-full" />
-            </div>
-            <div className="mt-6 min-h-[150px] border-2 border-dashed rounded-lg flex items-center justify-center">
-               <Skeleton className="h-6 w-1/4" />
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    if (!user) {
-      return (
-        <Card className="w-full max-w-3xl text-left bg-card/50 backdrop-blur-sm border-primary/20 shadow-primary/10 shadow-2xl">
-            <CardHeader className="text-center">
-                <CardTitle className="text-3xl font-bold text-primary">Welcome to the Valuation Report Generator</CardTitle>
-                <CardDescription className="text-lg">
-                  Professional vehicle valuation tool with real-time indexing and search.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-                    <div className="space-y-2">
-                        <FileText className="mx-auto h-10 w-10 text-accent" />
-                        <h3 className="font-semibold">Dynamic Reports</h3>
-                        <p className="text-sm text-muted-foreground">Instantly create new reports with live pixel-perfect PDF previews.</p>
-                    </div>
-                    <div className="space-y-2">
-                        <Wrench className="mx-auto h-10 w-10 text-accent" />
-                        <h3 className="font-semibold">Real-time Sync</h3>
-                        <p className="text-sm text-muted-foreground">Identifiers are indexed instantly for robust filtering across the database.</p>
-                    </div>
-                    <div className="space-y-2">
-                        <Shield className="mx-auto h-10 w-10 text-accent" />
-                        <h3 className="font-semibold">Secure Database</h3>
-                        <p className="text-sm text-muted-foreground">Role-based access ensures sensitive data is protected and auditable.</p>
-                    </div>
-                </div>
-                <div className="text-center pt-4 border-t">
-                    <p className="mt-4 text-base text-muted-foreground">
-                        Please sign in with your corporate Google account to begin.
-                    </p>
-                </div>
-            </CardContent>
-        </Card>
-      );
-    }
-
+  if (isUserLoading) {
     return (
-      <div className="w-full max-w-4xl space-y-6">
-        <div className="grid gap-6 md:grid-cols-3">
-            <div className="md:col-span-2">
-                <Card className="bg-card/50 backdrop-blur-sm shadow-xl border-primary/10">
-                    <CardHeader>
-                    <CardTitle className="text-2xl flex items-center gap-2">
-                      <Search className="h-6 w-6 text-primary" />
-                      Search Vehicle Database
-                    </CardTitle>
-                    <CardDescription>
-                        Search by Engine, Chassis, Report Number or Date.
-                    </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                    <div className="flex flex-col gap-4">
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <div className="w-full sm:w-48 shrink-0">
-                            <Select value={searchCategory} onValueChange={setSearchCategory}>
-                              <SelectTrigger className="w-full h-12 bg-background/50">
-                                <Filter className="mr-2 h-4 w-4 opacity-50 text-primary" />
-                                <SelectValue placeholder="Category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">All Identifiers</SelectItem>
-                                <SelectItem value="vehicleId">Registration No</SelectItem>
-                                <SelectItem value="engineNumber">Engine No</SelectItem>
-                                <SelectItem value="chassisNumber">Chassis No</SelectItem>
-                                <SelectItem value="reportNumber">Report No</SelectItem>
-                                <SelectItem value="reportDate">Report Date</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="relative flex-grow w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            <Input
-                                type="text"
-                                placeholder={`Search ${searchCategory === 'all' ? 'any identifier' : searchCategory.replace(/([A-Z])/g, ' $1').toLowerCase()}...`}
-                                value={searchTerm}
-                                onChange={handleSearchChange}
-                                onKeyDown={handleKeyDown}
-                                className="pl-10 text-lg w-full h-12 border-primary/20 bg-background/50 focus:ring-primary"
-                            />
-                          </div>
-                        </div>
-                        {noResults && searchTerm && (searchCategory === 'all' || searchCategory === 'vehicleId') && (
-                        <Button onClick={handleCreateNew} size="lg" className="w-full animate-in fade-in slide-in-from-top-2 duration-300">
-                            <PlusCircle className="mr-2 h-5 w-5" />
-                            Create New Report for "{searchTerm}"
-                        </Button>
-                        )}
-                    </div>
+      <div className="flex min-h-screen flex-col bg-muted/10">
+        <Header />
+        <main className="flex-1 flex flex-col items-center justify-center p-4">
+           <Skeleton className="h-64 w-full max-w-4xl rounded-xl" />
+        </main>
+      </div>
+    );
+  }
 
-                    <div className="mt-6 min-h-[100px]">
-                        {isLoadingReports ? (
-                        <div className="flex flex-col items-center justify-center py-6 gap-2">
-                          <Wrench className="h-6 w-6 animate-spin text-primary" />
-                          <p className="text-sm text-muted-foreground">Searching database...</p>
-                        </div>
-                        ) : searchResults.length > 0 ? (
-                        <ul className="space-y-3">
-                            {searchResults.map((report) => {
-                              const ids = getIdentifiers(report);
-                              return (
-                                <li key={report.id}>
-                                    <Link href={`/report/${report.vehicleId}`} passHref>
-                                    <div className="flex items-center p-4 rounded-xl border bg-card/80 hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer shadow-sm group">
-                                        <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mr-4 shrink-0">
-                                          <Car className="h-6 w-6 text-primary" />
-                                        </div>
-                                        <div className='flex-grow overflow-hidden'>
-                                            <div className="flex items-center justify-between gap-2">
-                                              <p className="font-bold text-xl tracking-tight font-mono text-primary truncate">
-                                                {report.vehicleId}
-                                              </p>
-                                              <span className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-md font-mono border border-primary/20 flex items-center gap-1">
-                                                <FileText size={10} />
-                                                #{ids.reportNum}
-                                              </span>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 mt-2">
-                                              <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
-                                                <span className="text-muted-foreground flex items-center gap-1"><Fingerprint size={12} className="text-primary/60" /> Eng:</span>
-                                                <span className="font-bold text-foreground truncate">{ids.engine}</span>
-                                              </div>
-                                              <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
-                                                <span className="text-muted-foreground flex items-center gap-1"><Hash size={12} className="text-primary/60" /> Chas:</span>
-                                                <span className="font-bold text-foreground truncate">{ids.chassis}</span>
-                                              </div>
-                                              <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
-                                                <span className="text-muted-foreground flex items-center gap-1"><Calendar size={12} className="text-primary/60" /> Date:</span>
-                                                <span className="font-bold text-foreground">{ids.date}</span>
-                                              </div>
-                                              <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
-                                                <span className="text-muted-foreground flex items-center gap-1"><Wrench size={12} className="text-primary/60" /> Mod:</span>
-                                                <span className="font-bold text-foreground">{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
-                                              </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    </Link>
-                                </li>
-                              );
-                            })}
-                        </ul>
-                        ) : noResults ? (
-                            <div className="text-center p-8 border-2 border-dashed rounded-xl bg-muted/20">
-                            <p className="text-muted-foreground text-lg">No records found matching '<span className='font-bold text-primary'>{searchTerm}</span>'</p>
-                            <p className="text-sm text-muted-foreground mt-1">Refine your search or start a new entry.</p>
-                        </div>
-                        ) : (
-                        !searchTerm && (
-                            <div className="text-center p-8 border-2 border-dashed rounded-xl bg-muted/10 opacity-60">
-                              <p className="text-muted-foreground flex flex-col items-center gap-2">
-                                <Filter size={24} />
-                                Select a category and start typing to filter existing reports.
-                              </p>
-                            </div>
-                        )
-                        )}
-                    </div>
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="space-y-6">
-                 <ReportStats reports={allReports} />
-                 <Card className="bg-card/50 backdrop-blur-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Quick Help</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground space-y-2">
-                        <p>• <strong>Registration No:</strong> Case-insensitive, substring match supported.</p>
-                        <p>• <strong>Real-time Sync:</strong> Identifiers are indexed every 2 seconds during editing.</p>
-                        <p>• <strong>One-Per-Vehicle:</strong> Duplicates are automatically merged based on newest update.</p>
-                    </CardContent>
-                 </Card>
-            </div>
-        </div>
-
-        {isAdmin && (
-          <Card className="bg-card/50 backdrop-blur-sm border-primary/10 shadow-lg">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-xl">Recently Updated</CardTitle>
-                  <CardDescription>Latest system-wide activity.</CardDescription>
-                </div>
-                <Link href="/admin" passHref>
-                  <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10">Manage All</Button>
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-4">
-              {isLoadingReports ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[...Array(3)].map((_, i) => (
-                     <Skeleton key={i} className="h-48 w-full rounded-xl" />
-                  ))}
-                </div>
-              ) : visibleRecentReports.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {visibleRecentReports.map(report => {
-                        const ids = getIdentifiers(report);
-                        return (
-                          <Link key={report.id} href={`/report/${report.vehicleId}`} passHref>
-                              <Card className="h-full hover:bg-primary/5 transition-all cursor-pointer border-primary/10 hover:border-primary/40 group overflow-hidden shadow-sm">
-                                  <CardHeader className="pb-3 bg-muted/10">
-                                      <div className="flex justify-between items-start">
-                                        <CardTitle className="font-mono text-primary text-xl font-bold tracking-tight">
-                                          {report.vehicleId}
-                                        </CardTitle>
-                                        <span className="text-[9px] bg-primary/10 text-primary px-2 py-1 rounded-md border border-primary/20 font-mono">
-                                          #{ids.reportNum}
-                                        </span>
-                                      </div>
-                                  </CardHeader>
-                                  <CardContent className="space-y-3 pt-4">
-                                      <div className="space-y-2">
-                                        <div className="flex justify-between items-center text-[11px]">
-                                          <span className="text-muted-foreground flex items-center gap-1.5"><Fingerprint size={12} className="text-primary/70" /> Engine:</span>
-                                          <span className="font-bold text-foreground truncate">{ids.engine}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-[11px]">
-                                          <span className="text-muted-foreground flex items-center gap-1.5"><Hash size={12} className="text-primary/70" /> Chassis:</span>
-                                          <span className="font-bold text-foreground truncate max-w-[120px]">{ids.chassis}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-[11px]">
-                                          <span className="text-muted-foreground flex items-center gap-1.5"><Calendar size={12} className="text-primary/70" /> Date:</span>
-                                          <span className="font-bold text-foreground">{ids.date}</span>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-2 pt-2.5 border-t mt-2 text-[10px] text-muted-foreground">
-                                          <div className="flex items-center gap-1.5">
-                                            <Calendar size={12} className="shrink-0 text-primary/70" />
-                                            <span className="font-medium">{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
-                                          </div>
-                                          <span className="ml-auto opacity-70 truncate bg-muted px-1.5 py-0.5 rounded-sm">{report.userName?.split(' ')[0] || 'User'}</span>
-                                      </div>
-                                  </CardContent>
-                              </Card>
-                          </Link>
-                        );
-                    })}
-                </div>
-              ) : (
-                <div className="text-center py-10 opacity-60">
-                  <p className="text-muted-foreground">No reports found in the system.</p>
-                </div>
-              )}
-               {uniqueReports.length > visibleReportsCount && (
-                <div className="mt-6 text-center">
-                    <Button onClick={handleShowMore} variant="secondary" className="px-10">See More Reports</Button>
-                </div>
-              )}
-            </CardContent>
+  if (!user) {
+    return (
+      <div className="flex min-h-screen flex-col bg-muted/10">
+        <Header />
+        <main className="flex-1 flex flex-col items-center justify-center p-4">
+          <Card className="w-full max-w-3xl text-center bg-card/50 backdrop-blur-sm border-primary/20 shadow-2xl">
+              <CardHeader>
+                  <CardTitle className="text-3xl font-bold text-primary">Valuation Report Generator</CardTitle>
+                  <CardDescription className="text-lg">Sign in to manage vehicle records.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 py-10">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2"><FileText className="mx-auto h-10 w-10 text-accent" /><h3 className="font-semibold">Reports</h3></div>
+                      <div className="space-y-2"><Wrench className="mx-auto h-10 w-10 text-accent" /><h3 className="font-semibold">Real-time</h3></div>
+                      <div className="space-y-2"><Shield className="mx-auto h-10 w-10 text-accent" /><h3 className="font-semibold">Secure</h3></div>
+                  </div>
+              </CardContent>
           </Card>
-        )}
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col">
+    <div className="flex min-h-screen flex-col bg-muted/10">
       <Header />
-      <main className="flex-1 flex flex-col items-center justify-center p-4 lg:p-6 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background">
-        {renderContent()}
+      <main className="flex-1 flex flex-col items-center p-4 space-y-6">
+        <div className="w-full max-w-4xl grid gap-6 md:grid-cols-3">
+          <div className="md:col-span-2">
+            <Card className="bg-card/50 backdrop-blur-sm shadow-xl border-primary/10">
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-2"><Search className="h-6 w-6 text-primary" /> Vehicle Search</CardTitle>
+                <CardDescription>Filter reports by Engine, Chassis, Report Number or Date.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="w-full sm:w-48 shrink-0">
+                      <Select value={searchCategory} onValueChange={(val) => { setSearchCategory(val); setSearchTerm(''); }}>
+                        <SelectTrigger className="h-12 bg-background/50">
+                          <Filter className="mr-2 h-4 w-4 opacity-50 text-primary" /><SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Identifiers</SelectItem>
+                          <SelectItem value="vehicleId">Registration No</SelectItem>
+                          <SelectItem value="engineNumber">Engine No</SelectItem>
+                          <SelectItem value="chassisNumber">Chassis No</SelectItem>
+                          <SelectItem value="reportNumber">Report No</SelectItem>
+                          <SelectItem value="reportDate">Report Date</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="relative flex-grow w-full">
+                      {searchCategory === 'reportDate' ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className={cn("w-full h-12 justify-start border-primary/20 bg-background/50 pl-10", !searchTerm && "text-muted-foreground")}>
+                              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5" />
+                              {searchTerm ? searchTerm : <span>Select Date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={searchTerm ? new Date(searchTerm) : undefined} onSelect={(date) => setSearchTerm(date ? format(date, "yyyy-MM-dd") : '')} initialFocus />
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <>
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                          <Input type="text" placeholder="Search..." value={searchTerm} onChange={handleSearchChange} onKeyDown={handleKeyDown} className="pl-10 text-lg w-full h-12 border-primary/20 bg-background/50" />
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {noResults && searchTerm && (searchCategory === 'all' || searchCategory === 'vehicleId') && (
+                    <Button onClick={handleCreateNew} size="lg" className="w-full"><PlusCircle className="mr-2 h-5 w-5" /> Create New Report for "{searchTerm}"</Button>
+                  )}
+                </div>
+
+                <div className="mt-6">
+                  {isLoadingReports ? (
+                    <div className="flex flex-col items-center py-6 gap-2"><Wrench className="animate-spin" /><p className="text-sm">Searching...</p></div>
+                  ) : searchResults.length > 0 ? (
+                    <ul className="space-y-3">
+                      {searchResults.map((report) => {
+                        const ids = getIdentifiers(report);
+                        return (
+                          <li key={report.id}>
+                            <Link href={`/report/${report.vehicleId}`} passHref>
+                              <div className="flex items-center p-4 rounded-xl border bg-card/80 hover:bg-primary/5 cursor-pointer shadow-sm">
+                                <div className="p-3 rounded-full bg-primary/10 mr-4"><Car className="h-6 w-6 text-primary" /></div>
+                                <div className='flex-grow overflow-hidden'>
+                                  <div className="flex justify-between items-center"><p className="font-bold text-xl font-mono text-primary">{report.vehicleId}</p><span className="text-[10px] bg-primary/10 px-2 py-1 rounded">#{ids.reportNum}</span></div>
+                                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2 text-[11px]">
+                                    <span className="flex items-center gap-1"><Fingerprint size={12} /> Eng: <strong>{ids.engine}</strong></span>
+                                    <span className="flex items-center gap-1"><Hash size={12} /> Chas: <strong>{ids.chassis}</strong></span>
+                                    <span className="flex items-center gap-1"><CalendarIcon size={12} /> Date: {ids.date}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : searchTerm && <div className="text-center p-8 border-2 border-dashed rounded-xl"><p>No results found matching "{searchTerm}"</p></div>}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="space-y-6">
+            <ReportStats reports={allReports} />
+            <Card className="bg-card/50 backdrop-blur-sm"><CardHeader><CardTitle className="text-sm">Help</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground"><p>• Filter by any ID to find reports instantly.</p></CardContent></Card>
+          </div>
+        </div>
       </main>
     </div>
   );
