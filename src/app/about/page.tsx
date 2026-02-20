@@ -4,7 +4,8 @@ import React from 'react';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Zap, ShieldCheck, BarChart3, Users, LayoutTemplate } from 'lucide-react';
+import { FileText, Zap, ShieldCheck, BarChart3, Users, LayoutTemplate, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AboutPage() {
   return (
@@ -89,13 +90,19 @@ export default function AboutPage() {
                 </div>
               </div>
             </div>
-            <div className="relative aspect-square sm:aspect-video lg:aspect-square bg-muted rounded-2xl overflow-hidden border">
-               <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center space-y-4">
-                  <Users className="h-16 w-16 text-primary/40" />
-                  <h3 className="text-xl font-bold">Trusted by Industry Professionals</h3>
-                  <p className="text-sm text-muted-foreground">From individual valuers to major financial institutions, Drive Care is the backbone of professional vehicle assessment.</p>
+            <div className="bg-muted/30 rounded-2xl border border-dashed p-8 flex flex-col justify-center h-full min-h-[250px]">
+               <div className="space-y-2 opacity-70">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">System Design & Engineering</p>
+                  <p className="text-xs font-medium text-foreground">ceylonar B2B solutions</p>
+                  <a 
+                    href="https://ceylonar.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-[10px] text-primary hover:underline flex items-center gap-1 transition-all"
+                  >
+                    ceylonar.com <ExternalLink size={10} />
+                  </a>
                </div>
-               <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent pointer-events-none" />
             </div>
           </div>
         </div>
