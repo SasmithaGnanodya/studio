@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -80,10 +81,13 @@ export const ReportPage = ({
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       let val = e.target.value;
-      // Force uppercase for filtering sensitive fields
-      if (['engineNumber', 'chassisNumber', 'reportNumber', 'regNumber'].includes(field.fieldId)) {
+      
+      // Force uppercase for all primary identifiers to ensure perfect filtering
+      const sensitivePatterns = ['engine', 'chassis', 'report', 'reg', 'ref', 'val', 'id'];
+      if (sensitivePatterns.some(p => field.fieldId.toLowerCase().includes(p))) {
         val = val.toUpperCase();
       }
+      
       onValueChange?.(field.fieldId, val);
     };
 

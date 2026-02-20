@@ -23,8 +23,8 @@ const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 
 const INITIAL_VISIBLE_REPORTS = 6;
 
 /**
- * Robust utility to extract identifiers from a report even if field names vary.
- * Uses greedy scanning to ensure critical data is never missed in search results.
+ * Robust utility to extract identifiers from a report using greedy scanning.
+ * This ensures that critical data is never missed in search results, even with unique IDs.
  */
 function getIdentifiers(report: Report) {
   const data = report.reportData || {};
@@ -33,7 +33,7 @@ function getIdentifiers(report: Report) {
   const engine = report.engineNumber || 
                  data.engineNumber || 
                  Object.entries(data).find(([k]) => 
-                   ['engine', 'engno', 'motor', 'engnum'].some(p => k.toLowerCase().includes(p))
+                   ['engine', 'engno', 'motor', 'engnum', 'eng'].some(p => k.toLowerCase().includes(p))
                  )?.[1] || 
                  'N/A';
                  
@@ -49,7 +49,7 @@ function getIdentifiers(report: Report) {
   const reportNum = report.reportNumber || 
                     data.reportNumber || 
                     Object.entries(data).find(([k]) => 
-                      ['reportnum', 'reportno', 'ref-', 'val-', 'v-'].some(p => k.toLowerCase().includes(p))
+                      ['reportnumber', 'reportno', 'ref', 'val', 'v-', 'valuation', 'id'].some(p => k.toLowerCase().includes(p))
                     )?.[1] || 
                     'N/A';
 

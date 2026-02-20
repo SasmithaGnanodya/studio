@@ -91,7 +91,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   useEffect(() => { if (isAdmin) setIsAuthorized(true); }, [isAdmin]);
 
-  // Client-side initialization for new reports
   useEffect(() => {
     if (isAuthorized) {
       setReportData(prev => {
@@ -157,8 +156,10 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   }, [user, firestore, vehicleId, isAuthorized]);
 
   /**
-   * Greedy identifier detector. Scans visual labels and internal keys 
-   * using an expanded set of keyword patterns to ensure no ID is missed.
+   * Triple-Layer Greedy Identifier Detection
+   * 1. Exact ID match
+   * 2. Visual label match (from current layout)
+   * 3. Greedy partial match on any field key
    */
   const findIdentifier = (patterns: string[]) => {
     // 1. Direct ID exact match
@@ -187,10 +188,10 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   useEffect(() => {
     if (!firestore || !isAuthorized || !user || isLoading) return;
 
-    // Expanded pattern set for extremely greedy detection
+    // Expanded patterns for greedy detection
     const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor', 'engnum', 'eng']);
     const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial', 'vin', 'chas']);
-    const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum', 'ref-', 'val-', 'v-', 'id']);
+    const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum', 'ref', 'val', 'v-', 'valuation', 'id']);
     const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate', 'inspectedOn']);
 
     const hasData = engineVal || chassisVal || reportNumVal || dateVal;
@@ -224,7 +225,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       } finally {
         setIsSyncing(false);
       }
-    }, 1000); 
+    }, 800); 
 
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
@@ -247,7 +248,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
         const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor', 'engnum', 'eng']);
         const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial', 'vin', 'chas']);
-        const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum', 'ref-', 'val-', 'v-', 'id']);
+        const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum', 'ref', 'val', 'v-', 'valuation', 'id']);
         const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate', 'inspectedOn']);
 
         const reportHeaderData = {
