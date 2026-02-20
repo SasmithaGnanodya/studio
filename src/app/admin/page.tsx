@@ -8,7 +8,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShieldOff, Search, History, Save, TrendingUp, Eye, LayoutTemplate, Filter, Car, Calendar } from 'lucide-react';
+import { ShieldOff, Search, History, Save, TrendingUp, Eye, LayoutTemplate, Filter, Car, Calendar, Hash, Fingerprint } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,7 +19,7 @@ import { startOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
-const INITIAL_VISIBLE_REPORTS = 6;
+const INITIAL_VISIBLE_REPORTS = 12;
 
 function PasswordManager({ firestore }: { firestore: any }) {
     const [password, setPassword] = useState('');
@@ -116,9 +116,9 @@ function ReportStats({ reports }: { reports: Report[] }) {
                 <Tabs defaultValue="all" onValueChange={setFilter} className="mt-4">
                     <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="today">Today</TabsTrigger>
-                        <TabsTrigger value="week">This Week</TabsTrigger>
-                        <TabsTrigger value="month">This Month</TabsTrigger>
-                        <TabsTrigger value="all">All Time</TabsTrigger>
+                        <TabsTrigger value="week">Week</TabsTrigger>
+                        <TabsTrigger value="month">Month</TabsTrigger>
+                        <TabsTrigger value="all">All</TabsTrigger>
                     </TabsList>
                 </Tabs>
             </CardContent>
@@ -174,7 +174,8 @@ export default function AdminPage() {
           report.vehicleId.toUpperCase().includes(term) ||
           (report.engineNumber || report.reportData?.engineNumber || '').toUpperCase().includes(term) ||
           (report.chassisNumber || report.reportData?.chassisNumber || '').toUpperCase().includes(term) ||
-          (report.reportNumber || report.reportData?.reportNumber || '').toUpperCase().includes(term)
+          (report.reportNumber || report.reportData?.reportNumber || '').toUpperCase().includes(term) ||
+          (report.reportDate || '').toUpperCase().includes(term)
         );
       } else {
         const value = report[searchCategory as keyof Report] || report.reportData?.[searchCategory];
@@ -262,9 +263,9 @@ export default function AdminPage() {
 
         <Card>
             <CardHeader>
-                <CardTitle>All Reports ({reports.length})</CardTitle>
+                <CardTitle>All Reports Database ({reports.length})</CardTitle>
                 <CardDescription>
-                  Filter the database by specific identifier.
+                  Advanced filtering across all stored vehicle records.
                 </CardDescription>
                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
                     <div className="w-full sm:w-48">
@@ -279,6 +280,7 @@ export default function AdminPage() {
                             <SelectItem value="engineNumber">Engine No</SelectItem>
                             <SelectItem value="chassisNumber">Chassis No</SelectItem>
                             <SelectItem value="reportNumber">Report No</SelectItem>
+                            <SelectItem value="reportDate">Report Date</SelectItem>
                           </SelectContent>
                         </Select>
                     </div>
@@ -288,7 +290,7 @@ export default function AdminPage() {
                             type="text"
                             placeholder="Filter reports..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
                             className="pl-10 w-full"
                         />
                     </div>
@@ -296,12 +298,12 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent className="space-y-6">
             {visibleReports.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {visibleReports.map(report => (
-                        <Card key={report.id} className="border border-primary/10 shadow-sm overflow-hidden flex flex-col">
+                        <Card key={report.id} className="border border-primary/10 shadow-sm overflow-hidden flex flex-col hover:border-primary/40 transition-all">
                              <CardHeader className="pb-3 bg-muted/30">
                                 <div className="flex justify-between items-start">
-                                  <CardTitle className="font-mono text-primary font-bold text-xl">
+                                  <CardTitle className="font-mono text-primary font-bold text-lg">
                                     {report.vehicleId}
                                   </CardTitle>
                                   {(report.reportNumber || report.reportData?.reportNumber) && (
@@ -311,23 +313,23 @@ export default function AdminPage() {
                                   )}
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                  <Calendar size={12} />
+                                  <Calendar size={12} className="text-primary/70" />
                                   {report.reportDate || 'No Date'}
                                 </div>
                             </CardHeader>
-                            <CardContent className="space-y-3 pt-4">
-                                <div className="space-y-1.5">
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-muted-foreground">Engine No:</span>
+                            <CardContent className="space-y-2 pt-4">
+                                <div className="space-y-1">
+                                  <div className="flex justify-between text-[11px]">
+                                    <span className="text-muted-foreground flex items-center gap-1"><Fingerprint size={10} /> Eng:</span>
                                     <span className="font-bold">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
                                   </div>
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-muted-foreground">Chassis No:</span>
-                                    <span className="font-bold truncate max-w-[120px]">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
+                                  <div className="flex justify-between text-[11px]">
+                                    <span className="text-muted-foreground flex items-center gap-1"><Hash size={10} /> Chassis:</span>
+                                    <span className="font-bold truncate max-w-[110px]">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
                                   </div>
                                 </div>
                                 <div className="pt-2 border-t text-[10px] text-muted-foreground flex justify-between items-center">
-                                    <span>Last Saved By: <span className="text-foreground/80 font-medium">{report.userName?.split(' ')[0] || 'Unknown'}</span></span>
+                                    <span>Last: <span className="text-foreground/80 font-medium">{report.userName?.split(' ')[0] || 'Unknown'}</span></span>
                                     <span className="opacity-70">
                                       {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}
                                     </span>
@@ -335,13 +337,13 @@ export default function AdminPage() {
                             </CardContent>
                             <CardFooter className="flex justify-end gap-2 pt-2 border-t mt-auto bg-muted/10">
                                 <Link href={`/admin/history/${report.id}`} passHref>
-                                    <Button variant="ghost" size="sm" className="h-8 text-xs">
-                                        <History className="mr-1.5 h-3 w-3" /> History
+                                    <Button variant="ghost" size="sm" className="h-8 text-[10px] px-2">
+                                        <History className="mr-1 h-3 w-3" /> History
                                     </Button>
                                 </Link>
                                 <Link href={`/report/${report.vehicleId}`} passHref>
-                                <Button variant="outline" size="sm" className="h-8 text-xs border-primary/20 hover:border-primary hover:text-primary">
-                                    <Eye className="mr-1.5 h-3 w-3" /> View
+                                <Button variant="outline" size="sm" className="h-8 text-[10px] px-2 border-primary/20 hover:border-primary hover:text-primary">
+                                    <Eye className="mr-1 h-3 w-3" /> View
                                 </Button>
                                 </Link>
                             </CardFooter>
