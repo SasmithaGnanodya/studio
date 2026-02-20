@@ -63,7 +63,8 @@ export const fixedLayout: FieldLayout[] = [
     fieldId: 'static_bank',
     fieldType: 'staticText',
     label: { text: 'Seylan Bank PLC', x: 80, y: 10, width: 50, height: 10, fontSize: 16, isBold: true, color: '#000080' },
-    value: {} as any
+    value: {} as any,
+    isLocked: true
   },
   {
     id: 'inspection-loc',
@@ -77,14 +78,16 @@ export const fixedLayout: FieldLayout[] = [
     fieldId: 'reportNumber',
     fieldType: 'text',
     label: { text: 'Report Num:', x: 145, y: 15, width: 25, height: 5, fontSize: 9 },
-    value: { text: 'reportNumber', x: 170, y: 15, width: 30, height: 6, fontSize: 10, isBold: true }
+    value: { text: 'reportNumber', x: 170, y: 15, width: 30, height: 6, fontSize: 10, isBold: true },
+    isLocked: true
   },
   {
     id: 'date-L',
     fieldId: 'date',
     fieldType: 'text',
     label: { text: 'Date:', x: 145, y: 22, width: 25, height: 5, fontSize: 9 },
-    value: { text: 'date', x: 170, y: 22, width: 30, height: 6, fontSize: 10 }
+    value: { text: 'date', x: 170, y: 22, width: 30, height: 6, fontSize: 10 },
+    isLocked: true
   },
 
   // --- Identification ---
@@ -93,7 +96,8 @@ export const fixedLayout: FieldLayout[] = [
     fieldId: 'regNumber',
     fieldType: 'text',
     label: { text: 'Reg. Number:', x: 15, y: 40, width: 25, height: 5, fontSize: 9 },
-    value: { text: 'regNumber', x: 45, y: 40, width: 45, height: 6, fontSize: 11, isBold: true }
+    value: { text: 'regNumber', x: 45, y: 40, width: 45, height: 6, fontSize: 11, isBold: true },
+    isLocked: true
   },
   {
     id: 'manuf-L',
@@ -137,14 +141,16 @@ export const fixedLayout: FieldLayout[] = [
     fieldId: 'engineNumber',
     fieldType: 'text',
     label: { text: 'Engine Number:', x: 15, y: 61, width: 25, height: 5, fontSize: 9 },
-    value: { text: 'engineNumber', x: 45, y: 61, width: 45, height: 6, fontSize: 10 }
+    value: { text: 'engineNumber', x: 45, y: 61, width: 45, height: 6, fontSize: 10 },
+    isLocked: true
   },
   {
     id: 'chassis-L',
     fieldId: 'chassisNumber',
     fieldType: 'text',
     label: { text: 'Chassis Number:', x: 105, y: 61, width: 30, height: 5, fontSize: 9 },
-    value: { text: 'chassisNumber', x: 135, y: 61, width: 45, height: 6, fontSize: 10 }
+    value: { text: 'chassisNumber', x: 135, y: 61, width: 45, height: 6, fontSize: 10 },
+    isLocked: true
   },
 
   // --- Drive Train Title ---

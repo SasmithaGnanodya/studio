@@ -19,6 +19,7 @@ export type FieldLayout = {
   label: FieldPart;
   value: FieldPart;
   placeholder?: FieldPart;
+  isLocked?: boolean;
 };
 
 export type LayoutDocument = {

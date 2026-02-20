@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -6,12 +5,12 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, Lock } from 'lucide-react';
+import { Trash, X, Lock, Unlock } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Textarea } from './ui/textarea';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { Badge } from './ui/badge';
 
 type EditorSidebarProps = {
@@ -21,14 +20,14 @@ type EditorSidebarProps = {
   onClose: () => void;
 };
 
-// These fields are critical for database indexing and search functionality.
 const PROTECTED_FIELDS = ['regNumber', 'engineNumber', 'chassisNumber', 'reportNumber', 'date'];
 
 export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSidebarProps) => {
 
-  // Robust check for protected fields
-  const isProtected = PROTECTED_FIELDS.includes(field.fieldId) || 
-                     PROTECTED_FIELDS.some(id => id.toLowerCase() === field.fieldId.toLowerCase().trim());
+  const isSystemMandatory = PROTECTED_FIELDS.includes(field.fieldId) || 
+                            PROTECTED_FIELDS.some(id => id.toLowerCase() === field.fieldId.toLowerCase().trim());
+  
+  const isLocked = field.isLocked || isSystemMandatory;
 
   const handlePartChange = (part: 'label' | 'value' | 'placeholder', property: keyof FieldPart, value: any) => {
       const currentPart = field[part];
@@ -49,7 +48,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
   };
   
   const handleFieldIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isProtected) {
+    if (!isLocked) {
       onUpdate(field.id, { fieldId: e.target.value });
     }
   }
@@ -179,7 +178,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                             id='dropdown-options'
                             value={(data.options || []).join('\n')}
                             onChange={(e) => handlePartChange(part, 'options', e.target.value)}
-                            placeholder='Option 1\nOption 2\nOption 3'
+                            placeholder={'Option 1\nOption 2\nOption 3'}
                             className='text-sm'
                         />
                     </div>
@@ -223,52 +222,53 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
 
   return (
     <Card className="w-full md:border-0 md:shadow-none">
-       <div className='p-4 border-b hidden md:block'>
+       <div className='p-4 border-b'>
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   Editing Field: <span className="font-mono bg-muted px-2 py-1 rounded-md">{field.fieldId}</span>
-                  {isProtected && <Lock className="h-4 w-4 text-primary" />}
+                  {isLocked && <Lock className="h-4 w-4 text-primary" />}
                 </h2>
                 <Button variant="ghost" size='icon' className='h-8 w-8' onClick={onClose}>
                     <X className="h-4 w-4" />
                 </Button>
             </div>
-             <div className='mt-4'>
-                 <div className="flex items-center gap-2 mb-1">
-                    <Label htmlFor="fieldId" className="text-sm font-medium">Field ID (for data linking)</Label>
-                    {isProtected && (
-                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 text-[10px] h-5">
-                        <Lock size={10} /> System Mandatory
-                      </Badge>
-                    )}
+             <div className='mt-4 space-y-4'>
+                 <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <Label htmlFor="fieldId" className="text-sm font-medium">Field ID (for data linking)</Label>
+                        {isSystemMandatory && (
+                          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 text-[10px] h-5">
+                            <Lock size={10} /> System Mandatory
+                          </Badge>
+                        )}
+                    </div>
+                    <Input 
+                        id="fieldId"
+                        value={field.fieldId}
+                        onChange={handleFieldIdChange}
+                        className="font-mono mt-1 h-9"
+                        disabled={field.fieldType === 'staticText' || isLocked}
+                    />
                  </div>
-                 <Input 
-                   id="fieldId"
-                   value={field.fieldId}
-                   onChange={handleFieldIdChange}
-                   className="font-mono mt-1 h-9"
-                   disabled={field.fieldType === 'staticText' || isProtected}
-                 />
-                 {isProtected && (
-                   <p className="text-[10px] text-muted-foreground mt-1.5 italic font-medium">
-                     This field is required for database indexing and report search. It cannot be renamed.
-                   </p>
-                 )}
-             </div>
-        </div>
 
-        <div className='p-4 border-b block md:hidden'>
-            <div className="flex items-center gap-2 mb-1">
-                <Label htmlFor="fieldId-mobile">Field ID (for data linking)</Label>
-                {isProtected && <Badge variant="secondary" className="text-[10px] h-5">Mandatory</Badge>}
-            </div>
-            <Input 
-              id="fieldId-mobile"
-              value={field.fieldId}
-              onChange={handleFieldIdChange}
-              className="font-mono mt-1"
-              disabled={field.fieldType === 'staticText' || isProtected}
-            />
+                 <div className="flex items-center space-x-2 bg-muted/30 p-2 rounded-md border">
+                    <Checkbox 
+                        id="lock-field" 
+                        checked={field.isLocked || false} 
+                        onCheckedChange={(checked) => onUpdate(field.id, { isLocked: checked as boolean })}
+                        disabled={isSystemMandatory}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                        <Label htmlFor="lock-field" className="text-sm font-medium leading-none flex items-center gap-1.5">
+                            {field.isLocked ? <Lock size={12} /> : <Unlock size={12} />}
+                            Lock Field
+                        </Label>
+                        <p className="text-[10px] text-muted-foreground">
+                            {isSystemMandatory ? "System fields are permanently locked." : "Prevent accidental deletion or renaming."}
+                        </p>
+                    </div>
+                 </div>
+             </div>
         </div>
 
         <div className="flex flex-col lg:divide-y">
@@ -288,25 +288,26 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
             <Button variant="outline" size="sm" onClick={onClose}>
                 <X className="mr-2 h-4 w-4" /> Close
             </Button>
-            {isProtected ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="cursor-not-allowed">
-                      <Button variant="destructive" size="sm" disabled className="opacity-50">
-                          <Lock className="mr-2 h-4 w-4" /> Mandatory Field
-                      </Button>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Mandatory filtering fields cannot be deleted or renamed to maintain database search integrity.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : (
-              <Button variant="destructive" size="sm" onClick={() => onDelete(field.id)}>
-                  <Trash className="mr-2 h-4 w-4" /> Delete Field
-              </Button>
+            {!isLocked && (
+                <Button variant="destructive" size="sm" onClick={() => onDelete(field.id)}>
+                    <Trash className="mr-2 h-4 w-4" /> Delete Field
+                </Button>
+            )}
+            {isLocked && (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="cursor-not-allowed">
+                                <Button variant="destructive" size="sm" disabled className="opacity-50">
+                                    <Lock className="mr-2 h-4 w-4" /> Locked
+                                </Button>
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{isSystemMandatory ? "System mandatory fields cannot be deleted." : "Unlock the field to delete it."}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             )}
         </div>
     </Card>

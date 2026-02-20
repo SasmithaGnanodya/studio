@@ -1,12 +1,10 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Save, Home, PlusCircle, Image as ImageIcon, Type, LayoutTemplate } from 'lucide-react';
-import Link from 'next/link';
+import { Save, PlusCircle, Image as ImageIcon, Type, LayoutTemplate } from 'lucide-react';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
@@ -200,12 +198,17 @@ export default function EditorPage() {
   
   const handleDeleteField = (id: string) => {
     const fieldToDelete = fields.find(f => f.id === id);
-    // PROTECTION: Prevent deleting mandatory fields
-    if (fieldToDelete && PROTECTED_FIELDS.includes(fieldToDelete.fieldId)) {
+    if (!fieldToDelete) return;
+
+    // PROTECTION: Prevent deleting locked or system mandatory fields
+    const isSystemMandatory = PROTECTED_FIELDS.includes(fieldToDelete.fieldId);
+    if (fieldToDelete.isLocked || isSystemMandatory) {
         toast({
             variant: "destructive",
             title: "Action Restricted",
-            description: `The mandatory field '${fieldToDelete.fieldId}' is required for database indexing and report search. It cannot be deleted.`,
+            description: isSystemMandatory 
+              ? `The mandatory field '${fieldToDelete.fieldId}' is required for database indexing. It cannot be deleted.`
+              : "This field is locked. Unlock it in the sidebar to delete it.",
         });
         return;
     }
