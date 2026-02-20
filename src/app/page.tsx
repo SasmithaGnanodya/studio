@@ -19,8 +19,37 @@ const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 
 const INITIAL_VISIBLE_REPORTS = 6;
 
 /**
+ * Robust utility to extract identifiers from a report even if field names vary.
+ */
+function getIdentifiers(report: Report) {
+  const data = report.reportData || {};
+  
+  // Try to find Engine Number in top-level or any reportData field that looks like it
+  const engine = report.engineNumber || 
+                 data.engineNumber || 
+                 Object.entries(data).find(([k]) => k.toLowerCase().includes('engine'))?.[1] || 
+                 'N/A';
+                 
+  const chassis = report.chassisNumber || 
+                  data.chassisNumber || 
+                  Object.entries(data).find(([k]) => k.toLowerCase().includes('chassis') || k.toLowerCase().includes('serial'))?.[1] || 
+                  'N/A';
+
+  const reportNum = report.reportNumber || 
+                    data.reportNumber || 
+                    Object.entries(data).find(([k]) => k.toLowerCase().includes('reportnumber'))?.[1] || 
+                    'N/A';
+
+  return {
+    engine: String(engine).toUpperCase().trim(),
+    chassis: String(chassis).toUpperCase().trim(),
+    reportNum: String(reportNum).toUpperCase().trim(),
+    date: report.reportDate || data.date || 'N/A'
+  };
+}
+
+/**
  * Utility to filter out duplicate vehicle reports, keeping only the most recent version.
- * Since the query is ordered by updatedAt desc, the first instance of a vehicleId is the latest.
  */
 function getUniqueReports(reports: Report[]) {
   const seen = new Set<string>();
@@ -103,11 +132,12 @@ export default function LandingPage() {
     const term = searchTerm.toUpperCase().trim();
     
     return uniqueReports.filter(report => {
+      const ids = getIdentifiers(report);
       const vid = (report.vehicleId || '').toUpperCase();
-      const en = (report.engineNumber || report.reportData?.engineNumber || '').toUpperCase();
-      const ch = (report.chassisNumber || report.reportData?.chassisNumber || '').toUpperCase();
-      const rn = (report.reportNumber || report.reportData?.reportNumber || '').toUpperCase();
-      const dt = (report.reportDate || '').toUpperCase();
+      const en = ids.engine.toUpperCase();
+      const ch = ids.chassis.toUpperCase();
+      const rn = ids.reportNum.toUpperCase();
+      const dt = ids.date.toUpperCase();
 
       if (searchCategory === 'all') {
         return vid.includes(term) || en.includes(term) || ch.includes(term) || rn.includes(term) || dt.includes(term);
@@ -276,46 +306,49 @@ export default function LandingPage() {
                         </div>
                         ) : searchResults.length > 0 ? (
                         <ul className="space-y-3">
-                            {searchResults.map((report) => (
-                            <li key={report.id}>
-                                <Link href={`/report/${report.vehicleId}`} passHref>
-                                <div className="flex items-center p-4 rounded-xl border bg-card/80 hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer shadow-sm group">
-                                    <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mr-4 shrink-0">
-                                      <Car className="h-6 w-6 text-primary" />
-                                    </div>
-                                    <div className='flex-grow overflow-hidden'>
-                                        <div className="flex items-center justify-between gap-2">
-                                          <p className="font-bold text-xl tracking-tight font-mono text-primary truncate">
-                                            {report.vehicleId}
-                                          </p>
-                                          <span className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-md font-mono border border-primary/20 flex items-center gap-1">
-                                            <FileText size={10} />
-                                            #{report.reportNumber || report.reportData?.reportNumber || 'N/A'}
-                                          </span>
+                            {searchResults.map((report) => {
+                              const ids = getIdentifiers(report);
+                              return (
+                                <li key={report.id}>
+                                    <Link href={`/report/${report.vehicleId}`} passHref>
+                                    <div className="flex items-center p-4 rounded-xl border bg-card/80 hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer shadow-sm group">
+                                        <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors mr-4 shrink-0">
+                                          <Car className="h-6 w-6 text-primary" />
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 mt-2">
-                                          <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
-                                            <span className="text-muted-foreground flex items-center gap-1"><Fingerprint size={12} className="text-primary/60" /> Eng:</span>
-                                            <span className="font-bold text-foreground truncate">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
-                                          </div>
-                                          <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
-                                            <span className="text-muted-foreground flex items-center gap-1"><Hash size={12} className="text-primary/60" /> Chas:</span>
-                                            <span className="font-bold text-foreground truncate">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
-                                          </div>
-                                          <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
-                                            <span className="text-muted-foreground flex items-center gap-1"><Calendar size={12} className="text-primary/60" /> Date:</span>
-                                            <span className="font-bold text-foreground">{report.reportDate || 'N/A'}</span>
-                                          </div>
-                                          <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
-                                            <span className="text-muted-foreground flex items-center gap-1"><Wrench size={12} className="text-primary/60" /> Mod:</span>
-                                            <span className="font-bold text-foreground">{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
-                                          </div>
+                                        <div className='flex-grow overflow-hidden'>
+                                            <div className="flex items-center justify-between gap-2">
+                                              <p className="font-bold text-xl tracking-tight font-mono text-primary truncate">
+                                                {report.vehicleId}
+                                              </p>
+                                              <span className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-md font-mono border border-primary/20 flex items-center gap-1">
+                                                <FileText size={10} />
+                                                #{ids.reportNum}
+                                              </span>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 mt-2">
+                                              <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
+                                                <span className="text-muted-foreground flex items-center gap-1"><Fingerprint size={12} className="text-primary/60" /> Eng:</span>
+                                                <span className="font-bold text-foreground truncate">{ids.engine}</span>
+                                              </div>
+                                              <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
+                                                <span className="text-muted-foreground flex items-center gap-1"><Hash size={12} className="text-primary/60" /> Chas:</span>
+                                                <span className="font-bold text-foreground truncate">{ids.chassis}</span>
+                                              </div>
+                                              <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
+                                                <span className="text-muted-foreground flex items-center gap-1"><Calendar size={12} className="text-primary/60" /> Date:</span>
+                                                <span className="font-bold text-foreground">{ids.date}</span>
+                                              </div>
+                                              <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
+                                                <span className="text-muted-foreground flex items-center gap-1"><Wrench size={12} className="text-primary/60" /> Mod:</span>
+                                                <span className="font-bold text-foreground">{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
+                                              </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                </Link>
-                            </li>
-                            ))}
+                                    </Link>
+                                </li>
+                              );
+                            })}
                         </ul>
                         ) : noResults ? (
                             <div className="text-center p-8 border-2 border-dashed rounded-xl bg-muted/20">
@@ -373,45 +406,48 @@ export default function LandingPage() {
                 </div>
               ) : visibleRecentReports.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {visibleRecentReports.map(report => (
-                        <Link key={report.id} href={`/report/${report.vehicleId}`} passHref>
-                            <Card className="h-full hover:bg-primary/5 transition-all cursor-pointer border-primary/10 hover:border-primary/40 group overflow-hidden shadow-sm">
-                                <CardHeader className="pb-3 bg-muted/10">
-                                    <div className="flex justify-between items-start">
-                                      <CardTitle className="font-mono text-primary text-xl font-bold tracking-tight">
-                                        {report.vehicleId}
-                                      </CardTitle>
-                                      <span className="text-[9px] bg-primary/10 text-primary px-2 py-1 rounded-md border border-primary/20 font-mono">
-                                        #{report.reportNumber || report.reportData?.reportNumber || 'N/A'}
-                                      </span>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-3 pt-4">
-                                    <div className="space-y-2">
-                                      <div className="flex justify-between items-center text-[11px]">
-                                        <span className="text-muted-foreground flex items-center gap-1.5"><Fingerprint size={12} className="text-primary/70" /> Engine:</span>
-                                        <span className="font-bold text-foreground truncate">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
+                    {visibleRecentReports.map(report => {
+                        const ids = getIdentifiers(report);
+                        return (
+                          <Link key={report.id} href={`/report/${report.vehicleId}`} passHref>
+                              <Card className="h-full hover:bg-primary/5 transition-all cursor-pointer border-primary/10 hover:border-primary/40 group overflow-hidden shadow-sm">
+                                  <CardHeader className="pb-3 bg-muted/10">
+                                      <div className="flex justify-between items-start">
+                                        <CardTitle className="font-mono text-primary text-xl font-bold tracking-tight">
+                                          {report.vehicleId}
+                                        </CardTitle>
+                                        <span className="text-[9px] bg-primary/10 text-primary px-2 py-1 rounded-md border border-primary/20 font-mono">
+                                          #{ids.reportNum}
+                                        </span>
                                       </div>
-                                      <div className="flex justify-between items-center text-[11px]">
-                                        <span className="text-muted-foreground flex items-center gap-1.5"><Hash size={12} className="text-primary/70" /> Chassis:</span>
-                                        <span className="font-bold text-foreground truncate max-w-[120px]">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
-                                      </div>
-                                      <div className="flex justify-between items-center text-[11px]">
-                                        <span className="text-muted-foreground flex items-center gap-1.5"><Calendar size={12} className="text-primary/70" /> Date:</span>
-                                        <span className="font-bold text-foreground">{report.reportDate || 'N/A'}</span>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 pt-2.5 border-t mt-2 text-[10px] text-muted-foreground">
-                                        <div className="flex items-center gap-1.5">
-                                          <Calendar size={12} className="shrink-0 text-primary/70" />
-                                          <span className="font-medium">{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
+                                  </CardHeader>
+                                  <CardContent className="space-y-3 pt-4">
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between items-center text-[11px]">
+                                          <span className="text-muted-foreground flex items-center gap-1.5"><Fingerprint size={12} className="text-primary/70" /> Engine:</span>
+                                          <span className="font-bold text-foreground truncate">{ids.engine}</span>
                                         </div>
-                                        <span className="ml-auto opacity-70 truncate bg-muted px-1.5 py-0.5 rounded-sm">{report.userName?.split(' ')[0] || 'User'}</span>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </Link>
-                    ))}
+                                        <div className="flex justify-between items-center text-[11px]">
+                                          <span className="text-muted-foreground flex items-center gap-1.5"><Hash size={12} className="text-primary/70" /> Chassis:</span>
+                                          <span className="font-bold text-foreground truncate max-w-[120px]">{ids.chassis}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-[11px]">
+                                          <span className="text-muted-foreground flex items-center gap-1.5"><Calendar size={12} className="text-primary/70" /> Date:</span>
+                                          <span className="font-bold text-foreground">{ids.date}</span>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2 pt-2.5 border-t mt-2 text-[10px] text-muted-foreground">
+                                          <div className="flex items-center gap-1.5">
+                                            <Calendar size={12} className="shrink-0 text-primary/70" />
+                                            <span className="font-medium">{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
+                                          </div>
+                                          <span className="ml-auto opacity-70 truncate bg-muted px-1.5 py-0.5 rounded-sm">{report.userName?.split(' ')[0] || 'User'}</span>
+                                      </div>
+                                  </CardContent>
+                              </Card>
+                          </Link>
+                        );
+                    })}
                 </div>
               ) : (
                 <div className="text-center py-10 opacity-60">
