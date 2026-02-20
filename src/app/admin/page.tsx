@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -164,6 +165,7 @@ export default function AdminPage() {
   const filteredReports = useMemo(() => {
     if (!searchTerm) return reports;
     const term = searchTerm.toUpperCase();
+    // Search sensitivity across all mandatory identifiers
     return reports.filter(report => 
       report.vehicleId.toUpperCase().includes(term) ||
       (report.engineNumber && report.engineNumber.toUpperCase().includes(term)) ||
@@ -274,8 +276,11 @@ export default function AdminPage() {
                     {visibleReports.map(report => (
                         <Card key={report.id}>
                              <CardHeader>
-                                <CardTitle className="font-mono text-primary">{report.vehicleId}</CardTitle>
-                                <CardDescription>{report.reportNumber || 'No Report ID'}</CardDescription>
+                                <CardTitle className="font-mono text-primary flex justify-between items-center text-lg">
+                                  {report.vehicleId}
+                                  {report.reportNumber && <span className="text-[10px] bg-primary/10 px-1.5 py-0.5 rounded font-mono">{report.reportNumber}</span>}
+                                </CardTitle>
+                                <CardDescription className="text-xs">{report.reportDate || 'No Date'}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-1">
                                 <p className="text-xs text-muted-foreground truncate">Eng: {report.engineNumber || 'N/A'}</p>

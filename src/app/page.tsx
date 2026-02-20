@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -66,7 +67,7 @@ export default function LandingPage() {
       const reportsRef = collection(firestore, `reports`);
       const term = searchTerm.toUpperCase();
       
-      // Multi-field search for key identifiers
+      // Highly sensitive multi-field search for key mandatory identifiers
       const q = query(
         reportsRef,
         or(
@@ -75,7 +76,7 @@ export default function LandingPage() {
           where('chassisNumber', '==', term),
           where('reportNumber', '==', term)
         ),
-        limit(5)
+        limit(10)
       );
 
       try {
@@ -216,7 +217,7 @@ export default function LandingPage() {
                     <CardHeader>
                     <CardTitle className="text-2xl">Vehicle Report Database</CardTitle>
                     <CardDescription>
-                        Search by Reg No, Engine No, Chassis No, or Report ID.
+                        Search by any identifier: Reg No, Engine No, Chassis No, or ID.
                     </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -251,8 +252,11 @@ export default function LandingPage() {
                                 <div className="flex items-center p-3 rounded-md border bg-card hover:bg-muted transition-colors cursor-pointer">
                                     <Car className="mr-4 h-5 w-5 text-primary shrink-0" />
                                     <div className='flex-grow overflow-hidden'>
-                                        <p className="font-semibold truncate">{report.vehicleId}</p>
-                                        <div className="flex gap-4 text-xs text-muted-foreground truncate">
+                                        <div className="flex items-center gap-2">
+                                          <p className="font-semibold truncate">{report.vehicleId}</p>
+                                          {report.reportNumber && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono">{report.reportNumber}</span>}
+                                        </div>
+                                        <div className="flex gap-4 text-[10px] text-muted-foreground truncate">
                                           <span>Eng: {report.engineNumber || 'N/A'}</span>
                                           <span>Chassis: {report.chassisNumber || 'N/A'}</span>
                                         </div>
@@ -301,14 +305,16 @@ export default function LandingPage() {
                     {visibleReports.map(report => (
                         <Link key={report.id} href={`/report/${report.vehicleId}`} passHref>
                             <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer">
-                                <CardHeader>
-                                    <CardTitle className="font-mono text-primary">{report.vehicleId}</CardTitle>
-                                    <CardDescription>{report.reportNumber || 'No ID'}</CardDescription>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="font-mono text-primary text-base flex justify-between items-center">
+                                      {report.vehicleId}
+                                      {report.reportNumber && <span className="text-[10px] bg-primary/10 px-1.5 py-0.5 rounded-sm">{report.reportNumber}</span>}
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-1">
-                                    <p className="text-xs text-muted-foreground truncate">Eng: {report.engineNumber || 'N/A'}</p>
-                                    <p className="text-xs text-muted-foreground truncate">Chassis: {report.chassisNumber || 'N/A'}</p>
-                                    <p className="text-[10px] text-muted-foreground mt-2 border-t pt-1">
+                                    <p className="text-[10px] text-muted-foreground truncate">Eng: {report.engineNumber || 'N/A'}</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">Chassis: {report.chassisNumber || 'N/A'}</p>
+                                    <p className="text-[9px] text-muted-foreground mt-2 border-t pt-1">
                                         Saved: {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}
                                     </p>
                                 </CardContent>
