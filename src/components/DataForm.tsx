@@ -1,4 +1,3 @@
-
 // src/components/DataForm.tsx
 
 import React from 'react';
@@ -30,7 +29,10 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
           renderedFieldIds.add(field.fieldId);
           
           const labelText = field.fieldType === 'text' ? field.label.text : field.fieldId;
-          const inputType = field.fieldType === 'image' ? 'image' : field.value.inputType || 'text';
+          const isDateField = field.fieldId.toLowerCase().includes('date');
+          const inputType = field.fieldType === 'image' 
+            ? 'image' 
+            : (isDateField ? 'date' : (field.value.inputType || 'text'));
 
 
           return (
@@ -62,6 +64,7 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
                   <Input
                     id={field.fieldId}
                     name={field.fieldId}
+                    type={inputType}
                     value={data[field.fieldId] || ''}
                     onChange={(e) => onDataChange(e.target.name, e.target.value)}
                     disabled={field.fieldId === 'regNumber'}
