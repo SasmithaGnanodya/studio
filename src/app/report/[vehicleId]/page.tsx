@@ -157,7 +157,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     fetchData();
   }, [user, firestore, vehicleId, isAuthorized]);
 
-  // Real-time Debounced Sync for Identifiers
+  // Real-time Debounced Sync for Identifiers (Engine, Chassis, Report Num, Date)
   useEffect(() => {
     if (!firestore || !isAuthorized || !user) return;
 
@@ -195,7 +195,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       } finally {
         setIsSyncing(false);
       }
-    }, 1000); // Shorter debounce for more responsive filtering
+    }, 1000); // Debounce to capture all identifier changes (Chassis/Engine)
 
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
@@ -312,7 +312,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                 Vehicle: <span className="text-primary font-mono">{vehicleId}</span>
                 {isSyncing && (
                   <span className="flex items-center gap-1.5 text-[10px] text-primary font-bold animate-pulse bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-                    <RefreshCw size={10} className="animate-spin" /> Indexing Engine & Chassis...
+                    <RefreshCw size={10} className="animate-spin" /> Syncing Filter Indexes...
                   </span>
                 )}
               </div>
@@ -340,7 +340,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           ) : (
             <div className={isFilling ? "preview-mode" : ""}>
               <ReportPage 
-                staticLabels={staticLabels}
+                staticLabels={staticLabels} 
                 dynamicValues={dynamicValues}
                 imageValues={imageValues}
                 isEditable={isFilling}

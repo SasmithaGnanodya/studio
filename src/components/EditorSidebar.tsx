@@ -6,13 +6,14 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, Lock, Unlock, Zap } from 'lucide-react';
+import { Trash, X, Lock, Unlock, Zap, Info } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { Badge } from './ui/badge';
+import { Alert, AlertDescription } from './ui/alert';
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -222,7 +223,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
   }
 
   return (
-    <Card className="w-full md:border-0 md:shadow-none">
+    <Card className="w-full md:border-0 md:shadow-none overflow-hidden">
        <div className='p-4 border-b'>
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -249,10 +250,18 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                         onChange={handleFieldIdChange}
                         className="font-mono mt-1 h-9"
                         disabled={field.fieldType === 'staticText' || isLocked}
+                        placeholder="e.g. chassisNumber"
                     />
-                    <p className="text-[10px] text-muted-foreground mt-1 px-1">
-                      {isSystemMandatory ? "This field is used for global report searching and filtering." : "Set this to 'engineNumber' or 'chassisNumber' to enable filtering."}
-                    </p>
+                    {isSystemMandatory ? (
+                      <div className="mt-2 text-[10px] text-primary/70 bg-primary/5 p-2 rounded border border-primary/10 flex items-start gap-2">
+                        <Info size={12} className="shrink-0 mt-0.5" />
+                        <span>This field is linked to the <strong>Real-time Search Index</strong>. Any data entered here will be searchable immediately on the dashboard.</span>
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground mt-1 px-1">
+                        Use <strong>engineNumber</strong> or <strong>chassisNumber</strong> to enable global report filtering.
+                      </p>
+                    )}
                  </div>
 
                  <div className="flex items-center space-x-2 bg-muted/30 p-2 rounded-md border">
