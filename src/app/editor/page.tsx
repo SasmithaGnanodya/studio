@@ -205,7 +205,7 @@ export default function EditorPage() {
         toast({
             variant: "destructive",
             title: "Action Restricted",
-            description: `The mandatory field '${fieldToDelete.fieldId}' is required for search and cannot be deleted.`,
+            description: `The mandatory field '${fieldToDelete.fieldId}' is required for database indexing and report search. It cannot be deleted.`,
         });
         return;
     }

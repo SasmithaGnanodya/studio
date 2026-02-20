@@ -268,7 +268,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
             />
         </div>
 
-        <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x">
+        <div className="flex flex-col lg:divide-y">
             {field.fieldType === 'text' ? (
             <>
                 {renderTextPartEditor('label')}
@@ -291,7 +291,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                   <TooltipTrigger asChild>
                     <div className="cursor-not-allowed">
                       <Button variant="destructive" size="sm" disabled className="opacity-50">
-                          <Trash className="mr-2 h-4 w-4" /> System Field
+                          <Trash className="mr-2 h-4 w-4" /> Protected
                       </Button>
                     </div>
                   </TooltipTrigger>
