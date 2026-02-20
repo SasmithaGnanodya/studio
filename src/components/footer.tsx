@@ -32,7 +32,7 @@ export function Footer() {
           {/* Details & Resources */}
           <div className="space-y-4">
             <h3 className="text-sm font-bold uppercase tracking-wider text-primary flex items-center gap-2">
-              <Info size={16} /> System Details
+              <span className="flex items-center gap-2"><Info size={16} /> Resources</span>
             </h3>
             <ul className="space-y-2">
               <li>
@@ -112,8 +112,8 @@ export function Footer() {
           </p>
           <div className="flex gap-6 text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">
              <span>System v1.2.4</span>
-             <span className="hover:text-primary cursor-pointer transition-colors">Privacy</span>
-             <span className="hover:text-primary cursor-pointer transition-colors">Terms</span>
+             <Link href="/privacy" className="hover:text-primary cursor-pointer transition-colors">Privacy</Link>
+             <Link href="/terms" className="hover:text-primary cursor-pointer transition-colors">Terms</Link>
           </div>
         </div>
       </div>
