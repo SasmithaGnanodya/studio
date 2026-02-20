@@ -142,7 +142,7 @@ export default function LandingPage() {
     if (e.key === 'Enter') {
       if (searchResults.length > 0) {
         router.push(`/report/${searchResults[0].vehicleId}`);
-      } else if (searchTerm && searchCategory === 'all' || searchCategory === 'vehicleId') {
+      } else if (searchTerm && (searchCategory === 'all' || searchCategory === 'vehicleId')) {
         router.push(`/report/${searchTerm.toUpperCase()}`);
       }
     }
