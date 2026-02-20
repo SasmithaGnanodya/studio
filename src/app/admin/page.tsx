@@ -8,7 +8,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShieldOff, Search, History, Save, TrendingUp, Eye, LayoutTemplate, Filter, Car, Calendar, Hash, Fingerprint } from 'lucide-react';
+import { ShieldOff, Search, History, Save, TrendingUp, Eye, LayoutTemplate, Filter, Car, Calendar, Hash, Fingerprint, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,7 +27,8 @@ const INITIAL_VISIBLE_REPORTS = 12;
 function getUniqueReports(reports: Report[]) {
   const seen = new Set<string>();
   return reports.filter(report => {
-    const normalizedId = report.vehicleId.toUpperCase().trim();
+    const normalizedId = (report.vehicleId || '').toUpperCase().trim();
+    if (!normalizedId) return false;
     const isDuplicate = seen.has(normalizedId);
     seen.add(normalizedId);
     return !isDuplicate;
@@ -104,13 +105,13 @@ function ReportStats({ reports }: { reports: Report[] }) {
         switch (filter) {
             case 'today':
                 const todayStart = startOfDay(now);
-                return uniqueReports.filter(r => r.createdAt && new Date(r.createdAt.seconds * 1000) >= todayStart).length;
+                return uniqueReports.filter(r => r.updatedAt && new Date(r.updatedAt.seconds * 1000) >= todayStart).length;
             case 'week':
                 const weekStart = startOfWeek(now);
-                return uniqueReports.filter(r => r.createdAt && new Date(r.createdAt.seconds * 1000) >= weekStart).length;
+                return uniqueReports.filter(r => r.updatedAt && new Date(r.updatedAt.seconds * 1000) >= weekStart).length;
             case 'month':
                 const monthStart = startOfMonth(now);
-                return uniqueReports.filter(r => r.createdAt && new Date(r.createdAt.seconds * 1000) >= monthStart).length;
+                return uniqueReports.filter(r => r.updatedAt && new Date(r.updatedAt.seconds * 1000) >= monthStart).length;
             case 'all':
             default:
                 return uniqueReports.length;
@@ -182,22 +183,30 @@ export default function AdminPage() {
   const uniqueReports = useMemo(() => getUniqueReports(reports), [reports]);
 
   const filteredReports = useMemo(() => {
-    if (!searchTerm) return uniqueReports;
+    if (!searchTerm || searchTerm.trim().length === 0) return uniqueReports;
     const term = searchTerm.toUpperCase().trim();
     
     return uniqueReports.filter(report => {
+      const vid = (report.vehicleId || '').toUpperCase();
+      const en = (report.engineNumber || report.reportData?.engineNumber || '').toUpperCase();
+      const ch = (report.chassisNumber || report.reportData?.chassisNumber || '').toUpperCase();
+      const rn = (report.reportNumber || report.reportData?.reportNumber || '').toUpperCase();
+      const dt = (report.reportDate || '').toUpperCase();
+
       if (searchCategory === 'all') {
-        return (
-          report.vehicleId.toUpperCase().includes(term) ||
-          (report.engineNumber || report.reportData?.engineNumber || '').toUpperCase().includes(term) ||
-          (report.chassisNumber || report.reportData?.chassisNumber || '').toUpperCase().includes(term) ||
-          (report.reportNumber || report.reportData?.reportNumber || '').toUpperCase().includes(term) ||
-          (report.reportDate || '').toUpperCase().includes(term)
-        );
-      } else {
-        const value = report[searchCategory as keyof Report] || report.reportData?.[searchCategory];
-        return typeof value === 'string' && value.toUpperCase().includes(term);
+        return vid.includes(term) || en.includes(term) || ch.includes(term) || rn.includes(term) || dt.includes(term);
+      } else if (searchCategory === 'vehicleId') {
+        return vid.includes(term);
+      } else if (searchCategory === 'engineNumber') {
+        return en.includes(term);
+      } else if (searchCategory === 'chassisNumber') {
+        return ch.includes(term);
+      } else if (searchCategory === 'reportNumber') {
+        return rn.includes(term);
+      } else if (searchCategory === 'reportDate') {
+        return dt.includes(term);
       }
+      return false;
     });
   }, [uniqueReports, searchTerm, searchCategory]);
 
@@ -261,14 +270,14 @@ export default function AdminPage() {
             <div className="flex-1">
                  <Card className="h-full">
                     <CardHeader>
-                        <CardTitle>Layout Management</CardTitle>
-                        <CardDescription>Customize the visual template used for all reports.</CardDescription>
+                        <CardTitle>Template Management</CardTitle>
+                        <CardDescription>Update the master visual layout for all PDF exports.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex items-center justify-center">
                         <Link href="/editor" passHref>
                             <Button size="lg" className="w-full">
                                 <LayoutTemplate className="mr-2 h-5 w-5" />
-                                Edit Master Layout
+                                Open Template Editor
                             </Button>
                         </Link>
                     </CardContent>
@@ -280,9 +289,9 @@ export default function AdminPage() {
 
         <Card>
             <CardHeader>
-                <CardTitle>All Reports Database ({uniqueReports.length})</CardTitle>
+                <CardTitle>Vehicle Master Database ({uniqueReports.length})</CardTitle>
                 <CardDescription>
-                  Advanced filtering across all stored vehicle records. Duplicates are hidden.
+                  Robust filtering by Engine, Chassis, Report Number and Date.
                 </CardDescription>
                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
                     <div className="w-full sm:w-48">
@@ -305,7 +314,7 @@ export default function AdminPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
                             type="text"
-                            placeholder="Filter reports..."
+                            placeholder="Type to filter database..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
                             className="pl-10 w-full"
@@ -323,30 +332,32 @@ export default function AdminPage() {
                                   <CardTitle className="font-mono text-primary font-bold text-lg">
                                     {report.vehicleId}
                                   </CardTitle>
-                                  {(report.reportNumber || report.reportData?.reportNumber) && (
-                                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 font-mono">
-                                      {report.reportNumber || report.reportData?.reportNumber}
-                                    </span>
-                                  )}
+                                  <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 font-mono">
+                                    #{report.reportNumber || report.reportData?.reportNumber || 'N/A'}
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                                   <Calendar size={12} className="text-primary/70" />
-                                  {report.reportDate || 'No Date'}
+                                  Date: <span className="font-bold text-foreground">{report.reportDate || 'No Date'}</span>
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-2 pt-4">
-                                <div className="space-y-1">
+                                <div className="space-y-1.5">
                                   <div className="flex justify-between text-[11px]">
-                                    <span className="text-muted-foreground flex items-center gap-1"><Fingerprint size={10} /> Eng:</span>
-                                    <span className="font-bold">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
+                                    <span className="text-muted-foreground flex items-center gap-1"><Fingerprint size={12} className="text-primary/60" /> Engine No:</span>
+                                    <span className="font-bold text-foreground truncate max-w-[100px]">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
                                   </div>
                                   <div className="flex justify-between text-[11px]">
-                                    <span className="text-muted-foreground flex items-center gap-1"><Hash size={10} /> Chassis:</span>
-                                    <span className="font-bold truncate max-w-[110px]">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
+                                    <span className="text-muted-foreground flex items-center gap-1"><Hash size={12} className="text-primary/60" /> Chassis No:</span>
+                                    <span className="font-bold text-foreground truncate max-w-[100px]">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
+                                  </div>
+                                  <div className="flex justify-between text-[11px]">
+                                    <span className="text-muted-foreground flex items-center gap-1"><FileText size={12} className="text-primary/60" /> Report ID:</span>
+                                    <span className="font-bold text-foreground truncate max-w-[100px]">{report.reportNumber || report.reportData?.reportNumber || 'N/A'}</span>
                                   </div>
                                 </div>
-                                <div className="pt-2 border-t text-[10px] text-muted-foreground flex justify-between items-center">
-                                    <span>Last: <span className="text-foreground/80 font-medium">{report.userName?.split(' ')[0] || 'Unknown'}</span></span>
+                                <div className="pt-2 border-t text-[10px] text-muted-foreground flex justify-between items-center mt-2">
+                                    <span>By: <span className="text-foreground/80 font-medium">{report.userName?.split(' ')[0] || 'System'}</span></span>
                                     <span className="opacity-70">
                                       {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}
                                     </span>
@@ -360,7 +371,7 @@ export default function AdminPage() {
                                 </Link>
                                 <Link href={`/report/${report.vehicleId}`} passHref>
                                 <Button variant="outline" size="sm" className="h-8 text-[10px] px-2 border-primary/20 hover:border-primary hover:text-primary">
-                                    <Eye className="mr-1 h-3 w-3" /> View
+                                    <Eye className="mr-1 h-3 w-3" /> Details
                                 </Button>
                                 </Link>
                             </CardFooter>
@@ -369,12 +380,12 @@ export default function AdminPage() {
                 </div>
             ) : (
                 <div className="text-center py-10">
-                    <p className="text-muted-foreground">No reports found{searchTerm ? ` for "${searchTerm}"` : ""}.</p>
+                    <p className="text-muted-foreground">No reports matching your criteria were found.</p>
                 </div>
             )}
              {filteredReports.length > visibleReportsCount && (
                 <div className="mt-6 text-center">
-                    <Button onClick={handleShowMore} variant="secondary">See More Reports</Button>
+                    <Button onClick={handleShowMore} variant="secondary">See More Results</Button>
                 </div>
             )}
             </CardContent>

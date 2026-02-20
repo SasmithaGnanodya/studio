@@ -20,11 +20,13 @@ const INITIAL_VISIBLE_REPORTS = 6;
 
 /**
  * Utility to filter out duplicate vehicle reports, keeping only the most recent version.
+ * Since the query is ordered by updatedAt desc, the first instance of a vehicleId is the latest.
  */
 function getUniqueReports(reports: Report[]) {
   const seen = new Set<string>();
   return reports.filter(report => {
-    const normalizedId = report.vehicleId.toUpperCase().trim();
+    const normalizedId = (report.vehicleId || '').toUpperCase().trim();
+    if (!normalizedId) return false;
     const isDuplicate = seen.has(normalizedId);
     seen.add(normalizedId);
     return !isDuplicate;
@@ -87,31 +89,41 @@ export default function LandingPage() {
 
       return () => unsubscribe();
     } else {
-        setAllReports([]);
-        setIsLoadingReports(false);
+        if (!isUserLoading) {
+            setAllReports([]);
+            setIsLoadingReports(false);
+        }
     }
-  }, [user, firestore]);
+  }, [user, firestore, isUserLoading]);
 
   const uniqueReports = useMemo(() => getUniqueReports(allReports), [allReports]);
 
   const searchResults = useMemo(() => {
-    if (!searchTerm || searchTerm.length < 1) return [];
+    if (!searchTerm || searchTerm.trim().length < 1) return [];
     const term = searchTerm.toUpperCase().trim();
     
     return uniqueReports.filter(report => {
+      const vid = (report.vehicleId || '').toUpperCase();
+      const en = (report.engineNumber || report.reportData?.engineNumber || '').toUpperCase();
+      const ch = (report.chassisNumber || report.reportData?.chassisNumber || '').toUpperCase();
+      const rn = (report.reportNumber || report.reportData?.reportNumber || '').toUpperCase();
+      const dt = (report.reportDate || '').toUpperCase();
+
       if (searchCategory === 'all') {
-        return (
-          report.vehicleId.toUpperCase().includes(term) ||
-          (report.engineNumber || report.reportData?.engineNumber || '').toUpperCase().includes(term) ||
-          (report.chassisNumber || report.reportData?.chassisNumber || '').toUpperCase().includes(term) ||
-          (report.reportNumber || report.reportData?.reportNumber || '').toUpperCase().includes(term) ||
-          (report.reportDate || '').toUpperCase().includes(term)
-        );
-      } else {
-        const value = report[searchCategory as keyof Report] || report.reportData?.[searchCategory];
-        return typeof value === 'string' && value.toUpperCase().includes(term);
+        return vid.includes(term) || en.includes(term) || ch.includes(term) || rn.includes(term) || dt.includes(term);
+      } else if (searchCategory === 'vehicleId') {
+        return vid.includes(term);
+      } else if (searchCategory === 'engineNumber') {
+        return en.includes(term);
+      } else if (searchCategory === 'chassisNumber') {
+        return ch.includes(term);
+      } else if (searchCategory === 'reportNumber') {
+        return rn.includes(term);
+      } else if (searchCategory === 'reportDate') {
+        return dt.includes(term);
       }
-    }).slice(0, 10);
+      return false;
+    }).slice(0, 15);
   }, [uniqueReports, searchTerm, searchCategory]);
 
   const noResults = searchTerm.length >= 2 && searchResults.length === 0;
@@ -142,7 +154,7 @@ export default function LandingPage() {
     setVisibleReportsCount(prevCount => prevCount + INITIAL_VISIBLE_REPORTS);
   };
   
-  const visibleReports = useMemo(() => {
+  const visibleRecentReports = useMemo(() => {
       return uniqueReports.slice(0, visibleReportsCount);
   }, [uniqueReports, visibleReportsCount]);
 
@@ -172,7 +184,7 @@ export default function LandingPage() {
             <CardHeader className="text-center">
                 <CardTitle className="text-3xl font-bold text-primary">Welcome to the Valuation Report Generator</CardTitle>
                 <CardDescription className="text-lg">
-                  A powerful tool to create, manage, and collaborate on vehicle valuation reports.
+                  Professional vehicle valuation tool with real-time indexing and search.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -180,22 +192,22 @@ export default function LandingPage() {
                     <div className="space-y-2">
                         <FileText className="mx-auto h-10 w-10 text-accent" />
                         <h3 className="font-semibold">Dynamic Reports</h3>
-                        <p className="text-sm text-muted-foreground">Instantly create new reports or search for existing ones by ID. Enjoy a live preview as you fill in data.</p>
+                        <p className="text-sm text-muted-foreground">Instantly create new reports with live pixel-perfect PDF previews.</p>
                     </div>
                     <div className="space-y-2">
                         <Wrench className="mx-auto h-10 w-10 text-accent" />
-                        <h3 className="font-semibold">Interactive Editing</h3>
-                        <p className="text-sm text-muted-foreground">Fill out reports directly within the PDF layout. Drag and drop fields in the admin editor for pixel-perfect templates.</p>
+                        <h3 className="font-semibold">Real-time Sync</h3>
+                        <p className="text-sm text-muted-foreground">Identifiers are indexed instantly for robust filtering across the database.</p>
                     </div>
                     <div className="space-y-2">
                         <Shield className="mx-auto h-10 w-10 text-accent" />
-                        <h3 className="font-semibold">Advanced Search</h3>
-                        <p className="text-sm text-muted-foreground">Quickly find reports using Registration Number, Engine Number, Chassis Number, or Report ID.</p>
+                        <h3 className="font-semibold">Secure Database</h3>
+                        <p className="text-sm text-muted-foreground">Role-based access ensures sensitive data is protected and auditable.</p>
                     </div>
                 </div>
                 <div className="text-center pt-4 border-t">
                     <p className="mt-4 text-base text-muted-foreground">
-                        Please sign in to access the dashboard and begin.
+                        Please sign in with your corporate Google account to begin.
                     </p>
                 </div>
             </CardContent>
@@ -211,10 +223,10 @@ export default function LandingPage() {
                     <CardHeader>
                     <CardTitle className="text-2xl flex items-center gap-2">
                       <Search className="h-6 w-6 text-primary" />
-                      Search Report Database
+                      Search Vehicle Database
                     </CardTitle>
                     <CardDescription>
-                        Find existing reports by any identifier or enter a new Registration Number.
+                        Search by Engine, Chassis, Report Number or Date.
                     </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -240,7 +252,7 @@ export default function LandingPage() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                             <Input
                                 type="text"
-                                placeholder={`Enter ${searchCategory === 'all' ? 'any identifier' : searchCategory.replace(/([A-Z])/g, ' $1').toLowerCase()}...`}
+                                placeholder={`Search ${searchCategory === 'all' ? 'any identifier' : searchCategory.replace(/([A-Z])/g, ' $1').toLowerCase()}...`}
                                 value={searchTerm}
                                 onChange={handleSearchChange}
                                 onKeyDown={handleKeyDown}
@@ -251,7 +263,7 @@ export default function LandingPage() {
                         {noResults && searchTerm && (searchCategory === 'all' || searchCategory === 'vehicleId') && (
                         <Button onClick={handleCreateNew} size="lg" className="w-full animate-in fade-in slide-in-from-top-2 duration-300">
                             <PlusCircle className="mr-2 h-5 w-5" />
-                            Add New Report for "{searchTerm}"
+                            Create New Report for "{searchTerm}"
                         </Button>
                         )}
                     </div>
@@ -260,10 +272,10 @@ export default function LandingPage() {
                         {isLoadingReports ? (
                         <div className="flex flex-col items-center justify-center py-6 gap-2">
                           <Wrench className="h-6 w-6 animate-spin text-primary" />
-                          <p className="text-sm text-muted-foreground">Loading database...</p>
+                          <p className="text-sm text-muted-foreground">Searching database...</p>
                         </div>
                         ) : searchResults.length > 0 ? (
-                        <ul className="space-y-2">
+                        <ul className="space-y-3">
                             {searchResults.map((report) => (
                             <li key={report.id}>
                                 <Link href={`/report/${report.vehicleId}`} passHref>
@@ -276,25 +288,27 @@ export default function LandingPage() {
                                           <p className="font-bold text-xl tracking-tight font-mono text-primary truncate">
                                             {report.vehicleId}
                                           </p>
-                                          {(report.reportNumber || report.reportData?.reportNumber) && (
-                                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-md font-mono border border-primary/20 flex items-center gap-1">
-                                              <Hash size={10} />
-                                              {report.reportNumber || report.reportData?.reportNumber}
-                                            </span>
-                                          )}
+                                          <span className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-md font-mono border border-primary/20 flex items-center gap-1">
+                                            <FileText size={10} />
+                                            #{report.reportNumber || report.reportData?.reportNumber || 'N/A'}
+                                          </span>
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground mt-1">
-                                          <span className="flex items-center gap-1">
-                                            <Fingerprint size={10} />
-                                            Eng: <span className="font-bold text-foreground">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
+                                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                            <Fingerprint size={12} className="text-primary/60" />
+                                            Eng: <span className="font-bold text-foreground truncate">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
                                           </span>
-                                          <span className="flex items-center gap-1">
-                                            <Hash size={10} />
-                                            Chassis: <span className="font-bold text-foreground truncate max-w-[150px]">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
+                                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                            <Hash size={12} className="text-primary/60" />
+                                            Chas: <span className="font-bold text-foreground truncate">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
                                           </span>
-                                          <span className="flex items-center gap-1 ml-auto">
-                                            <Calendar size={10} />
-                                            {report.reportDate || 'N/A'}
+                                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                            <Calendar size={12} className="text-primary/60" />
+                                            Date: <span className="font-bold text-foreground">{report.reportDate || 'N/A'}</span>
+                                          </span>
+                                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                            <Wrench size={12} className="text-primary/60" />
+                                            Mod: <span className="font-bold text-foreground">{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
                                           </span>
                                         </div>
                                     </div>
@@ -306,14 +320,14 @@ export default function LandingPage() {
                         ) : noResults ? (
                             <div className="text-center p-8 border-2 border-dashed rounded-xl bg-muted/20">
                             <p className="text-muted-foreground text-lg">No records found matching '<span className='font-bold text-primary'>{searchTerm}</span>'</p>
-                            <p className="text-sm text-muted-foreground mt-1">Check the identifiers or start a new entry using the button above.</p>
+                            <p className="text-sm text-muted-foreground mt-1">Refine your search or start a new entry.</p>
                         </div>
                         ) : (
                         !searchTerm && (
                             <div className="text-center p-8 border-2 border-dashed rounded-xl bg-muted/10 opacity-60">
                               <p className="text-muted-foreground flex flex-col items-center gap-2">
                                 <Filter size={24} />
-                                Search for existing reports or enter a Reg No to create a new one.
+                                Select a category and start typing to filter existing reports.
                               </p>
                             </div>
                         )
@@ -324,6 +338,16 @@ export default function LandingPage() {
             </div>
             <div className="space-y-6">
                  <ReportStats reports={allReports} />
+                 <Card className="bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium">Quick Help</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-xs text-muted-foreground space-y-2">
+                        <p>• <strong>Registration No:</strong> Case-insensitive, substring match supported.</p>
+                        <p>• <strong>Real-time Sync:</strong> Identifiers are indexed every 2 seconds during editing.</p>
+                        <p>• <strong>One-Per-Vehicle:</strong> Duplicates are automatically merged based on newest update.</p>
+                    </CardContent>
+                 </Card>
             </div>
         </div>
 
@@ -333,23 +357,23 @@ export default function LandingPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-xl">Recently Updated</CardTitle>
-                  <CardDescription>Latest vehicle valuations in the system.</CardDescription>
+                  <CardDescription>Latest system-wide activity.</CardDescription>
                 </div>
                 <Link href="/admin" passHref>
-                  <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10">View All</Button>
+                  <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10">Manage All</Button>
                 </Link>
               </div>
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
               {isLoadingReports ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[...Array(6)].map((_, i) => (
+                  {[...Array(3)].map((_, i) => (
                      <Skeleton key={i} className="h-48 w-full rounded-xl" />
                   ))}
                 </div>
-              ) : visibleReports.length > 0 ? (
+              ) : visibleRecentReports.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {visibleReports.map(report => (
+                    {visibleRecentReports.map(report => (
                         <Link key={report.id} href={`/report/${report.vehicleId}`} passHref>
                             <Card className="h-full hover:bg-primary/5 transition-all cursor-pointer border-primary/10 hover:border-primary/40 group overflow-hidden shadow-sm">
                                 <CardHeader className="pb-3 bg-muted/10">
@@ -357,22 +381,24 @@ export default function LandingPage() {
                                       <CardTitle className="font-mono text-primary text-xl font-bold tracking-tight">
                                         {report.vehicleId}
                                       </CardTitle>
-                                      {(report.reportNumber || report.reportData?.reportNumber) && (
-                                        <span className="text-[9px] bg-primary/10 text-primary px-2 py-1 rounded-md border border-primary/20 font-mono">
-                                          {report.reportNumber || report.reportData?.reportNumber}
-                                        </span>
-                                      )}
+                                      <span className="text-[9px] bg-primary/10 text-primary px-2 py-1 rounded-md border border-primary/20 font-mono">
+                                        #{report.reportNumber || report.reportData?.reportNumber || 'N/A'}
+                                      </span>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-3 pt-4">
                                     <div className="space-y-1.5">
                                       <div className="flex justify-between text-[11px]">
-                                        <span className="text-muted-foreground flex items-center gap-1"><Fingerprint size={10} /> Engine No:</span>
-                                        <span className="font-bold text-foreground">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
+                                        <span className="text-muted-foreground flex items-center gap-1"><Fingerprint size={10} /> Engine:</span>
+                                        <span className="font-bold text-foreground truncate">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
                                       </div>
                                       <div className="flex justify-between text-[11px]">
                                         <span className="text-muted-foreground flex items-center gap-1"><Hash size={10} /> Chassis:</span>
                                         <span className="font-bold text-foreground truncate max-w-[120px]">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
+                                      </div>
+                                      <div className="flex justify-between text-[11px]">
+                                        <span className="text-muted-foreground flex items-center gap-1"><Calendar size={10} /> Date:</span>
+                                        <span className="font-bold text-foreground">{report.reportDate || 'N/A'}</span>
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2 pt-2 border-t mt-2 text-[10px] text-muted-foreground">
