@@ -21,11 +21,14 @@ type EditorSidebarProps = {
   onClose: () => void;
 };
 
+// These fields are critical for database indexing and search functionality.
 const PROTECTED_FIELDS = ['regNumber', 'engineNumber', 'chassisNumber', 'reportNumber', 'date'];
 
 export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSidebarProps) => {
 
-  const isProtected = PROTECTED_FIELDS.includes(field.fieldId);
+  // Robust check for protected fields
+  const isProtected = PROTECTED_FIELDS.includes(field.fieldId) || 
+                     PROTECTED_FIELDS.some(id => id.toLowerCase() === field.fieldId.toLowerCase().trim());
 
   const handlePartChange = (part: 'label' | 'value' | 'placeholder', property: keyof FieldPart, value: any) => {
       const currentPart = field[part];
@@ -291,12 +294,12 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                   <TooltipTrigger asChild>
                     <div className="cursor-not-allowed">
                       <Button variant="destructive" size="sm" disabled className="opacity-50">
-                          <Trash className="mr-2 h-4 w-4" /> Protected
+                          <Lock className="mr-2 h-4 w-4" /> Mandatory Field
                       </Button>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Mandatory filtering fields cannot be deleted.</p>
+                    <p>Mandatory filtering fields cannot be deleted or renamed to maintain database search integrity.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
