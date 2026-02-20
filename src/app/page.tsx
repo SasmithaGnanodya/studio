@@ -7,7 +7,7 @@ import { Footer } from '@/components/footer';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter, Calendar as CalendarIcon, Hash, Fingerprint, Clock, ChevronRight, BarChart3, TrendingUp, ShieldCheck } from 'lucide-react';
+import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter, Calendar as CalendarIcon, Hash, Fingerprint, Clock, ChevronRight, BarChart3, TrendingUp, ShieldCheck, Zap } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
@@ -355,6 +355,49 @@ export default function LandingPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Help Instructions & Workflow Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-4 duration-700 delay-200">
+                <Card className="bg-primary/5 border-primary/10 shadow-sm">
+                    <CardHeader className="pb-2">
+                        <div className="p-2 bg-primary/10 w-fit rounded-lg mb-2">
+                            <Search className="h-4 w-4 text-primary" />
+                        </div>
+                        <CardTitle className="text-sm font-bold">1. Query Database</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
+                            Utilize unique identifiers like Reg No or Engine No to perform a global search across our secure cloud infrastructure.
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-primary/5 border-primary/10 shadow-sm">
+                    <CardHeader className="pb-2">
+                        <div className="p-2 bg-primary/10 w-fit rounded-lg mb-2">
+                            <ShieldCheck className="h-4 w-4 text-primary" />
+                        </div>
+                        <CardTitle className="text-sm font-bold">2. Audit Integrity</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
+                            Matching records display detailed technical logs and historical valuations, ensuring full audit transparency.
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-primary/5 border-primary/10 shadow-sm">
+                    <CardHeader className="pb-2">
+                        <div className="p-2 bg-primary/10 w-fit rounded-lg mb-2">
+                            <Zap className="h-4 w-4 text-primary" />
+                        </div>
+                        <CardTitle className="text-sm font-bold">3. Instant Dispatch</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
+                            If no record is found, initialize a new professional report immediately using the latest layout version standards.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
           </div>
 
           <div className="space-y-6 lg:sticky lg:top-24">
