@@ -106,7 +106,7 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
       <Button 
         variant="secondary" 
         size="sm" 
-        className="shadow-lg ring-2 ring-primary/20 hover:ring-primary/50 transition-all font-bold gap-2"
+        className="shadow-lg ring-2 ring-primary/20 hover:ring-primary/50 transition-all font-bold gap-2 pointer-events-auto"
         onClick={() => setIsOpen(true)}
       >
         <Move size={14} /> Adjust Image
@@ -115,10 +115,12 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
   }
 
   return (
-    <div className="relative z-[100]">
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-[-1]" onClick={() => setIsOpen(false)} />
+    <div className="fixed inset-0 flex items-center justify-center z-[9999] pointer-events-auto">
+      {/* Background overlay with backdrop blur */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
       
-      <div className="flex flex-col gap-3 p-4 bg-card hover:bg-card backdrop-blur-md rounded-xl border shadow-2xl ring-2 ring-primary/30 w-64 transition-all">
+      {/* Centered Adjustment Panel */}
+      <div className="relative flex flex-col gap-3 p-5 bg-card hover:bg-card backdrop-blur-md rounded-xl border shadow-2xl ring-2 ring-primary/30 w-72 transition-all">
         <div className="flex items-center justify-between border-b pb-2">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             {showSettings ? 'Image Settings' : 'Position Adjuster'}
@@ -138,7 +140,7 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
             <div className="flex flex-col gap-2">
               {value.url ? (
                 <div className="relative group">
-                   <img src={value.url} alt="preview" className="w-full h-24 object-cover rounded-md border" />
+                   <img src={value.url} alt="preview" className="w-full h-32 object-cover rounded-md border" />
                    <Button 
                     variant="destructive" 
                     size="icon" 
@@ -151,7 +153,7 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
               ) : (
                 <Button 
                   variant="outline" 
-                  className="w-full h-24 flex flex-col items-center justify-center border-dashed gap-2 hover:bg-muted"
+                  className="w-full h-32 flex flex-col items-center justify-center border-dashed gap-2 hover:bg-muted"
                   onClick={handleUploadClick}
                   disabled={isUploading}
                 >
@@ -183,14 +185,14 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
                 placeholder="https://..."
                 value={value.url}
                 onChange={handleUrlChange}
-                className="h-7 text-[10px]"
+                className="h-8 text-xs"
               />
             </div>
           </div>
         ) : (
           <>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
                   <ZoomOut size={14} className="text-muted-foreground" />
                   <Slider
                     min={0.5}
@@ -202,29 +204,32 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
                   />
                   <ZoomIn size={14} className="text-muted-foreground" />
               </div>
+              <div className="text-center text-[10px] font-mono text-muted-foreground">
+                Scale: {(value.scale * 100).toFixed(0)}% | Pos: {value.x}px, {value.y}px
+              </div>
             </div>
 
-            <div className="flex flex-col items-center gap-1">
-              <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background/50" onClick={() => handlePan(0, -PAN_STEP)}>
-                  <ArrowUp size={16} />
+            <div className="flex flex-col items-center gap-1 mt-2">
+              <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-background/50" onClick={() => handlePan(0, -PAN_STEP)}>
+                  <ArrowUp size={20} />
               </Button>
-              <div className="flex gap-4">
-                  <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background/50" onClick={() => handlePan(-PAN_STEP, 0)}>
-                      <ArrowLeft size={16} />
+              <div className="flex gap-6">
+                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-background/50" onClick={() => handlePan(-PAN_STEP, 0)}>
+                      <ArrowLeft size={20} />
                   </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background/50" onClick={() => handlePan(PAN_STEP, 0)}>
-                      <ArrowRight size={16} />
+                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-background/50" onClick={() => handlePan(PAN_STEP, 0)}>
+                      <ArrowRight size={20} />
                   </Button>
               </div>
-              <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background/50" onClick={() => handlePan(0, PAN_STEP)}>
-                  <ArrowDown size={16} />
+              <Button variant="outline" size="icon" className="h-10 w-10 rounded-full bg-background/50" onClick={() => handlePan(0, PAN_STEP)}>
+                  <ArrowDown size={20} />
               </Button>
             </div>
           </>
         )}
         
-        <Button className="w-full mt-2" variant="secondary" size="sm" onClick={() => setIsOpen(false)}>
-            Close Adjuster
+        <Button className="w-full mt-4" variant="secondary" onClick={() => setIsOpen(false)}>
+            Finish Adjusting
         </Button>
       </div>
     </div>
