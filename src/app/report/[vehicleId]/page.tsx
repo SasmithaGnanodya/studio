@@ -125,7 +125,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           setLatestLayoutId(latestId);
       }
 
-      // DETERMINISTIC FETCH: Registration number is the document ID
       const reportRef = doc(firestore, 'reports', vehicleId);
       const docSnap = await getDoc(reportRef);
 
@@ -157,26 +156,38 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     fetchData();
   }, [user, firestore, vehicleId, isAuthorized]);
 
+  // Robust identifier detection across data and layout labels
+  const findIdentifier = (patterns: string[]) => {
+    // 1. Direct ID match
+    const direct = patterns.map(p => reportData[p]).find(v => !!v);
+    if (direct) return direct;
+    
+    // 2. Scan layout for label matching patterns
+    const layoutField = currentLayout.find(f => 
+      f.fieldType === 'text' && 
+      f.label && 
+      f.label.text && 
+      patterns.some(p => f.label.text.toLowerCase().includes(p.toLowerCase()))
+    );
+    if (layoutField && reportData[layoutField.fieldId]) {
+      return reportData[layoutField.fieldId];
+    }
+
+    // 3. Fallback: scan all reportData keys
+    const entry = Object.entries(reportData).find(([key]) => 
+      patterns.some(p => key.toLowerCase().includes(p.toLowerCase()))
+    );
+    return entry ? entry[1] : '';
+  };
+
   // Real-time Debounced Sync for Identifiers
   useEffect(() => {
-    if (!firestore || !isAuthorized || !user) return;
+    if (!firestore || !isAuthorized || !user || isLoading) return;
 
-    // Detect identifiers robustly by scanning keys if default keys are empty
-    const findIdentifier = (patterns: string[]) => {
-      const direct = patterns.map(p => reportData[p]).find(v => !!v);
-      if (direct) return direct;
-      
-      // Fallback: scan all reportData keys for similar names
-      const entry = Object.entries(reportData).find(([key]) => 
-        patterns.some(p => key.toLowerCase().includes(p.toLowerCase()))
-      );
-      return entry ? entry[1] : '';
-    };
-
-    const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine']);
+    const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor']);
     const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial']);
-    const reportNumVal = findIdentifier(['reportNumber', 'reportNo']);
-    const dateVal = findIdentifier(['date', 'reportDate']);
+    const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum']);
+    const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate']);
 
     const hasData = engineVal || chassisVal || reportNumVal || dateVal;
     if (!hasData) return;
@@ -214,7 +225,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     };
-  }, [reportData, firestore, isAuthorized, user, vehicleId]);
+  }, [reportData, firestore, isAuthorized, user, vehicleId, isLoading, currentLayout]);
 
   const handleDataChange = (fieldId: string, value: string | ImageData) => {
     setReportData(prev => ({ ...prev, [fieldId]: value }));
@@ -230,20 +241,12 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const configSnap = await transaction.get(configRef);
         const activeLayoutId = configSnap.exists() ? configSnap.data().currentId : null;
 
-        // Extract identifiers for the top-level searchable fields
-        const findIdentifier = (patterns: string[]) => {
-          const direct = patterns.map(p => reportData[p]).find(v => !!v);
-          if (direct) return direct;
-          const entry = Object.entries(reportData).find(([key]) => patterns.some(p => key.toLowerCase().includes(p.toLowerCase())));
-          return entry ? entry[1] : '';
-        };
-
         const reportHeaderData = {
           vehicleId: vehicleId,
-          engineNumber: String(findIdentifier(['engineNumber', 'engineNo']) || '').toUpperCase().trim(),
-          chassisNumber: String(findIdentifier(['chassisNumber', 'chassisNo', 'serial']) || '').toUpperCase().trim(),
-          reportNumber: String(findIdentifier(['reportNumber', 'reportNo']) || '').toUpperCase().trim(),
-          reportDate: String(findIdentifier(['date', 'reportDate']) || ''),
+          engineNumber: String(findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor']) || '').toUpperCase().trim(),
+          chassisNumber: String(findIdentifier(['chassisNumber', 'chassisNo', 'serial', 'chassis']) || '').toUpperCase().trim(),
+          reportNumber: String(findIdentifier(['reportNumber', 'reportNo', 'reportnum']) || '').toUpperCase().trim(),
+          reportDate: String(findIdentifier(['date', 'reportDate', 'inspectionDate']) || ''),
           userId: user.uid,
           userName: user.displayName || user.email,
           reportData: reportData,

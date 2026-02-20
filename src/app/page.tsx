@@ -27,24 +27,35 @@ function getIdentifiers(report: Report) {
   // Try to find Engine Number in top-level or any reportData field that looks like it
   const engine = report.engineNumber || 
                  data.engineNumber || 
-                 Object.entries(data).find(([k]) => k.toLowerCase().includes('engine'))?.[1] || 
+                 Object.entries(data).find(([k]) => 
+                   k.toLowerCase().includes('engine') || 
+                   k.toLowerCase().includes('motor') ||
+                   k.toLowerCase().includes('engno')
+                 )?.[1] || 
                  'N/A';
                  
   const chassis = report.chassisNumber || 
                   data.chassisNumber || 
-                  Object.entries(data).find(([k]) => k.toLowerCase().includes('chassis') || k.toLowerCase().includes('serial'))?.[1] || 
+                  Object.entries(data).find(([k]) => 
+                    k.toLowerCase().includes('chassis') || 
+                    k.toLowerCase().includes('serial') ||
+                    k.toLowerCase().includes('chas')
+                  )?.[1] || 
                   'N/A';
 
   const reportNum = report.reportNumber || 
                     data.reportNumber || 
-                    Object.entries(data).find(([k]) => k.toLowerCase().includes('reportnumber'))?.[1] || 
+                    Object.entries(data).find(([k]) => 
+                      k.toLowerCase().includes('reportnum') ||
+                      k.toLowerCase().includes('reportno')
+                    )?.[1] || 
                     'N/A';
 
   return {
     engine: String(engine).toUpperCase().trim(),
     chassis: String(chassis).toUpperCase().trim(),
     reportNum: String(reportNum).toUpperCase().trim(),
-    date: report.reportDate || data.date || 'N/A'
+    date: report.reportDate || data.date || data.reportDate || data.inspectionDate || 'N/A'
   };
 }
 
