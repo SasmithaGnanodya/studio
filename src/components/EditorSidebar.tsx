@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -5,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, Lock, Unlock } from 'lucide-react';
+import { Trash, X, Lock, Unlock, Zap } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
@@ -238,7 +239,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                         <Label htmlFor="fieldId" className="text-sm font-medium">Field ID (for data linking)</Label>
                         {isSystemMandatory && (
                           <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 text-[10px] h-5">
-                            <Lock size={10} /> System Mandatory
+                            <Zap size={10} className="fill-primary" /> Indexing Identifier
                           </Badge>
                         )}
                     </div>
@@ -249,6 +250,9 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                         className="font-mono mt-1 h-9"
                         disabled={field.fieldType === 'staticText' || isLocked}
                     />
+                    <p className="text-[10px] text-muted-foreground mt-1 px-1">
+                      {isSystemMandatory ? "This field is used for global report searching and filtering." : "Set this to 'engineNumber' or 'chassisNumber' to enable filtering."}
+                    </p>
                  </div>
 
                  <div className="flex items-center space-x-2 bg-muted/30 p-2 rounded-md border">

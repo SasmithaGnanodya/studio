@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -160,9 +161,9 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   useEffect(() => {
     if (!firestore || !isAuthorized || !user) return;
 
-    // Index if we have at least one sensitive identifier
-    const hasSensitiveData = reportData.engineNumber || reportData.chassisNumber || reportData.reportNumber;
-    if (!hasSensitiveData) return;
+    // Index if we have at least one identifier being filled
+    const hasData = reportData.engineNumber || reportData.chassisNumber || reportData.reportNumber || reportData.date;
+    if (!hasData) return;
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
@@ -181,6 +182,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         };
 
         // DETERMINISTIC SYNC: Prevent duplicates by using vehicleId as the document ID
+        // This ensures the identifiers are indexed for top-level search immediately
         const reportRef = doc(firestore, 'reports', vehicleId);
         await setDoc(reportRef, {
             ...dataToSync,
@@ -193,7 +195,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       } finally {
         setIsSyncing(false);
       }
-    }, 1500);
+    }, 1000); // Shorter debounce for more responsive filtering
 
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
@@ -309,8 +311,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
               <div className="text-sm font-medium flex items-center gap-3">
                 Vehicle: <span className="text-primary font-mono">{vehicleId}</span>
                 {isSyncing && (
-                  <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground animate-pulse">
-                    <RefreshCw size={10} className="animate-spin" /> Syncing filters...
+                  <span className="flex items-center gap-1.5 text-[10px] text-primary font-bold animate-pulse bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                    <RefreshCw size={10} className="animate-spin" /> Indexing Engine & Chassis...
                   </span>
                 )}
               </div>
