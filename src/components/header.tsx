@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, Shield, Moon, Sun } from 'lucide-react';
+import { FileText, Shield, Moon, Sun, Info } from 'lucide-react';
 import Link from 'next/link';
 import { UserNav } from './UserNav';
 import { useFirebase } from '@/firebase';
@@ -76,6 +76,13 @@ export function Header() {
               </div>
             </Link>
             <div className="ml-auto flex items-center gap-2 sm:gap-4">
+              <Link href="/about" passHref>
+                <Button variant="ghost" size="sm" className="hidden sm:flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
+                  <Info size={18} />
+                  <span>About</span>
+                </Button>
+              </Link>
+
               <Button 
                 variant="ghost" 
                 size="icon" 

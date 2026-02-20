@@ -41,6 +41,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/about" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  About the Platform
+                </Link>
+              </li>
+              <li>
                 <Link href="/admin" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                   Admin Analytics Panel
                 </Link>
