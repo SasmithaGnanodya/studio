@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
 import { Button } from './ui/button';
@@ -21,6 +21,7 @@ type ImageAdjustmentControlProps = {
   height?: number; // height in mm
   isInline?: boolean; // If true, only shows the button
   forceOpen?: boolean;
+  onOpenToggle?: (isOpen: boolean) => void;
   onClose?: () => void;
 };
 
@@ -33,6 +34,7 @@ export const ImageAdjustmentControl = ({
   height = 100,
   isInline = false,
   forceOpen = false,
+  onOpenToggle,
   onClose
 }: ImageAdjustmentControlProps) => {
   const { storage } = useFirebase();
@@ -43,6 +45,11 @@ export const ImageAdjustmentControl = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isOpen = forceOpen || internalOpen;
+
+  const toggleOpen = (val: boolean) => {
+    setInternalOpen(val);
+    onOpenToggle?.(val);
+  };
 
   const handleScaleChange = (newScale: number[]) => {
     onChange({ ...value, scale: newScale[0] });
@@ -122,7 +129,7 @@ export const ImageAdjustmentControl = ({
   };
 
   const closeControl = () => {
-    setInternalOpen(false);
+    toggleOpen(false);
     onClose?.();
   };
 
@@ -135,7 +142,7 @@ export const ImageAdjustmentControl = ({
           "shadow-xl ring-2 ring-primary/30 hover:ring-primary/60 transition-all font-bold gap-2 pointer-events-auto",
           !isInline && "bg-background/90 backdrop-blur-md opacity-0 group-hover:opacity-100"
         )}
-        onClick={() => setInternalOpen(true)}
+        onClick={() => toggleOpen(true)}
       >
         <Move size={14} /> Adjust Image
       </Button>
@@ -143,9 +150,9 @@ export const ImageAdjustmentControl = ({
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[999999] pointer-events-auto p-4 overflow-hidden">
+    <div className="fixed inset-0 flex items-center justify-center z-[99999] pointer-events-auto p-4 overflow-hidden">
       <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 
+        className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" 
         onClick={closeControl} 
       />
       
