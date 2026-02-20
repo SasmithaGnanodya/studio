@@ -3,36 +3,27 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * FIRESTORE SECURITY RULES DOCUMENTATION
+     * FIRESTORE SECURITY RULES
      * 
      * Core Philosophy: 
-     * This ruleset enforces a strict User-Ownership model. Access is primarily determined by 
-     * the hierarchical path structure, ensuring that users can only access data nested within 
-     * their own unique user ID.
-     * 
-     * Data Structure: 
-     * All application data is organized under the root path `/users/{userId}/`. This includes:
-     * - pdfTemplates: Metadata for uploaded PDFs.
-     * - formFields: Definitions for interactive fields on a template (sub-collection of pdfTemplates).
-     * - filledForms: Specific instances of templates filled with data.
-     * - fieldValues: The actual data entered into form fields (sub-collection of filledForms).
-     * 
-     * Key Security Decisions:
-     * 1. Authorization Independence: By using a hierarchical path (`/users/{userId}/...`), 
-     *    the ownership of every document is immediately known via the `{userId}` wildcard. 
-     *    This avoids expensive `get()` calls and ensures rules are performant.
-     * 2. Relational Integrity: On document creation, the rules verify that internal fields 
-     *    (like `userId`) match the authenticated user's ID and the path.
-     * 3. Immutability: Critical ownership fields are protected from modification during updates.
-     * 4. Prototyping Flexibility: While authorization is strictly enforced (who can access what), 
-     *    the specific data types of content fields are not validated to allow for rapid UI iteration.
+     * 1. Admin Access: Specific users (by email) have full access to all data.
+     * 2. User Ownership: Users can create and manage their own reports.
+     * 3. Config Access: Authenticated users can read app settings (like the password salt).
      */
 
     // --- Global Helper Functions ---
 
-    /** @description Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    /** @description Checks if the user is a designated administrator. */
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'sasmithagnanodya@gmail.com' ||
+        request.auth.token.email == 'supundinushaps@gmail.com' ||
+        request.auth.token.email == 'caredrivelk@gmail.com'
+      );
     }
 
     /** @description Checks if the authenticated user's UID matches the provided userId. */
@@ -40,67 +31,52 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks if the user is the owner and the document exists (for updates/deletes). */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
     // --- Collection Rules ---
 
     /**
-     * @description Rules for PDF Templates. Ensures users only manage their own templates.
-     * @path /users/{userId}/pdfTemplates/{pdfTemplateId}
-     * @allow (create) User 'abc' creates a template at /users/abc/pdfTemplates/123 with userId: 'abc'.
-     * @deny (list) User 'abc' attempts to list templates at /users/xyz/pdfTemplates.
-     * @principle Enforces strict ownership and path-to-data consistency.
+     * @description Rules for the main 'reports' collection.
      */
-    match /users/{userId}/pdfTemplates/{pdfTemplateId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
+    match /reports/{reportId} {
+      // Admins have full access to all reports
+      allow read, write: if isAdmin();
+      
+      // Authenticated users can read, create, and update their own reports
+      // We check both the top-level userId and the one inside reportData
+      allow get: if isSignedIn();
+      allow list: if isSignedIn(); 
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
 
-      /**
-       * @description Rules for Form Fields. Inherits ownership from the parent template via path.
-       * @path /users/{userId}/pdfTemplates/{pdfTemplateId}/formFields/{formFieldId}
-       * @allow (get) User 'abc' reads a field definition for one of their own templates.
-       * @deny (update) User 'abc' tries to update a field belonging to User 'xyz'.
-       * @principle Path-based authorization for nested resources.
-       */
-      match /formFields/{formFieldId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.pdfTemplateId == pdfTemplateId;
-        allow update: if isExistingOwner(userId) && request.resource.data.pdfTemplateId == resource.data.pdfTemplateId;
-        allow delete: if isExistingOwner(userId);
+      /** @description History subcollection for audit trails. */
+      match /history/{historyId} {
+        allow read: if isSignedIn() && (get(/databases/$(database)/documents/reports/$(reportId)).data.userId == request.auth.uid || isAdmin());
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if isAdmin();
       }
     }
 
     /**
-     * @description Rules for Filled Forms. Represents a specific user's interaction with a template.
-     * @path /users/{userId}/filledForms/{filledFormId}
-     * @allow (update) User 'abc' updates the title of their filled form 'form_1'.
-     * @deny (create) User 'abc' tries to create a filled form for user 'xyz'.
-     * @principle Ownership verification for both read and write operations.
+     * @description Rules for application configuration (e.g., private data password).
      */
-    match /users/{userId}/filledForms/{filledFormId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
+    match /config/settings {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
 
-      /**
-       * @description Rules for Field Values. Stores data for fields within a specific filled form.
-       * @path /users/{userId}/filledForms/{filledFormId}/fieldValues/{fieldValueId}
-       * @allow (list) User 'abc' retrieves all values for their filled form 'form_1'.
-       * @deny (delete) User 'abc' tries to delete values inside User 'xyz's form.
-       * @principle Recursive ownership enforcement via hierarchical pathing.
-       */
-      match /fieldValues/{fieldValueId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.filledFormId == filledFormId;
-        allow update: if isExistingOwner(userId) && request.resource.data.filledFormId == resource.data.filledFormId;
-        allow delete: if isExistingOwner(userId);
-      }
+    /**
+     * @description Rules for layout templates.
+     */
+    match /layouts/{layoutId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    /**
+     * @description Legacy user-centric paths (from backend.json).
+     */
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if isOwner(userId);
     }
 
     // --- Catch-all / Default Deny ---
