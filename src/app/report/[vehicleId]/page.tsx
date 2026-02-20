@@ -88,6 +88,26 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   useEffect(() => { if (isAdmin) setIsAuthorized(true); }, [isAdmin]);
 
+  // Client-side initialization to avoid hydration mismatch
+  useEffect(() => {
+    if (isAuthorized && !reportId) {
+      setReportData(prev => {
+        const needsUpdate = prev.reportNumber === "V-PENDING" || prev.date === "";
+        if (!needsUpdate) return prev;
+
+        return {
+          ...prev,
+          reportNumber: prev.reportNumber === "V-PENDING" 
+            ? "V" + Math.floor(1000 + Math.random() * 9000) 
+            : prev.reportNumber,
+          date: prev.date === "" 
+            ? new Date().toLocaleDateString('en-CA') 
+            : prev.date
+        };
+      });
+    }
+  }, [isAuthorized, reportId]);
+
   useEffect(() => {
     if (!user || !firestore || !isAuthorized) return;
 
@@ -121,7 +141,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
             }
         }
       } else {
-        setReportData({ ...initialReportState, regNumber: vehicleId });
+        setReportData(prev => ({ ...prev, regNumber: vehicleId }));
         if (latestId) {
             const latestDoc = await getDoc(doc(firestore, 'layouts', latestId));
             if (latestDoc.exists()) {

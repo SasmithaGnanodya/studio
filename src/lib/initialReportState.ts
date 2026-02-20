@@ -1,8 +1,8 @@
 import type { FieldLayout, ImageData } from './types';
 
 export const initialReportState: { [key: string]: any } = {
-  reportNumber: "V" + Math.floor(1000 + Math.random() * 9000),
-  date: new Date().toLocaleDateString('en-CA'),
+  reportNumber: "V-PENDING",
+  date: "", // To be filled on client to avoid hydration mismatch
   inspectionLocation: "Colombo",
   regNumber: "",
   manufacturer: "",
