@@ -1,11 +1,11 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, use } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Save, Home, PlusCircle, Image as ImageIcon, Type, ShieldAlert } from 'lucide-react';
+import { Save, Home, PlusCircle, Image as ImageIcon, Type } from 'lucide-react';
 import Link from 'next/link';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
@@ -22,7 +22,7 @@ const INCH_PER_MM = 0.0393701;
 const MM_TO_PX = (mm: number) => mm * INCH_PER_MM * DPI;
 const PX_TO_MM = (px: number) => px / (INCH_PER_MM * DPI);
 
-const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
+const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com', 'supundinushaps@gmail.com'];
 const PROTECTED_FIELDS = ['regNumber', 'engineNumber', 'chassisNumber', 'reportNumber', 'date'];
 
 const validateAndCleanFieldPart = (part: any): FieldPart => {
@@ -59,7 +59,6 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
     };
 };
 
-
 export default function EditorPage() {
   const [fields, setFields] = useState<FieldLayout[]>(fixedLayout);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
@@ -73,7 +72,6 @@ export default function EditorPage() {
       router.replace('/');
     }
   }, [user, isUserLoading, router]);
-
 
   useEffect(() => {
     if (user && firestore && user.email && ADMIN_EMAILS.includes(user.email)) {
@@ -188,7 +186,15 @@ export default function EditorPage() {
   }
 
   const handleUpdateField = useCallback((id: string, updates: Partial<FieldLayout>) => {
-    setFields(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+    setFields(prev => prev.map(f => {
+      if (f.id === id) {
+        if (updates.fieldId && PROTECTED_FIELDS.includes(f.fieldId) && updates.fieldId !== f.fieldId) {
+          return f;
+        }
+        return { ...f, ...updates };
+      }
+      return f;
+    }));
   }, []);
   
   const handleDeleteField = (id: string) => {
@@ -302,11 +308,11 @@ export default function EditorPage() {
     });
 
     const imagePlaceholders = fields.filter(f => f.fieldType === 'image' && f.placeholder).map(field => {
-      const imageUrl = initialReportState[field.fieldId] || "https://placehold.co/600x400?text=Image";
+      const imageUrl = "https://placehold.co/600x400?text=Image";
       return {
         id: `image-${field.id}`,
         fieldId: field.fieldId,
-        value: imageUrl,
+        value: { url: imageUrl, scale: 1, x: 0, y: 0 },
         x: field.placeholder!.x,
         y: field.placeholder!.y,
         width: field.placeholder!.width,

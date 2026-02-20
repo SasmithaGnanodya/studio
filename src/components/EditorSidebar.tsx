@@ -6,9 +6,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, ChevronDown, Lock } from 'lucide-react';
+import { Trash, X, Lock } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Textarea } from './ui/textarea';
@@ -46,17 +45,18 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
   };
   
   const handleFieldIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(field.id, { fieldId: e.target.value });
+    if (!isProtected) {
+      onUpdate(field.id, { fieldId: e.target.value });
+    }
   }
 
   const renderStaticTextEditor = (part: 'label') => {
     const data = field[part];
     if (!data) return null;
-    const title = 'Static Text';
 
     return (
       <div className="flex-1 px-4 py-2">
-        <h3 className="font-semibold mb-2">{title}</h3>
+        <h3 className="font-semibold mb-2">Static Text</h3>
         <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
           <div className="space-y-1 sm:col-span-6">
             <Label htmlFor={`${part}-text`} className="text-xs">Text</Label>
@@ -241,11 +241,10 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                    className="font-mono mt-1"
                    disabled={field.fieldType === 'staticText' || isProtected}
                  />
-                 {isProtected && <p className="text-[10px] text-muted-foreground mt-1 italic">This ID is required for search filtering and cannot be changed.</p>}
+                 {isProtected && <p className="text-[10px] text-muted-foreground mt-1 italic">This identifier is required for database indexing and cannot be changed.</p>}
              </div>
         </div>
 
-        {/* Mobile-only field ID */}
         <div className='p-4 border-b block md:hidden'>
             <Label htmlFor="fieldId-mobile">Field ID (for data linking)</Label>
             <Input 
@@ -285,7 +284,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Protected fields used for filtering cannot be deleted.</p>
+                    <p>Protected database fields cannot be deleted.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
