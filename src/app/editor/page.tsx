@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Save, Home, PlusCircle, Image as ImageIcon, Type } from 'lucide-react';
+import { Save, Home, PlusCircle, Image as ImageIcon, Type, LayoutTemplate } from 'lucide-react';
 import Link from 'next/link';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
@@ -22,7 +22,7 @@ const INCH_PER_MM = 0.0393701;
 const MM_TO_PX = (mm: number) => mm * INCH_PER_MM * DPI;
 const PX_TO_MM = (px: number) => px / (INCH_PER_MM * DPI);
 
-const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com', 'supundinushaps@gmail.com'];
+const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const PROTECTED_FIELDS = ['regNumber', 'engineNumber', 'chassisNumber', 'reportNumber', 'date'];
 
 const validateAndCleanFieldPart = (part: any): FieldPart => {
@@ -188,6 +188,7 @@ export default function EditorPage() {
   const handleUpdateField = useCallback((id: string, updates: Partial<FieldLayout>) => {
     setFields(prev => prev.map(f => {
       if (f.id === id) {
+        // PROTECTION: Prevent renaming mandatory field IDs
         if (updates.fieldId && PROTECTED_FIELDS.includes(f.fieldId) && updates.fieldId !== f.fieldId) {
           return f;
         }
@@ -199,11 +200,12 @@ export default function EditorPage() {
   
   const handleDeleteField = (id: string) => {
     const fieldToDelete = fields.find(f => f.id === id);
+    // PROTECTION: Prevent deleting mandatory fields
     if (fieldToDelete && PROTECTED_FIELDS.includes(fieldToDelete.fieldId)) {
         toast({
             variant: "destructive",
-            title: "Cannot Delete Field",
-            description: `The field '${fieldToDelete.fieldId}' is used for report filtering and cannot be removed.`,
+            title: "Action Restricted",
+            description: `The mandatory field '${fieldToDelete.fieldId}' is required for search and cannot be deleted.`,
         });
         return;
     }
@@ -263,8 +265,8 @@ export default function EditorPage() {
             }, { merge: true });
 
             toast({
-                title: "Layout Saved",
-                description: `New layout version (v${newVersion}) has been saved and is now live.`,
+                title: "Layout Updated",
+                description: `Master layout (v${newVersion}) has been saved and applied system-wide.`,
             });
         });
     } catch (error) {
@@ -272,7 +274,7 @@ export default function EditorPage() {
         toast({
             variant: "destructive",
             title: "Save Failed",
-            description: "Could not save the layout. Please try again.",
+            description: "Could not save the layout. Check permissions.",
         });
     }
   };
@@ -329,99 +331,112 @@ export default function EditorPage() {
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
       <main className="flex-1 flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-        <Card>
+        <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
           <CardContent className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <h2 className="text-xl font-semibold self-start">Layout Editor</h2>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <LayoutTemplate className="h-6 w-6 text-primary" />
+              </div>
+              <h2 className="text-xl font-bold tracking-tight">Master Template Editor</h2>
+            </div>
             <div className="flex flex-wrap items-center justify-center gap-2">
-                <Button variant="outline" onClick={() => handleAddNewField('text')}><PlusCircle className="mr-2 h-4 w-4" /> Add Text Field</Button>
-                <Button variant="outline" onClick={() => handleAddNewField('staticText')}><Type className="mr-2 h-4 w-4" /> Add Static Text</Button>
-                <Button variant="outline" onClick={() => handleAddNewField('image')}><ImageIcon className="mr-2 h-4 w-4" /> Add Image</Button>
-                <Link href="/" passHref>
-                    <Button variant="outline"><Home className="mr-2 h-4 w-4" /> Go to Form</Button>
-                </Link>
-                <Button onClick={handleSaveLayout}><Save className="mr-2 h-4 w-4" /> Save as New Version</Button>
+                <Button variant="outline" size="sm" onClick={() => handleAddNewField('text')}><PlusCircle className="mr-2 h-4 w-4" /> Add Field</Button>
+                <Button variant="outline" size="sm" onClick={() => handleAddNewField('staticText')}><Type className="mr-2 h-4 w-4" /> Add Text</Button>
+                <Button variant="outline" size="sm" onClick={() => handleAddNewField('image')}><ImageIcon className="mr-2 h-4 w-4" /> Add Photo</Button>
+                <div className="w-px h-6 bg-border mx-1" />
+                <Button size="sm" onClick={handleSaveLayout}><Save className="mr-2 h-4 w-4" /> Save Master Layout</Button>
             </div>
           </CardContent>
         </Card>
         
-        {selectedField && (
-            <EditorSidebar 
-              field={selectedField}
-              onUpdate={handleUpdateField}
-              onDelete={handleDeleteField}
-              onClose={() => setSelectedFieldId(null)}
-            />
-        )}
-        
-        <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
-          <div className="relative mx-auto w-fit preview-mode">
-              <ReportPage 
-                staticLabels={staticLabels} 
-                dynamicValues={valuePlaceholders} 
-                imageValues={imagePlaceholders} 
-              />
-              
-              {fields.filter(f => f.fieldType === 'text').flatMap(field => [
-                <DraggableField
-                  key={`label-drag-${field.id}`}
-                  id={`${field.id}-label`}
-                  x={MM_TO_PX(field.label.x)}
-                  y={MM_TO_PX(field.label.y)}
-                  width={MM_TO_PX(field.label.width)}
-                  height={MM_TO_PX(field.label.height)}
-                  onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'label', x, y)}
-                  onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'label', w, h)}
-                  onClick={handleSelectField}
-                  isSelected={field.id === selectedFieldId}
-                  borderColor='blue'
-                />,
-                <DraggableField
-                  key={`value-drag-${field.id}`}
-                  id={`${field.id}-value`}
-                  x={MM_TO_PX(field.value.x)}
-                  y={MM_TO_PX(field.value.y)}
-                  width={MM_TO_PX(field.value.width)}
-                  height={MM_TO_PX(field.value.height)}
-                  onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'value', x, y)}
-                  onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'value', w, h)}
-                  onClick={handleSelectField}
-                  isSelected={field.id === selectedFieldId}
-                  borderColor='green'
+        <div className="flex-1 flex flex-col lg:flex-row gap-6 relative min-h-[600px]">
+          {/* Editor Sidebar */}
+          <div className="w-full lg:w-96 shrink-0 h-fit lg:sticky lg:top-24">
+            {selectedField ? (
+                <EditorSidebar 
+                  field={selectedField}
+                  onUpdate={handleUpdateField}
+                  onDelete={handleDeleteField}
+                  onClose={() => setSelectedFieldId(null)}
                 />
-              ])}
+            ) : (
+                <Card className="p-6 text-center border-dashed">
+                  <p className="text-sm text-muted-foreground">Select a field on the canvas to edit its properties.</p>
+                </Card>
+            )}
+          </div>
 
-              {fields.filter(f => f.fieldType === 'staticText').map(field => (
-                <DraggableField
-                  key={`label-drag-${field.id}`}
-                  id={`${field.id}-label`}
-                  x={MM_TO_PX(field.label.x)}
-                  y={MM_TO_PX(field.label.y)}
-                  width={MM_TO_PX(field.label.width)}
-                  height={MM_TO_PX(field.label.height)}
-                  onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'label', x, y)}
-                  onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'label', w, h)}
-                  onClick={handleSelectField}
-                  isSelected={field.id === selectedFieldId}
-                  borderColor='orange'
+          {/* Canvas */}
+          <div className="flex-1 rounded-lg bg-white shadow-2xl overflow-auto p-8 border border-muted ring-1 ring-black/5">
+            <div className="relative mx-auto w-fit preview-mode">
+                <ReportPage 
+                  staticLabels={staticLabels} 
+                  dynamicValues={valuePlaceholders} 
+                  imageValues={imagePlaceholders} 
                 />
-              ))}
+                
+                {fields.filter(f => f.fieldType === 'text').flatMap(field => [
+                  <DraggableField
+                    key={`label-drag-${field.id}`}
+                    id={`${field.id}-label`}
+                    x={MM_TO_PX(field.label.x)}
+                    y={MM_TO_PX(field.label.y)}
+                    width={MM_TO_PX(field.label.width)}
+                    height={MM_TO_PX(field.label.height)}
+                    onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'label', x, y)}
+                    onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'label', w, h)}
+                    onClick={handleSelectField}
+                    isSelected={field.id === selectedFieldId}
+                    borderColor='blue'
+                  />,
+                  <DraggableField
+                    key={`value-drag-${field.id}`}
+                    id={`${field.id}-value`}
+                    x={MM_TO_PX(field.value.x)}
+                    y={MM_TO_PX(field.value.y)}
+                    width={MM_TO_PX(field.value.width)}
+                    height={MM_TO_PX(field.value.height)}
+                    onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'value', x, y)}
+                    onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'value', w, h)}
+                    onClick={handleSelectField}
+                    isSelected={field.id === selectedFieldId}
+                    borderColor='green'
+                  />
+                ])}
 
-               {fields.filter(f => f.fieldType === 'image' && f.placeholder).map(field => (
-                <DraggableField
-                  key={`image-drag-${field.id}`}
-                  id={field.id}
-                  x={MM_TO_PX(field.placeholder!.x)}
-                  y={MM_TO_PX(field.placeholder!.y)}
-                  width={MM_TO_PX(field.placeholder!.width)}
-                  height={MM_TO_PX(field.placeholder!.height)}
-                  onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'placeholder', x, y)}
-                  onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'placeholder', w, h)}
-                  onClick={handleSelectField}
-                  isSelected={field.id === selectedFieldId}
-                  borderColor='purple'
-                  isImage={true}
-                />
-              ))}
+                {fields.filter(f => f.fieldType === 'staticText').map(field => (
+                  <DraggableField
+                    key={`label-drag-${field.id}`}
+                    id={`${field.id}-label`}
+                    x={MM_TO_PX(field.label.x)}
+                    y={MM_TO_PX(field.label.y)}
+                    width={MM_TO_PX(field.label.width)}
+                    height={MM_TO_PX(field.label.height)}
+                    onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'label', x, y)}
+                    onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'label', w, h)}
+                    onClick={handleSelectField}
+                    isSelected={field.id === selectedFieldId}
+                    borderColor='orange'
+                  />
+                ))}
+
+                 {fields.filter(f => f.fieldType === 'image' && f.placeholder).map(field => (
+                  <DraggableField
+                    key={`image-drag-${field.id}`}
+                    id={field.id}
+                    x={MM_TO_PX(field.placeholder!.x)}
+                    y={MM_TO_PX(field.placeholder!.y)}
+                    width={MM_TO_PX(field.placeholder!.width)}
+                    height={MM_TO_PX(field.placeholder!.height)}
+                    onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'placeholder', x, y)}
+                    onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'placeholder', w, h)}
+                    onClick={handleSelectField}
+                    isSelected={field.id === selectedFieldId}
+                    borderColor='purple'
+                    isImage={true}
+                  />
+                ))}
+            </div>
           </div>
         </div>
       </main>

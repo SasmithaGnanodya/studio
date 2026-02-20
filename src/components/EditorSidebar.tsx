@@ -12,6 +12,7 @@ import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Badge } from './ui/badge';
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -230,23 +231,34 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                 </Button>
             </div>
              <div className='mt-4'>
-                 <div className="flex items-center gap-2">
-                    <Label htmlFor="fieldId">Field ID (for data linking)</Label>
-                    {isProtected && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Protected</span>}
+                 <div className="flex items-center gap-2 mb-1">
+                    <Label htmlFor="fieldId" className="text-sm font-medium">Field ID (for data linking)</Label>
+                    {isProtected && (
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 text-[10px] h-5">
+                        <Lock size={10} /> System Mandatory
+                      </Badge>
+                    )}
                  </div>
                  <Input 
                    id="fieldId"
                    value={field.fieldId}
                    onChange={handleFieldIdChange}
-                   className="font-mono mt-1"
+                   className="font-mono mt-1 h-9"
                    disabled={field.fieldType === 'staticText' || isProtected}
                  />
-                 {isProtected && <p className="text-[10px] text-muted-foreground mt-1 italic">This identifier is required for database indexing and cannot be changed.</p>}
+                 {isProtected && (
+                   <p className="text-[10px] text-muted-foreground mt-1.5 italic font-medium">
+                     This field is required for database indexing and report search. It cannot be renamed.
+                   </p>
+                 )}
              </div>
         </div>
 
         <div className='p-4 border-b block md:hidden'>
-            <Label htmlFor="fieldId-mobile">Field ID (for data linking)</Label>
+            <div className="flex items-center gap-2 mb-1">
+                <Label htmlFor="fieldId-mobile">Field ID (for data linking)</Label>
+                {isProtected && <Badge variant="secondary" className="text-[10px] h-5">Mandatory</Badge>}
+            </div>
             <Input 
               id="fieldId-mobile"
               value={field.fieldId}
@@ -270,27 +282,27 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
         </div>
 
         <div className="flex justify-end gap-2 p-4 border-t mt-auto">
-            <Button variant="outline" onClick={onClose}>
-                <X className="mr-2 h-4 w-4" /> Unselect
+            <Button variant="outline" size="sm" onClick={onClose}>
+                <X className="mr-2 h-4 w-4" /> Close
             </Button>
             {isProtected ? (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className="cursor-not-allowed">
-                      <Button variant="destructive" disabled className="opacity-50">
-                          <Trash className="mr-2 h-4 w-4" /> Delete
+                      <Button variant="destructive" size="sm" disabled className="opacity-50">
+                          <Trash className="mr-2 h-4 w-4" /> System Field
                       </Button>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Protected database fields cannot be deleted.</p>
+                    <p>Mandatory filtering fields cannot be deleted.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             ) : (
-              <Button variant="destructive" onClick={() => onDelete(field.id)}>
-                  <Trash className="mr-2 h-4 w-4" /> Delete
+              <Button variant="destructive" size="sm" onClick={() => onDelete(field.id)}>
+                  <Trash className="mr-2 h-4 w-4" /> Delete Field
               </Button>
             )}
         </div>
