@@ -5,12 +5,13 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
 import { Button } from './ui/button';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Upload, Loader2, X, ZoomIn, ZoomOut, Settings2, Move, ImageIcon } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Upload, Loader2, X, ZoomIn, ZoomOut, Settings2, Move, ImageIcon, Maximize, Minimize } from 'lucide-react';
 import type { ImageData } from '@/lib/types';
 import { useFirebase } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 
 type ImageAdjustmentControlProps = {
   value: ImageData;
@@ -33,6 +34,10 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
 
   const handleScaleChange = (newScale: number[]) => {
     onChange({ ...value, scale: newScale[0] });
+  };
+
+  const handleFitChange = (fit: string) => {
+    onChange({ ...value, fit: fit as 'cover' | 'contain' });
   };
 
   const handlePan = (dx: number, dy: number) => {
@@ -72,6 +77,7 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
         scale: 1,
         x: 0,
         y: 0,
+        fit: 'cover'
       });
 
       toast({
@@ -98,6 +104,7 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
       scale: 1,
       x: 0,
       y: 0,
+      fit: 'cover'
     });
     setShowSettings(true);
   };
@@ -117,13 +124,11 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[100000] pointer-events-auto p-4">
-      {/* Background overlay with backdrop blur */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity" 
         onClick={() => setIsOpen(false)} 
       />
       
-      {/* Centered Adjustment Card */}
       <Card className="relative w-full max-w-sm bg-card border shadow-2xl ring-2 ring-primary/20 animate-in zoom-in-95 duration-200">
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
           <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -213,6 +218,20 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
             <>
               <div className="space-y-5">
                 <div className="flex flex-col gap-2">
+                  <Label className="text-[10px] uppercase text-muted-foreground font-bold">Frame Fit Mode</Label>
+                  <Tabs value={value.fit || 'cover'} onValueChange={handleFitChange} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 h-9">
+                      <TabsTrigger value="cover" className="text-xs gap-2">
+                        <Maximize className="h-3 w-3" /> Fill Frame
+                      </TabsTrigger>
+                      <TabsTrigger value="contain" className="text-xs gap-2">
+                        <Minimize className="h-3 w-3" /> Fit Frame
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+
+                <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] uppercase text-muted-foreground font-bold">Scale / Zoom</Label>
                     <span className="text-[10px] font-mono font-bold text-primary">{(value.scale * 100).toFixed(0)}%</span>
@@ -253,7 +272,7 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
                     </Button>
                   </div>
                   <div className="text-center text-[10px] font-mono text-muted-foreground mt-1">
-                    Position: {value.x}px X, {value.y}px Y
+                    Pos: {value.x}px X, {value.y}px Y
                   </div>
                 </div>
               </div>

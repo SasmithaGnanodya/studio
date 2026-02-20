@@ -34,6 +34,7 @@ export type ImageData = {
   scale: number;
   x: number;
   y: number;
+  fit?: 'cover' | 'contain';
 };
 
 export type Report = {

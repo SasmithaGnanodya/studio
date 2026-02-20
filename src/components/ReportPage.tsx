@@ -117,7 +117,6 @@ export const ReportPage = ({
       width: `${field.width}mm`,
       height: `${field.height}mm`,
       position: 'absolute',
-      // Removed zIndex: 0 and overflow: hidden to allow modal breakout
     };
 
     const imageWrapperStyle: React.CSSProperties = {
@@ -131,7 +130,7 @@ export const ReportPage = ({
     const imageStyle: React.CSSProperties = {
       width: '100%',
       height: '100%',
-      objectFit: field.objectFit || 'cover',
+      objectFit: field.value.fit || field.objectFit || 'cover',
       transform: `scale(${field.value.scale}) translate(${field.value.x}px, ${field.value.y}px)`,
       transition: 'transform 0.1s ease-out'
     };
@@ -166,7 +165,6 @@ export const ReportPage = ({
 
   return (
     <div className="report-page shadow-2xl overflow-visible relative">
-      {/* Render images first to keep them in the background layer */}
       {imageValues.map(renderImageField)}
       {staticLabels.map(f => renderTextField(f, true))}
       {dynamicValues.map(f => renderTextField(f, false))}
