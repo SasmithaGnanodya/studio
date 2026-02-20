@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -136,7 +135,8 @@ export default function LandingPage() {
 
   const handleCreateNew = () => {
     if (searchTerm) {
-      router.push(`/report/${searchTerm.toUpperCase().trim()}`);
+      const normalizedId = searchTerm.toUpperCase().trim();
+      router.push(`/report/${normalizedId}`);
     }
   };
   
@@ -145,7 +145,7 @@ export default function LandingPage() {
       if (searchResults.length > 0) {
         router.push(`/report/${searchResults[0].vehicleId}`);
       } else if (searchTerm && (searchCategory === 'all' || searchCategory === 'vehicleId')) {
-        router.push(`/report/${searchTerm.toUpperCase().trim()}`);
+        handleCreateNew();
       }
     }
   }

@@ -11,7 +11,7 @@ import { Printer, Save, LockKeyhole, AlertTriangle, LayoutTemplate, RefreshCw } 
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, collection, query, where, getDocs, serverTimestamp, runTransaction, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, serverTimestamp, runTransaction, setDoc } from 'firebase/firestore';
 import type { ImageData, Report, FieldLayout } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -69,9 +69,9 @@ function PasswordGate({ onPasswordCorrect }: { onPasswordCorrect: () => void }) 
 
 export default function ReportBuilderPage({ params }: { params: Promise<{ vehicleId: string }> }) {
   const resolvedParams = use(params);
-  const vehicleId = decodeURIComponent(resolvedParams.vehicleId);
+  const rawVehicleId = decodeURIComponent(resolvedParams.vehicleId);
+  const vehicleId = rawVehicleId.toUpperCase().trim();
 
-  const [reportId, setReportId] = useState<string | null>(null);
   const [reportData, setReportData] = useState(initialReportState);
   const [currentLayout, setCurrentLayout] = useState<FieldLayout[]>(fixedLayout);
   const [layoutVersion, setLayoutVersion] = useState<number>(0);
@@ -92,7 +92,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   // Client-side initialization for new reports
   useEffect(() => {
-    if (isAuthorized && !reportId) {
+    if (isAuthorized) {
       setReportData(prev => {
         const needsUpdate = prev.reportNumber === "V-PENDING" || prev.date === "";
         if (!needsUpdate) return prev;
@@ -108,7 +108,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         };
       });
     }
-  }, [isAuthorized, reportId]);
+  }, [isAuthorized]);
 
   useEffect(() => {
     if (!user || !firestore || !isAuthorized) return;
@@ -124,17 +124,15 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           setLatestLayoutId(latestId);
       }
 
-      const reportsRef = collection(firestore, 'reports');
-      const q = query(reportsRef, where('vehicleId', '==', vehicleId));
-      const querySnapshot = await getDocs(q);
+      // DETERMINISTIC FETCH: Registration number is the document ID
+      const reportRef = doc(firestore, 'reports', vehicleId);
+      const docSnap = await getDoc(reportRef);
 
-      if (!querySnapshot.empty) {
-        const report = querySnapshot.docs[0].data() as Report;
-        setReportId(querySnapshot.docs[0].id);
+      if (docSnap.exists()) {
+        const report = docSnap.data() as Report;
         setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
         
         const layoutToLoad = latestId || report.layoutId;
-
         if (layoutToLoad) {
             const layoutDoc = await getDoc(doc(firestore, 'layouts', layoutToLoad));
             if (layoutDoc.exists()) {
@@ -162,9 +160,9 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   useEffect(() => {
     if (!firestore || !isAuthorized || !user) return;
 
-    // Only sync if at least one identifier has been touched or we have a reportId
-    const hasIdentifiers = reportData.engineNumber || reportData.chassisNumber || reportData.reportNumber;
-    if (!reportId && !hasIdentifiers) return;
+    // Index if we have at least one sensitive identifier
+    const hasSensitiveData = reportData.engineNumber || reportData.chassisNumber || reportData.reportNumber;
+    if (!hasSensitiveData) return;
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
@@ -172,7 +170,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       setIsSyncing(true);
       try {
         const dataToSync = {
-          vehicleId: vehicleId.toUpperCase(),
+          vehicleId: vehicleId,
           engineNumber: String(reportData.engineNumber || '').toUpperCase().trim(),
           chassisNumber: String(reportData.chassisNumber || '').toUpperCase().trim(),
           reportNumber: String(reportData.reportNumber || '').toUpperCase().trim(),
@@ -182,31 +180,25 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           userName: user.displayName || user.email,
         };
 
-        if (reportId) {
-          const reportRef = doc(firestore, 'reports', reportId);
-          await updateDoc(reportRef, dataToSync);
-        } else {
-          // Attempt to pre-create the document to make it searchable immediately
-          const newReportRef = doc(collection(firestore, 'reports'));
-          await setDoc(newReportRef, {
+        // DETERMINISTIC SYNC: Prevent duplicates by using vehicleId as the document ID
+        const reportRef = doc(firestore, 'reports', vehicleId);
+        await setDoc(reportRef, {
             ...dataToSync,
-            id: newReportRef.id,
-            createdAt: serverTimestamp(),
+            id: vehicleId,
             reportData: { ...reportData, regNumber: vehicleId }
-          }, { merge: true });
-          setReportId(newReportRef.id);
-        }
+        }, { merge: true });
+
       } catch (err) {
         console.error("Indexing sync failed:", err);
       } finally {
         setIsSyncing(false);
       }
-    }, 1500); // 1.5 second debounce for filtering sensitivity
+    }, 1500);
 
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     };
-  }, [reportData.engineNumber, reportData.chassisNumber, reportData.reportNumber, reportData.date, reportId, firestore, isAuthorized, user, vehicleId, reportData]);
+  }, [reportData.engineNumber, reportData.chassisNumber, reportData.reportNumber, reportData.date, firestore, isAuthorized, user, vehicleId, reportData]);
 
   const handleDataChange = (fieldId: string, value: string | ImageData) => {
     setReportData(prev => ({ ...prev, [fieldId]: value }));
@@ -223,7 +215,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const activeLayoutId = configSnap.exists() ? configSnap.data().currentId : null;
 
         const reportHeaderData = {
-          vehicleId: vehicleId.toUpperCase(),
+          vehicleId: vehicleId,
           engineNumber: String(reportData.engineNumber || '').toUpperCase().trim(),
           chassisNumber: String(reportData.chassisNumber || '').toUpperCase().trim(),
           reportNumber: String(reportData.reportNumber || '').toUpperCase().trim(),
@@ -235,26 +227,25 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           layoutId: activeLayoutId
         };
 
-        if (reportId) {
-          const reportRef = doc(firestore, 'reports', reportId);
-          transaction.update(reportRef, reportHeaderData);
-          
-          const historyRef = doc(collection(firestore, 'reports', reportId, 'history'));
-          transaction.set(historyRef, {
-              ...reportHeaderData,
-              reportId,
-              savedAt: now
-          });
+        const reportRef = doc(firestore, 'reports', vehicleId);
+        const docSnap = await transaction.get(reportRef);
 
+        if (docSnap.exists()) {
+          transaction.update(reportRef, reportHeaderData);
         } else {
-          const newReportRef = doc(collection(firestore, 'reports'));
-          transaction.set(newReportRef, {
+          transaction.set(reportRef, {
             ...reportHeaderData,
-            id: newReportRef.id,
+            id: vehicleId,
             createdAt: now
           });
-          setReportId(newReportRef.id);
         }
+        
+        const historyRef = doc(collection(firestore, 'reports', vehicleId, 'history'));
+        transaction.set(historyRef, {
+            ...reportHeaderData,
+            reportId: vehicleId,
+            savedAt: now
+        });
       });
       toast({ title: "Success", description: "Report saved successfully." });
     } catch (e) {
