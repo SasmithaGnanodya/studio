@@ -143,8 +143,8 @@ export const ReportPage = ({
         )}
         
         {isEditable && (
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 flex items-center justify-center z-20 pointer-events-none overflow-visible">
-            <div className="pointer-events-auto mt-4 translate-y-1/2">
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 flex items-center justify-center z-20 pointer-events-none overflow-visible">
+            <div className="pointer-events-auto">
               <ImageAdjustmentControl
                 value={field.value}
                 onChange={(val) => onValueChange?.(field.fieldId, val)}
