@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -7,7 +8,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -127,6 +128,26 @@ export default function AdminPage() {
     });
 
     return { reportsToday, chartData };
+  }, [reports]);
+
+  // Derive active users from reports
+  const activeUsers = useMemo(() => {
+    const userMap = new Map<string, { name: string, lastSeen: number }>();
+    reports.forEach(r => {
+      if (r.userId && r.userName) {
+        const current = userMap.get(r.userId);
+        const reportTime = r.updatedAt?.seconds || 0;
+        if (!current || reportTime > current.lastSeen) {
+          userMap.set(r.userId, { name: r.userName, lastSeen: reportTime });
+        }
+      }
+    });
+    return Array.from(userMap.entries()).map(([id, data]) => ({
+      uid: id,
+      name: data.name,
+      lastSeen: data.lastSeen,
+      isAdmin: ADMIN_EMAILS.some(email => data.name.includes(email))
+    })).sort((a, b) => b.lastSeen - a.lastSeen);
   }, [reports]);
 
   const handleUpdatePassword = async () => {
@@ -396,19 +417,37 @@ export default function AdminPage() {
 
             <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-md">
                 <CardHeader>
-                    <CardTitle className="text-xs font-bold flex items-center gap-2">
-                        <Users className="h-4 w-4 text-primary" /> Current Administrators
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <Users className="h-4 w-4 text-primary" /> Active System Users
                     </CardTitle>
+                    <CardDescription className="text-[10px]">Accounts currently identified in the audit logs.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                    {ADMIN_EMAILS.map(email => (
-                      <div key={email} className="text-[10px] bg-muted/20 p-2 rounded flex items-center justify-between border">
-                        <span className="truncate max-w-[150px]">{email}</span>
-                        <ShieldCheck size={12} className="text-primary" />
-                      </div>
-                    ))}
-                    <div className="text-[10px] text-muted-foreground text-center pt-2 italic">
-                        Access is restricted by email identity.
+                    <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1">
+                      {activeUsers.map(u => (
+                        <div key={u.uid} className="text-[10px] bg-muted/20 p-2 rounded flex items-center justify-between border group hover:border-primary transition-colors">
+                          <div className="flex flex-col truncate pr-2">
+                            <span className="font-bold truncate">{u.name}</span>
+                            <span className="text-[8px] text-muted-foreground italic">Last seen: {u.lastSeen ? format(new Date(u.lastSeen * 1000), 'MMM dd, HH:mm') : 'N/A'}</span>
+                          </div>
+                          {u.isAdmin ? (
+                            <ShieldAlert size={14} className="text-primary shrink-0" />
+                          ) : (
+                            <UserCheck size={14} className="text-muted-foreground shrink-0" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-4 border-t mt-2">
+                        <CardTitle className="text-[10px] font-bold uppercase text-muted-foreground flex items-center gap-1.5 mb-2">
+                          <ShieldCheck size={12} className="text-primary" /> Master Admins
+                        </CardTitle>
+                        {ADMIN_EMAILS.map(email => (
+                          <div key={email} className="text-[10px] py-1 flex items-center justify-between opacity-80">
+                            <span className="truncate max-w-[150px]">{email}</span>
+                            <ShieldCheck size={10} className="text-primary shrink-0" />
+                          </div>
+                        ))}
                     </div>
                 </CardContent>
             </Card>
