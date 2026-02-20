@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, use } from 'react';
@@ -11,7 +10,7 @@ import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { initialLayout, initialReportState } from '@/lib/initialReportState';
+import { fixedLayout as initialLayout, initialReportState } from '@/lib/initialReportState';
 import type { FieldLayout, FieldPart, LayoutDocument } from '@/lib/types';
 import { EditorSidebar } from '@/components/EditorSidebar';
 import { ReportPage } from '@/components/ReportPage';
@@ -62,16 +61,13 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
 };
 
 
-export default function EditorPage({ params }: { params: {} }) {
+export default function EditorPage({ params }: { params: Promise<any> }) {
   const resolvedParams = use(params);
   const [fields, setFields] = useState<FieldLayout[]>(initialLayout);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const { firestore, user, isUserLoading } = useFirebase();
   const { toast } = useToast();
   const router = useRouter();
-
-
-
 
   // Admin check
   useEffect(() => {
@@ -113,37 +109,6 @@ export default function EditorPage({ params }: { params: {} }) {
       fetchLatestLayout();
     }
   }, [user, firestore]);
-
-  const updateFieldPosition = useCallback((id: string, xInPx: number, yInPx: number) => {
-      const fieldId = id.replace(/-(label|value|placeholder)$/, '');
-      const part = id.endsWith('-label') ? 'label' : id.endsWith('-value') ? 'value' : 'placeholder';
-      
-      setFields(prev => prev.map(f => {
-          if (f.id === fieldId) {
-              const fieldPart = f[part as keyof FieldLayout] as FieldPart;
-              if (fieldPart) {
-                return { ...f, [part]: { ...fieldPart, x: PX_TO_MM(xInPx), y: PX_TO_MM(yInPx) } };
-              }
-          }
-          return f;
-      }));
-  }, []);
-
-  const updateFieldSize = useCallback((id: string, widthInPx: number, heightInPx: number) => {
-      const fieldId = id.replace(/-(label|value|placeholder)$/, '');
-      const part = id.endsWith('-label') ? 'label' : id.endsWith('-value') ? 'value' : 'placeholder';
-
-      setFields(prev => prev.map(f => {
-          if (f.id === fieldId) {
-               const fieldPart = f[part as keyof FieldLayout] as FieldPart;
-               if (fieldPart) {
-                return { ...f, [part]: { ...fieldPart, width: PX_TO_MM(widthInPx), height: PX_TO_MM(heightInPx) } };
-               }
-          }
-          return f;
-      }));
-  }, []);
-
 
   const updateFieldPartPosition = useCallback((fieldId: string, part: 'label' | 'value' | 'placeholder', xInPx: number, yInPx: number) => {
     setFields(prevFields =>
@@ -247,7 +212,6 @@ export default function EditorPage({ params }: { params: {} }) {
         return;
     }
 
-    // Create a deep copy and sanitize the data for Firestore
     const sanitizedFields = JSON.parse(JSON.stringify(fields)).map((field: any) => {
         if (field.fieldType === 'image') {
             delete field.label;
@@ -304,6 +268,7 @@ export default function EditorPage({ params }: { params: {} }) {
   const { staticLabels, valuePlaceholders, imagePlaceholders } = useMemo(() => {
     const staticLabels = fields.filter(f => f.fieldType === 'text' || f.fieldType === 'staticText').map(field => ({
       id: `label-${field.id}`,
+      fieldId: field.fieldId,
       value: field.label.text,
       x: field.label.x,
       y: field.label.y,
@@ -318,6 +283,7 @@ export default function EditorPage({ params }: { params: {} }) {
       const value = initialReportState[field.fieldId as keyof typeof initialReportState] || `[${field.fieldId}]`;
       return {
         id: `value-${field.id}`,
+        fieldId: field.fieldId,
         value: value,
         x: field.value.x,
         y: field.value.y,
@@ -333,6 +299,7 @@ export default function EditorPage({ params }: { params: {} }) {
       const imageUrl = initialReportState[field.fieldId] || "https://placehold.co/600x400?text=Image";
       return {
         id: `image-${field.id}`,
+        fieldId: field.fieldId,
         value: imageUrl, // URL
         x: field.placeholder!.x,
         y: field.placeholder!.y,
@@ -346,39 +313,10 @@ export default function EditorPage({ params }: { params: {} }) {
 
   const selectedField = fields.find(f => f.id === selectedFieldId) || null;
 
-  const renderContent = () => {
-    if (isUserLoading) {
-      return (
-        <div className="flex justify-center items-center h-full">
-           <Card className="w-full max-w-md p-8">
-              <CardContent className="flex flex-col items-center gap-4">
-                  <Skeleton className="w-24 h-8" />
-                  <Skeleton className="w-full h-10" />
-                  <Skeleton className="w-full h-40" />
-              </CardContent>
-            </Card>
-        </div>
-      );
-    }
-    
-    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email)) {
-        return (
-            <div className="flex justify-center items-center h-full">
-                <Card className="text-center max-w-md">
-                    <CardHeader>
-                        <CardTitle>Access Denied</CardTitle>
-                        <CardDescription>You do not have permission to view this page.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ShieldOff className="mx-auto h-16 w-16 text-destructive" />
-                    </CardContent>
-                </Card>
-            </div>
-        )
-    }
-
-    return (
-      <>
+  return (
+    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+      <Header />
+      <main className="flex-1 flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
         <Card>
           <CardContent className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <h2 className="text-xl font-semibold self-start">Layout Editor</h2>
@@ -395,34 +333,13 @@ export default function EditorPage({ params }: { params: {} }) {
         </Card>
         
         {selectedField && (
-          <div className='block md:hidden'>
-             <Accordion type="single" collapsible defaultValue="item-1">
-                <AccordionItem value="item-1">
-                    <AccordionTrigger className="bg-card px-6">
-                       <h2 className="text-lg font-semibold">Editing Field: <span className="font-mono bg-muted px-2 py-1 rounded-md">{selectedField.fieldId}</span></h2>
-                    </AccordionTrigger>
-                    <AccordionContent className='bg-card'>
-                        <EditorSidebar 
-                            field={selectedField}
-                            onUpdate={handleUpdateField}
-                            onDelete={handleDeleteField}
-                            onClose={() => setSelectedFieldId(null)}
-                         />
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
-          </div>
-        )}
-        <div className='hidden md:block'>
-          {selectedField && (
             <EditorSidebar 
               field={selectedField}
               onUpdate={handleUpdateField}
               onDelete={handleDeleteField}
               onClose={() => setSelectedFieldId(null)}
             />
-          )}
-        </div>
+        )}
         
         <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
           <div className="relative mx-auto w-fit preview-mode">
@@ -430,10 +347,8 @@ export default function EditorPage({ params }: { params: {} }) {
                 staticLabels={staticLabels} 
                 dynamicValues={valuePlaceholders} 
                 imageValues={imagePlaceholders} 
-                isCalibrating={true} 
               />
               
-              {/* Draggable handles for text fields */}
               {fields.filter(f => f.fieldType === 'text').flatMap(field => [
                 <DraggableField
                   key={`label-drag-${field.id}`}
@@ -463,7 +378,6 @@ export default function EditorPage({ params }: { params: {} }) {
                 />
               ])}
 
-              {/* Draggable handles for static text fields */}
               {fields.filter(f => f.fieldType === 'staticText').map(field => (
                 <DraggableField
                   key={`label-drag-${field.id}`}
@@ -480,7 +394,6 @@ export default function EditorPage({ params }: { params: {} }) {
                 />
               ))}
 
-               {/* Draggable handles for images */}
                {fields.filter(f => f.fieldType === 'image' && f.placeholder).map(field => (
                 <DraggableField
                   key={`image-drag-${field.id}`}
@@ -499,15 +412,6 @@ export default function EditorPage({ params }: { params: {} }) {
               ))}
           </div>
         </div>
-      </>
-    );
-  }
-
-  return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
-      <Header />
-      <main className="flex-1 flex flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-        {renderContent()}
       </main>
     </div>
   );

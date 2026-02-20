@@ -59,7 +59,7 @@ export const ReportPage = ({
       alignItems: 'center',
       fontWeight: field.isBold ? 'bold' : 'normal',
       color: field.color || '#000000',
-      fontSize: field.fontSize ? `${field.fontSize}pt` : '12pt',
+      fontSize: field.fontSize ? `${field.fontSize}pt` : '10pt',
     };
 
     if (isStatic) {
@@ -78,7 +78,7 @@ export const ReportPage = ({
       );
     }
 
-    // Editable Mode
+    // Interactive Input for Filling Mode
     return (
       <div key={field.id} style={style} className="z-10 group">
         {field.inputType === 'dropdown' ? (
@@ -86,7 +86,7 @@ export const ReportPage = ({
             value={field.value}
             onValueChange={(val) => onValueChange?.(field.fieldId, val)}
           >
-            <SelectTrigger className="h-full w-full bg-white/50 backdrop-blur-sm border-primary/20 hover:border-primary/50 transition-colors">
+            <SelectTrigger className="h-full w-full bg-white/50 backdrop-blur-sm border-primary/20 hover:border-primary/50 transition-colors p-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -101,6 +101,7 @@ export const ReportPage = ({
             onChange={(e) => onValueChange?.(field.fieldId, e.target.value)}
             className="h-full w-full bg-white/50 backdrop-blur-sm border-primary/20 focus:border-primary font-mono text-center p-0"
             style={{ fontSize: style.fontSize }}
+            disabled={field.fieldId === 'regNumber'}
           />
         )}
       </div>
@@ -131,14 +132,14 @@ export const ReportPage = ({
           <img src={field.value.url} alt="field" style={imageStyle} />
         ) : (
           isEditable && (
-            <div className="flex flex-col items-center justify-center h-full bg-muted/20 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center h-full bg-muted/20 text-muted-foreground border-2 border-dashed">
               <span className="text-xs">No Image</span>
             </div>
           )
         )}
         {isEditable && (
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 flex items-center justify-center z-20 overflow-visible">
-            <div className="bg-background p-4 rounded-lg shadow-xl w-64 translate-y-full mt-4">
+            <div className="bg-background p-4 rounded-lg shadow-xl w-64 translate-y-1/2">
               <ImageAdjustmentControl
                 value={field.value}
                 onChange={(val) => onValueChange?.(field.fieldId, val)}

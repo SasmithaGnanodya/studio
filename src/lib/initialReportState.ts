@@ -61,84 +61,80 @@ export const initialReportState: { [key: string]: any } = {
 };
 
 export const fixedLayout: FieldLayout[] = [
-  // --- ROW 1: Header Info ---
+  // --- Header Info ---
   {
     id: 'reportNum-L',
     fieldId: 'reportNumber',
     fieldType: 'text',
-    label: { text: 'Report Num:', x: 10, y: 10, width: 30, height: 5, fontSize: 10 },
-    value: { text: 'reportNumber', x: 40, y: 10, width: 40, height: 6, fontSize: 11, isBold: true }
+    label: { text: 'Report Num:', x: 145, y: 15, width: 25, height: 5, fontSize: 9 },
+    value: { text: 'reportNumber', x: 170, y: 15, width: 30, height: 6, fontSize: 10, isBold: true }
   },
   {
     id: 'date-L',
     fieldId: 'date',
     fieldType: 'text',
-    label: { text: 'Date:', x: 100, y: 10, width: 20, height: 5, fontSize: 10 },
-    value: { text: 'date', x: 120, y: 10, width: 40, height: 6, fontSize: 11 }
+    label: { text: 'Date:', x: 145, y: 22, width: 25, height: 5, fontSize: 9 },
+    value: { text: 'date', x: 170, y: 22, width: 30, height: 6, fontSize: 10 }
   },
 
-  // --- ROW 2: Identification ---
+  // --- Identification Section ---
   {
     id: 'reg-L',
     fieldId: 'regNumber',
     fieldType: 'text',
-    label: { text: 'Reg. Number:', x: 10, y: 25, width: 30, height: 5, fontSize: 10 },
-    value: { text: 'regNumber', x: 40, y: 25, width: 40, height: 6, fontSize: 12, isBold: true }
+    label: { text: 'Reg. Number:', x: 15, y: 45, width: 25, height: 5, fontSize: 9 },
+    value: { text: 'regNumber', x: 45, y: 45, width: 45, height: 6, fontSize: 11, isBold: true }
   },
   {
     id: 'manuf-L',
     fieldId: 'manufacturer',
     fieldType: 'text',
-    label: { text: 'Manufacturer:', x: 100, y: 25, width: 30, height: 5, fontSize: 10 },
-    value: { text: 'manufacturer', x: 130, y: 25, width: 40, height: 6, fontSize: 11 }
+    label: { text: 'Manufacturer:', x: 105, y: 45, width: 25, height: 5, fontSize: 9 },
+    value: { text: 'manufacturer', x: 135, y: 45, width: 45, height: 6, fontSize: 10 }
   },
-
-  // --- ROW 3: More Identification ---
   {
     id: 'model-L',
     fieldId: 'model',
     fieldType: 'text',
-    label: { text: 'Model / Type:', x: 10, y: 35, width: 30, height: 5, fontSize: 10 },
-    value: { text: 'model', x: 40, y: 35, width: 40, height: 6, fontSize: 11 }
+    label: { text: 'Model / Type:', x: 15, y: 52, width: 25, height: 5, fontSize: 9 },
+    value: { text: 'model', x: 45, y: 52, width: 45, height: 6, fontSize: 10 }
   },
   {
     id: 'fuel-L',
     fieldId: 'fuelType',
     fieldType: 'text',
-    label: { text: 'Type of Fuel:', x: 100, y: 35, width: 30, height: 5, fontSize: 10 },
-    value: { text: 'fuelType', x: 130, y: 35, width: 40, height: 6, fontSize: 11, inputType: 'dropdown', options: ['Petrol', 'Diesel', 'Hybrid', 'Electric'] }
+    label: { text: 'Type of Fuel:', x: 105, y: 52, width: 25, height: 5, fontSize: 9 },
+    value: { text: 'fuelType', x: 135, y: 52, width: 45, height: 6, fontSize: 10, inputType: 'dropdown', options: ['Petrol', 'Diesel', 'Hybrid', 'Electric'] }
+  },
+  {
+    id: 'year-L',
+    fieldId: 'manufactureYear',
+    fieldType: 'text',
+    label: { text: 'Year:', x: 15, y: 59, width: 25, height: 5, fontSize: 9 },
+    value: { text: 'manufactureYear', x: 45, y: 59, width: 45, height: 6, fontSize: 10 }
+  },
+  {
+    id: 'origin-L',
+    fieldId: 'origin',
+    fieldType: 'text',
+    label: { text: 'Origin:', x: 105, y: 59, width: 25, height: 5, fontSize: 9 },
+    value: { text: 'origin', x: 135, y: 59, width: 45, height: 6, fontSize: 10 }
   },
 
-  // --- ROW 4: Engine / Chassis ---
+  // --- Drive Train ---
   {
-    id: 'engineNum-L',
-    fieldId: 'engineNumber',
+    id: 'drive-L',
+    fieldId: 'driveWheels',
     fieldType: 'text',
-    label: { text: 'Engine Number:', x: 10, y: 45, width: 30, height: 5, fontSize: 10 },
-    value: { text: 'engineNumber', x: 40, y: 45, width: 50, height: 6, fontSize: 11 }
+    label: { text: 'Drive Wheels:', x: 15, y: 80, width: 25, height: 5, fontSize: 9 },
+    value: { text: 'driveWheels', x: 45, y: 80, width: 45, height: 6, fontSize: 10 }
   },
   {
-    id: 'chassisNum-L',
-    fieldId: 'chassisNumber',
+    id: 'gear-L',
+    fieldId: 'gearBox',
     fieldType: 'text',
-    label: { text: 'Chassis Number:', x: 100, y: 45, width: 30, height: 5, fontSize: 10 },
-    value: { text: 'chassisNumber', x: 130, y: 45, width: 50, height: 6, fontSize: 11 }
-  },
-
-  // --- ROW 5: Condition ---
-  {
-    id: 'odo-L',
-    fieldId: 'odometer',
-    fieldType: 'text',
-    label: { text: 'Odometer:', x: 10, y: 60, width: 30, height: 5, fontSize: 10 },
-    value: { text: 'odometer', x: 40, y: 60, width: 30, height: 6, fontSize: 11 }
-  },
-  {
-    id: 'color-L',
-    fieldId: 'color',
-    fieldType: 'text',
-    label: { text: 'Color:', x: 100, y: 60, width: 30, height: 5, fontSize: 10 },
-    value: { text: 'color', x: 130, y: 60, width: 40, height: 6, fontSize: 11 }
+    label: { text: 'Gear Box:', x: 105, y: 80, width: 25, height: 5, fontSize: 9 },
+    value: { text: 'gearBox', x: 135, y: 80, width: 45, height: 6, fontSize: 10 }
   },
 
   // --- Valuation ---
@@ -146,15 +142,15 @@ export const fixedLayout: FieldLayout[] = [
     id: 'marketVal-L',
     fieldId: 'marketValueNum',
     fieldType: 'text',
-    label: { text: 'Market Value Rs:', x: 10, y: 240, width: 40, height: 5, isBold: true, fontSize: 12 },
-    value: { text: 'marketValueNum', x: 55, y: 240, width: 50, height: 8, fontSize: 14, isBold: true, color: '#FF0000' }
+    label: { text: 'Market Value Rs:', x: 15, y: 245, width: 45, height: 5, isBold: true, fontSize: 11 },
+    value: { text: 'marketValueNum', x: 65, y: 245, width: 60, height: 8, fontSize: 14, isBold: true, color: '#DC2626' }
   },
   {
     id: 'marketValWords-L',
     fieldId: 'marketValueText',
     fieldType: 'text',
-    label: { text: 'In Words:', x: 10, y: 250, width: 30, height: 5, fontSize: 10 },
-    value: { text: 'marketValueText', x: 45, y: 250, width: 140, height: 6, fontSize: 11 }
+    label: { text: 'In Words:', x: 15, y: 255, width: 25, height: 5, fontSize: 9 },
+    value: { text: 'marketValueText', x: 45, y: 255, width: 145, height: 6, fontSize: 10 }
   },
 
   // --- Main Image ---
@@ -162,8 +158,10 @@ export const fixedLayout: FieldLayout[] = [
     id: 'mainImg-L',
     fieldId: 'image1',
     fieldType: 'image',
-    placeholder: { text: 'Main Photo', x: 10, y: 100, width: 190, height: 120, objectFit: 'cover' },
+    placeholder: { text: 'Main Photo', x: 15, y: 110, width: 180, height: 110, objectFit: 'cover' },
     label: {} as any,
     value: {} as any,
   }
 ];
+
+export const initialLayout = fixedLayout;
