@@ -1,305 +1,304 @@
-
 {
   "entities": {
-    "FormTemplate": {
+    "PdfTemplate": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FormTemplate",
+      "title": "PdfTemplate",
       "type": "object",
-      "description": "Represents a PDF template used as a base form.",
+      "description": "Represents an uploaded PDF document used as a template for form filling, defining its basic properties and storage location.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the FormTemplate entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the form template."
-        },
-        "pdfUrl": {
-          "type": "string",
-          "description": "URL where the PDF template is stored.",
-          "format": "uri"
+          "description": "Unique identifier for the PdfTemplate entity."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to User who uploaded this template. (Relationship: User 1:N FormTemplate)"
+          "description": "Reference to the user who uploaded this template. This ID comes from an external authentication system. (Relationship: User 1:N PdfTemplate)"
         },
-        "createdAt": {
+        "name": {
           "type": "string",
-          "description": "Timestamp indicating when the form template was created.",
+          "description": "The original name of the uploaded PDF file."
+        },
+        "storagePath": {
+          "type": "string",
+          "description": "The path or URL where the PDF template file is stored in cloud storage.",
+          "format": "uri"
+        },
+        "uploadDate": {
+          "type": "string",
+          "description": "Timestamp indicating when the PDF template was uploaded.",
           "format": "date-time"
+        },
+        "thumbnailUrl": {
+          "type": "string",
+          "description": "URL to a generated thumbnail image of the PDF template for preview purposes.",
+          "format": "uri"
+        },
+        "description": {
+          "type": "string",
+          "description": "An optional, user-provided description for the PDF template."
         }
       },
       "required": [
         "id",
-        "name",
-        "pdfUrl",
         "userId",
-        "createdAt"
+        "name",
+        "storagePath",
+        "uploadDate"
       ]
     },
-    "InputField": {
+    "FormField": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "InputField",
+      "title": "FormField",
       "type": "object",
-      "description": "Represents an input field placed on a form template.",
+      "description": "Defines an input field dynamically placed on a PDF template, including its position, size, and styling.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the InputField entity."
+          "description": "Unique identifier for the FormField entity."
         },
-        "formTemplateId": {
+        "pdfTemplateId": {
           "type": "string",
-          "description": "Reference to FormTemplate this input field belongs to. (Relationship: FormTemplate 1:N InputField)"
+          "description": "Reference to the PdfTemplate this form field belongs to. (Relationship: PdfTemplate 1:N FormField)"
         },
-        "xPosition": {
-          "type": "number",
-          "description": "X-coordinate of the input field on the template."
-        },
-        "yPosition": {
-          "type": "number",
-          "description": "Y-coordinate of the input field on the template."
-        },
-        "width": {
-          "type": "number",
-          "description": "Width of the input field."
-        },
-        "height": {
-          "type": "number",
-          "description": "Height of the input field."
+        "name": {
+          "type": "string",
+          "description": "A descriptive name for the input field (e.g., 'Customer Name', 'Date of Birth')."
         },
         "type": {
           "type": "string",
-          "description": "Type of input field (e.g., text, number, date)."
+          "description": "The type of input field (e.g., 'text', 'number', 'date', 'checkbox', 'textarea')."
         },
-        "isRequired": {
+        "xPosition": {
+          "type": "number",
+          "description": "The X-coordinate position of the field on the PDF template, relative to the top-left corner."
+        },
+        "yPosition": {
+          "type": "number",
+          "description": "The Y-coordinate position of the field on the PDF template, relative to the top-left corner."
+        },
+        "width": {
+          "type": "number",
+          "description": "The width of the input field in PDF units."
+        },
+        "height": {
+          "type": "number",
+          "description": "The height of the input field in PDF units."
+        },
+        "fontSize": {
+          "type": "number",
+          "description": "The font size for text input within this field."
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "The font family for text input within this field (e.g., 'Inter')."
+        },
+        "textColor": {
+          "type": "string",
+          "description": "The hexadecimal color code for the text in this field (e.g., '#000000')."
+        },
+        "isMandatory": {
           "type": "boolean",
-          "description": "Indicates if the input field is required."
+          "description": "Indicates whether filling this field is required before submission or export."
+        },
+        "defaultValue": {
+          "type": "string",
+          "description": "An optional default value to pre-populate the field."
+        },
+        "placeholder": {
+          "type": "string",
+          "description": "An optional placeholder text displayed when the field is empty."
         }
       },
       "required": [
         "id",
-        "formTemplateId",
+        "pdfTemplateId",
+        "name",
+        "type",
         "xPosition",
         "yPosition",
         "width",
         "height",
-        "type",
-        "isRequired"
+        "fontSize",
+        "fontFamily",
+        "textColor",
+        "isMandatory"
       ]
     },
-    "FormData": {
+    "FilledForm": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FormData",
+      "title": "FilledForm",
       "type": "object",
-      "description": "Represents the data entered into a form based on a template.",
+      "description": "Represents a specific instance of a PDF template that has been filled with data by a user.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the FormData entity."
+          "description": "Unique identifier for the FilledForm entity."
         },
-        "formTemplateId": {
+        "pdfTemplateId": {
           "type": "string",
-          "description": "Reference to the FormTemplate used to generate this data. (Relationship: FormTemplate 1:N FormData)"
+          "description": "Reference to the PdfTemplate on which this filled form is based. (Relationship: PdfTemplate 1:N FilledForm)"
         },
-        "inputFieldId": {
+        "userId": {
           "type": "string",
-          "description": "Reference to the InputField that this data is associated with. (Relationship: InputField 1:N FormData)"
+          "description": "Reference to the user who filled out this form. This ID comes from an external authentication system. (Relationship: User 1:N FilledForm)"
+        },
+        "title": {
+          "type": "string",
+          "description": "A user-defined title or name for this specific filled form instance (e.g., 'Invoice #12345')."
+        },
+        "creationDate": {
+          "type": "string",
+          "description": "Timestamp when this filled form instance was first created.",
+          "format": "date-time"
+        },
+        "lastModifiedDate": {
+          "type": "string",
+          "description": "Timestamp when this filled form instance was last modified.",
+          "format": "date-time"
+        },
+        "exportedPdfStoragePath": {
+          "type": "string",
+          "description": "The path or URL where the final exported PDF document of this filled form is stored.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "pdfTemplateId",
+        "userId",
+        "title",
+        "creationDate",
+        "lastModifiedDate"
+      ]
+    },
+    "FieldValue": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FieldValue",
+      "type": "object",
+      "description": "Stores the actual data entered by a user for a specific form field within a filled form instance.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the FieldValue entity."
+        },
+        "filledFormId": {
+          "type": "string",
+          "description": "Reference to the FilledForm this field value belongs to. (Relationship: FilledForm 1:N FieldValue)"
+        },
+        "formFieldId": {
+          "type": "string",
+          "description": "Reference to the FormField definition that this value corresponds to. (Relationship: FormField 1:N FieldValue)"
         },
         "value": {
           "type": "string",
-          "description": "The data entered into the input field."
+          "description": "The actual data entered by the user for this specific field."
         }
       },
       "required": [
         "id",
-        "formTemplateId",
-        "inputFieldId",
+        "filledFormId",
+        "formFieldId",
         "value"
       ]
-    },
-    "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
-      "type": "object",
-      "description": "Represents a user of the application.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the user.",
-          "format": "email"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the user."
-        }
-      },
-      "required": [
-        "id",
-        "email",
-        "name"
-      ]
-    },
-    "Layout": {
-      "title": "Layout",
-      "type": "object",
-      "description": "Stores the visual layout and coordinates for form fields.",
-      "properties": {
-        "userId": {
-          "type": "string",
-          "description": "The UID of the user who owns this layout."
-        },
-        "fields": {
-          "type": "array",
-          "items": {
-            "$ref": "#/entities/InputField"
-          }
-        }
-      },
-      "required": ["userId", "fields"]
-    },
-    "Report": {
-      "title": "Report",
-      "type": "object",
-      "description": "Represents a single, complete vehicle valuation report.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "The unique ID of the report document."
-        },
-        "vehicleId": {
-          "type": "string",
-          "description": "The vehicle registration number, used for searching."
-        },
-        "userId": {
-          "type": "string",
-          "description": "The UID of the user who created the report."
-        },
-        "reportData": {
-          "type": "object",
-          "description": "A key-value map of all data entered for the report."
-        },
-        "createdAt": {
-          "type": "number",
-          "description": "Timestamp when the report was created."
-        },
-        "updatedAt": {
-          "type": "number",
-          "description": "Timestamp when the report was last updated."
-        }
-      },
-      "required": ["id", "vehicleId", "userId", "reportData", "createdAt", "updatedAt"]
-    },
-    "ReportHistory": {
-      "title": "ReportHistory",
-      "type": "object",
-      "description": "A snapshot of a report at a specific point in time, for auditing purposes.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "The unique ID of the history entry."
-        },
-        "reportId": {
-          "type": "string",
-          "description": "The ID of the parent report."
-        },
-        "vehicleId": {
-          "type": "string",
-          "description": "The vehicle registration number at the time of saving."
-        },
-        "userId": {
-          "type": "string",
-          "description": "The UID of the user who saved this version."
-        },
-        "userName": {
-          "type": "string",
-          "description": "The name of the user who saved this version."
-        },
-        "reportData": {
-          "type": "object",
-          "description": "A key-value map of all data entered for the report at this point in time."
-        },
-        "savedAt": {
-          "type": "number",
-          "description": "Timestamp when this version was saved."
-        }
-      },
-      "required": ["id", "reportId", "vehicleId", "userId", "userName", "reportData", "savedAt"]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous",
-      "google.com"
+      "anonymous"
     ]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}",
+        "path": "/users/{userId}/pdfTemplates/{pdfTemplateId}",
         "definition": {
-          "entityName": "User",
+          "entityName": "PdfTemplate",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "$ref": "#/backend/entities/PdfTemplate"
           },
-          "description": "Collection of user documents. The userId is the Firebase Authentication UID.",
+          "description": "Stores metadata about a user's uploaded PDF template. This collection enforces strict ownership, with each document explicitly belonging to the 'userId' found both in the document's 'userId' field and the hierarchical path. This structure ensures Authorization Independence by making the owner's ID directly accessible without requiring 'get()' operations on parent documents, facilitating simple security rules. It also supports QAPs, allowing efficient listing of all templates owned by the authenticated user.",
           "params": [
             {
               "name": "userId",
-              "description": "The Firebase Authentication UID of the user."
+              "description": "The unique ID of the user who owns this PDF template."
+            },
+            {
+              "name": "pdfTemplateId",
+              "description": "The unique ID of the PDF template."
             }
           ]
         }
       },
       {
-        "path": "/layouts/{userId}",
+        "path": "/users/{userId}/pdfTemplates/{pdfTemplateId}/formFields/{formFieldId}",
         "definition": {
-            "entityName": "Layout",
-            "schema": { "$ref": "#/entities/Layout" },
-            "description": "Stores the user-specific layout of form fields.",
-            "params": [{
-                "name": "userId",
-                "description": "The UID of the user who owns this layout."
-            }]
-        }
-      },
-      {
-        "path": "/reports/{reportId}",
-        "definition": {
-          "entityName": "Report",
-          "schema": { "$ref": "#/entities/Report" },
-          "description": "Stores complete, individual valuation reports. Denormalized for easy searching.",
-          "params": [{
-            "name": "reportId",
-            "description": "The unique ID of the report."
-          }]
-        }
-      },
-      {
-        "path": "/reports/{reportId}/history/{historyId}",
-        "definition": {
-          "entityName": "ReportHistory",
-          "schema": { "$ref": "#/entities/ReportHistory" },
-          "description": "Stores snapshots of a report over time for auditing.",
+          "entityName": "FormField",
+          "schema": {
+            "$ref": "#/backend/entities/FormField"
+          },
+          "description": "Defines an input field for a specific PDF template. Each FormField document implicitly inherits its ownership from the parent PdfTemplate via the path's 'userId'. For full Authorization Independence at the document level and robust rule-writing, the FormField document itself is recommended to include a denormalized 'ownerId' field, mirroring the 'userId' of its parent PdfTemplate's owner. This allows direct authorization checks (e.g., 'resource.data.ownerId == request.auth.uid') and supports QAPs for listing all fields for a specific, authorized template.",
           "params": [
             {
-              "name": "reportId",
-              "description": "The ID of the parent report."
+              "name": "userId",
+              "description": "The unique ID of the user who owns the parent PDF template."
             },
             {
-              "name": "historyId",
-              "description": "The unique ID of the history entry."
+              "name": "pdfTemplateId",
+              "description": "The unique ID of the parent PDF template."
+            },
+            {
+              "name": "formFieldId",
+              "description": "The unique ID of the form field."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/filledForms/{filledFormId}",
+        "definition": {
+          "entityName": "FilledForm",
+          "schema": {
+            "$ref": "#/backend/entities/FilledForm"
+          },
+          "description": "Represents a user's filled instance of a PDF template. Similar to PdfTemplate, this collection enforces strict ownership via the 'userId' in both the document and the hierarchical path. This design ensures Authorization Independence and supports QAPs for listing all filled forms belonging to the authenticated user. The 'pdfTemplateId' field links it back to the original template, but authorization remains scoped to the 'userId' of the filled form itself.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user who owns this filled form."
+            },
+            {
+              "name": "filledFormId",
+              "description": "The unique ID of the filled form instance."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/filledForms/{filledFormId}/fieldValues/{fieldValueId}",
+        "definition": {
+          "entityName": "FieldValue",
+          "schema": {
+            "$ref": "#/backend/entities/FieldValue"
+          },
+          "description": "Stores the actual data for a form field within a specific filled form. This document implicitly inherits its ownership from the parent FilledForm via the path's 'userId'. For full Authorization Independence, the FieldValue document is recommended to include a denormalized 'ownerId' field, mirroring the 'userId' of its parent FilledForm's owner. This enables direct authorization checks and supports QAPs for listing all field values for a specific, authorized filled form.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user who owns the parent filled form."
+            },
+            {
+              "name": "filledFormId",
+              "description": "The unique ID of the parent filled form."
+            },
+            {
+              "name": "fieldValueId",
+              "description": "The unique ID of the field value."
             }
           ]
         }
       }
-    ]
+    ],
+    "reasoning": "The recommended Firestore data structure adheres to the core design principles by prioritizing Authorization Independence through a deeply hierarchical, user-centric path structure and strategic denormalization. All user-owned data is segregated under `/users/{userId}/` to ensure private data access. \n\n1.  **Authorization Independence:** By placing the `userId` directly in the path (e.g., `/users/{userId}/pdfTemplates/{pdfTemplateId}`), the owner's ID is immediately available to Firestore Security Rules via path wildcards. This eliminates the need for expensive and potentially insecure `get()` calls to parent documents to determine ownership, making rules atomic and easier to debug. For subcollections like `formFields` and `fieldValues`, the `userId` from the root of the user's data tree is still available in the rules. Furthermore, for maximal robustness and to strictly adhere to the mandate that 'attributes MUST be copied into every document in the subcollection' for authorization independence, it is recommended that `FormField` documents denormalize the `userId` of their parent `PdfTemplate`'s owner (e.g., as an `ownerId` field within `FormField`), and similarly, `FieldValue` documents denormalize the `userId` of their parent `FilledForm`'s owner. This allows rules to consistently rely on `resource.data.ownerId == request.auth.uid` for authorization checks directly on the document being accessed, rather than inferring from path segments, enhancing clarity and auditability.\n\n2.  **QAPs (Query-Able Permissions):** The hierarchical structure directly supports efficient and secure `list` operations. For example, a query to `/users/{request.auth.uid}/pdfTemplates` will only return templates owned by the authenticated user, and security rules can simply be `allow list: if request.auth.uid == userId;`. This ensures that security rules are not used as filters after data retrieval, preventing over-fetching and potential data leaks. Each subcollection (e.g., `/formFields` under `pdfTemplates` or `/fieldValues` under `filledForms`) also inherits this QAP-compliant behavior, as listing items within a specific parent document is implicitly secured by the parent's ownership.\n\n3.  **Structural Segregation:** All documents for a given user are kept within their dedicated `/users/{userId}` subtree, ensuring that user-specific data is isolated and has a consistent security posture (private to the user).\n\n4.  **Addressing Storage Error:** The Firestore structure supports corresponding Firebase Storage rules. Storage paths for PDF templates (`PdfTemplate.storagePath`, `PdfTemplate.thumbnailUrl`) and exported filled forms (`FilledForm.exportedPdfStoragePath`) should mirror the Firestore ownership model, for example, `/user_data/{userId}/templates/{pdfTemplateId}/template.pdf` or `/user_data/{userId}/filled_forms/{filledFormId}/export.pdf`. Storage rules would then check `request.auth.uid == userId` for read/write access, linking storage permissions directly to the authenticated user and their owned documents."
   }
 }
-
-    
