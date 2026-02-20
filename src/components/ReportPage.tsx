@@ -78,7 +78,6 @@ export const ReportPage = ({
       );
     }
 
-    // Interactive Input for Filling Mode
     return (
       <div key={field.id} style={style} className="z-10 group">
         {field.inputType === 'dropdown' ? (
@@ -119,31 +118,33 @@ export const ReportPage = ({
       height: `${field.height}mm`,
       position: 'absolute',
       overflow: 'hidden',
-      border: isEditable ? '1px dashed #4682B4' : 'none',
-      backgroundColor: field.value.url ? 'transparent' : 'rgba(0,0,0,0.05)'
+      border: isEditable ? '1px dashed rgba(6, 182, 212, 0.5)' : 'none',
+      backgroundColor: field.value.url ? 'transparent' : 'rgba(0,0,0,0.03)'
     };
 
     const imageStyle: React.CSSProperties = {
       width: '100%',
       height: '100%',
       objectFit: field.objectFit || 'cover',
-      transform: `scale(${field.value.scale}) translateX(${field.value.x}px) translateY(${field.value.y}px)`,
+      transform: `scale(${field.value.scale}) translate(${field.value.x}px, ${field.value.y}px)`,
+      transition: 'transform 0.1s ease-out'
     };
 
     return (
-      <div key={field.id} style={containerStyle} className="group">
+      <div key={field.id} style={containerStyle} className="group overflow-visible">
         {field.value.url ? (
           <img src={field.value.url} alt="field" style={imageStyle} />
         ) : (
           isEditable && (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <span className="text-xs">No Image</span>
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50">
+              <span className="text-[10px] font-bold uppercase tracking-widest">Image Area</span>
             </div>
           )
         )}
+        
         {isEditable && (
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 flex items-center justify-center z-20 overflow-visible">
-            <div className="bg-background p-4 rounded-lg shadow-xl w-64 translate-y-1/2">
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 flex items-center justify-center z-20 pointer-events-none overflow-visible">
+            <div className="pointer-events-auto mt-4 translate-y-1/2">
               <ImageAdjustmentControl
                 value={field.value}
                 onChange={(val) => onValueChange?.(field.fieldId, val)}
