@@ -8,7 +8,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2 } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,9 +16,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const INITIAL_VISIBLE_REPORTS = 12;
@@ -96,7 +98,6 @@ export default function AdminPage() {
         setIsLoading(false);
       });
 
-      // Fetch current password
       getDoc(doc(firestore, 'config', 'settings')).then(snap => {
         if (snap.exists()) {
           setAccessPassword(snap.data().privateDataPassword || '');
@@ -106,6 +107,27 @@ export default function AdminPage() {
       return () => unsubscribe();
     }
   }, [user, firestore, isUserLoading, router]);
+
+  const uniqueReports = useMemo(() => getUniqueReports(reports), [reports]);
+
+  const chartData = useMemo(() => {
+    const last7Days = [...Array(7)].map((_, i) => {
+      const d = subDays(new Date(), 6 - i);
+      return format(d, 'MMM dd');
+    });
+
+    const counts: Record<string, number> = {};
+    last7Days.forEach(day => counts[day] = 0);
+
+    reports.forEach(r => {
+      if (r.updatedAt) {
+        const day = format(new Date(r.updatedAt.seconds * 1000), 'MMM dd');
+        if (counts[day] !== undefined) counts[day]++;
+      }
+    });
+
+    return last7Days.map(day => ({ day, reports: counts[day] }));
+  }, [reports]);
 
   const handleUpdatePassword = async () => {
     if (!firestore) return;
@@ -128,8 +150,6 @@ export default function AdminPage() {
       setIsUpdatingPassword(false);
     }
   };
-
-  const uniqueReports = useMemo(() => getUniqueReports(reports), [reports]);
 
   const filteredReports = useMemo(() => {
     if (!searchTerm || searchTerm.trim().length === 0) return uniqueReports;
@@ -160,6 +180,74 @@ export default function AdminPage() {
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
       <main className="flex-1 p-6 space-y-6">
+        
+        {/* TOP DASHBOARD: QUICK STATS & CHART */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <Car size={64} className="text-primary" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-[10px] font-bold uppercase tracking-wider">Unique Vehicles</CardDescription>
+              <CardTitle className="text-4xl font-black text-primary">{uniqueReports.length}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <TrendingUp size={12} className="text-green-500" /> Active vehicle database
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <History size={64} className="text-primary" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-[10px] font-bold uppercase tracking-wider">Total Save Logs</CardDescription>
+              <CardTitle className="text-4xl font-black text-primary">{reports.length}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock size={12} className="text-primary" /> Comprehensive audit trail
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2 border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg lg:col-span-2">
+            <CardHeader className="pb-0 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <BarChart3 size={16} className="text-primary" /> 7-Day Activity
+                </CardTitle>
+                <CardDescription className="text-[10px]">Reports generated per day</CardDescription>
+              </div>
+              <Badge variant="outline" className="text-[10px] border-primary/20 text-primary">Live</Badge>
+            </CardHeader>
+            <CardContent className="h-[120px] pt-4">
+              <ChartContainer config={{ reports: { label: "Reports", color: "hsl(var(--primary))" } }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData}>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.1} />
+                    <XAxis 
+                      dataKey="day" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} 
+                    />
+                    <YAxis hide />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar 
+                      dataKey="reports" 
+                      fill="var(--color-reports)" 
+                      radius={[4, 4, 0, 0]} 
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <Card className="xl:col-span-2 border-primary/20 bg-card/50 backdrop-blur-sm shadow-xl">
             <CardHeader>
@@ -310,21 +398,19 @@ export default function AdminPage() {
 
             <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
                 <CardHeader>
-                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-primary" /> Admin Quick Stats
+                    <CardTitle className="text-xs font-bold flex items-center gap-2">
+                        <Users className="h-4 w-4 text-primary" /> Current Administrators
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                    <div className="flex justify-between items-center text-sm border-b pb-2">
-                        <span className="text-muted-foreground">Unique Vehicles</span>
-                        <span className="font-bold text-primary">{uniqueReports.length}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm border-b pb-2">
-                        <span className="text-muted-foreground">Total Save Logs</span>
-                        <span className="font-bold text-primary">{reports.length}</span>
-                    </div>
-                    <div className="text-[10px] text-muted-foreground text-center pt-2">
-                        All timestamps are synced to server time.
+                <CardContent className="space-y-2">
+                    {ADMIN_EMAILS.map(email => (
+                      <div key={email} className="text-[10px] bg-muted/20 p-2 rounded flex items-center justify-between border">
+                        <span className="truncate max-w-[150px]">{email}</span>
+                        <ShieldCheck size={12} className="text-primary" />
+                      </div>
+                    ))}
+                    <div className="text-[10px] text-muted-foreground text-center pt-2 italic">
+                        Access is restricted by email identity.
                     </div>
                 </CardContent>
             </Card>
@@ -333,4 +419,16 @@ export default function AdminPage() {
       </main>
     </div>
   );
+}
+
+function Badge({ children, variant = "default", className }: { children: React.ReactNode, variant?: string, className?: string }) {
+    return (
+        <div className={cn(
+            "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            variant === "outline" ? "text-foreground" : "bg-primary text-primary-foreground",
+            className
+        )}>
+            {children}
+        </div>
+    );
 }
