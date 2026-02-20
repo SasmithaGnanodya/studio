@@ -16,7 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, subDays, startOfDay, isSameDay } from 'date-fns';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { format, subDays, subMonths, startOfDay, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Bar, BarChart, ResponsiveContainer, Tooltip } from "recharts";
@@ -78,6 +79,7 @@ export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchCategory, setSearchCategory] = useState('all');
   const [visibleReportsCount, setVisibleReportsCount] = useState(INITIAL_VISIBLE_REPORTS);
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '1y'>('7d');
 
   const [accessPassword, setAccessPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -117,18 +119,43 @@ export default function AdminPage() {
       return isSameDay(new Date(r.updatedAt.seconds * 1000), today);
     }).length;
 
-    const chartData = [...Array(7)].map((_, i) => {
-      const d = subDays(today, 6 - i);
-      const dayStr = format(d, 'MMM dd');
-      const count = reports.filter(r => {
-        if (!r.updatedAt?.seconds) return false;
-        return isSameDay(new Date(r.updatedAt.seconds * 1000), d);
-      }).length;
-      return { day: dayStr, reports: count };
-    });
+    let chartData: { label: string; count: number }[] = [];
+
+    if (timeRange === '7d') {
+      chartData = [...Array(7)].map((_, i) => {
+        const d = subDays(today, 6 - i);
+        const dayStr = format(d, 'MMM dd');
+        const count = reports.filter(r => {
+          if (!r.updatedAt?.seconds) return false;
+          return isSameDay(new Date(r.updatedAt.seconds * 1000), d);
+        }).length;
+        return { label: dayStr, count };
+      });
+    } else if (timeRange === '30d') {
+      chartData = [...Array(30)].map((_, i) => {
+        const d = subDays(today, 29 - i);
+        const dayStr = format(d, 'MMM dd');
+        const count = reports.filter(r => {
+          if (!r.updatedAt?.seconds) return false;
+          return isSameDay(new Date(r.updatedAt.seconds * 1000), d);
+        }).length;
+        return { label: dayStr, count };
+      });
+    } else if (timeRange === '1y') {
+      chartData = [...Array(12)].map((_, i) => {
+        const d = subMonths(today, 11 - i);
+        const monthStr = format(d, 'MMM');
+        const count = reports.filter(r => {
+          if (!r.updatedAt?.seconds) return false;
+          const reportDate = new Date(r.updatedAt.seconds * 1000);
+          return reportDate.getMonth() === d.getMonth() && reportDate.getFullYear() === d.getFullYear();
+        }).length;
+        return { label: monthStr, count };
+      });
+    }
 
     return { reportsToday, chartData };
-  }, [reports]);
+  }, [reports, timeRange]);
 
   // Derive active users from reports
   const activeUsers = useMemo(() => {
@@ -251,15 +278,21 @@ export default function AdminPage() {
 
           <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg relative min-h-[140px] overflow-hidden">
             <CardHeader className="pb-0 pt-4 flex flex-row items-center justify-between">
-              <CardDescription className="text-[10px] font-bold uppercase tracking-wider">7-Day Activity</CardDescription>
-              <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center">
-                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+              <div>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-wider">System Activity</CardDescription>
               </div>
+              <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as any)} className="h-6">
+                <TabsList className="bg-muted/50 h-6 p-0.5">
+                  <TabsTrigger value="7d" className="text-[9px] px-1.5 h-5">7D</TabsTrigger>
+                  <TabsTrigger value="30d" className="text-[9px] px-1.5 h-5">30D</TabsTrigger>
+                  <TabsTrigger value="1y" className="text-[9px] px-1.5 h-5">1Y</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </CardHeader>
             <CardContent className="h-[100px] pt-4 px-2">
-              <ChartContainer config={{ reports: { label: "Reports", color: "hsl(var(--primary))" } }} className="aspect-auto h-full w-full">
+              <ChartContainer config={{ count: { label: "Reports", color: "hsl(var(--primary))" } }} className="aspect-auto h-full w-full">
                   <BarChart data={stats.chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                    <Bar dataKey="reports" fill="var(--color-reports)" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="count" fill="var(--color-count)" radius={[2, 2, 0, 0]} />
                     <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                   </BarChart>
               </ChartContainer>
