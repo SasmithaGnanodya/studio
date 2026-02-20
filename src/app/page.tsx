@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -7,12 +6,13 @@ import { Header } from '@/components/header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Search, PlusCircle, Car, FileText, Wrench, Shield } from 'lucide-react';
+import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { collection, query, where, getDocs, limit, onSnapshot, orderBy, or } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const INITIAL_VISIBLE_REPORTS = 6;
@@ -41,6 +41,7 @@ function ReportStats({ reports }: { reports: Report[] }) {
 
 export default function LandingPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchCategory, setSearchCategory] = useState('all');
   const [searchResults, setSearchResults] = useState<Report[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [noResults, setNoResults] = useState(false);
@@ -67,17 +68,25 @@ export default function LandingPage() {
       const reportsRef = collection(firestore, `reports`);
       const term = searchTerm.toUpperCase();
       
-      // Highly sensitive multi-field search for key mandatory identifiers
-      const q = query(
-        reportsRef,
-        or(
-          where('vehicleId', '==', term),
-          where('engineNumber', '==', term),
-          where('chassisNumber', '==', term),
-          where('reportNumber', '==', term)
-        ),
-        limit(10)
-      );
+      let q;
+      if (searchCategory === 'all') {
+        q = query(
+          reportsRef,
+          or(
+            where('vehicleId', '==', term),
+            where('engineNumber', '==', term),
+            where('chassisNumber', '==', term),
+            where('reportNumber', '==', term)
+          ),
+          limit(10)
+        );
+      } else {
+        q = query(
+          reportsRef,
+          where(searchCategory, '==', term),
+          limit(10)
+        );
+      }
 
       try {
         const querySnapshot = await getDocs(q);
@@ -96,7 +105,7 @@ export default function LandingPage() {
     }, 400);
 
     return () => clearTimeout(debounceTimeout);
-  }, [searchTerm, firestore, user]);
+  }, [searchTerm, searchCategory, firestore, user]);
 
   useEffect(() => {
     if (user && firestore) {
@@ -133,7 +142,7 @@ export default function LandingPage() {
     if (e.key === 'Enter') {
       if (searchResults.length > 0) {
         router.push(`/report/${searchResults[0].vehicleId}`);
-      } else if (searchTerm) {
+      } else if (searchTerm && searchCategory === 'all' || searchCategory === 'vehicleId') {
         router.push(`/report/${searchTerm.toUpperCase()}`);
       }
     }
@@ -217,33 +226,50 @@ export default function LandingPage() {
                     <CardHeader>
                     <CardTitle className="text-2xl">Vehicle Report Database</CardTitle>
                     <CardDescription>
-                        Search by any identifier: Reg No, Engine No, Chassis No, or ID.
+                        Search for existing reports by specific category.
                     </CardDescription>
                     </CardHeader>
                     <CardContent>
-                    <div className="flex flex-col sm:flex-row w-full items-center space-y-2 sm:space-y-0 sm:space-x-2">
-                        <div className="relative flex-grow w-full">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input
-                            type="text"
-                            placeholder="Enter Search Criteria..."
-                            value={searchTerm}
-                            onChange={handleSearchChange}
-                            onKeyDown={handleKeyDown}
-                            className="pl-10 text-lg w-full"
-                        />
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <div className="w-full sm:w-48 shrink-0">
+                            <Select value={searchCategory} onValueChange={setSearchCategory}>
+                              <SelectTrigger className="w-full">
+                                <Filter className="mr-2 h-4 w-4 opacity-50" />
+                                <SelectValue placeholder="Category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Identifiers</SelectItem>
+                                <SelectItem value="vehicleId">Registration No</SelectItem>
+                                <SelectItem value="engineNumber">Engine No</SelectItem>
+                                <SelectItem value="chassisNumber">Chassis No</SelectItem>
+                                <SelectItem value="reportNumber">Report No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="relative flex-grow w-full">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input
+                                type="text"
+                                placeholder={`Enter ${searchCategory === 'all' ? 'any identifier' : searchCategory.replace(/([A-Z])/g, ' $1').toLowerCase()}...`}
+                                value={searchTerm}
+                                onChange={handleSearchChange}
+                                onKeyDown={handleKeyDown}
+                                className="pl-10 text-lg w-full"
+                            />
+                          </div>
                         </div>
                         {noResults && searchTerm && (
-                        <Button onClick={handleCreateNew} className="w-full sm:w-auto">
+                        <Button onClick={handleCreateNew} className="w-full">
                             <PlusCircle className="mr-2 h-5 w-5" />
-                            New Report
+                            Create New Report for "{searchTerm}"
                         </Button>
                         )}
                     </div>
 
                     <div className="mt-6 min-h-[100px]">
                         {isSearching ? (
-                        <p className="text-center text-muted-foreground">Searching...</p>
+                        <p className="text-center text-muted-foreground">Searching database...</p>
                         ) : searchResults.length > 0 ? (
                         <ul className="space-y-2">
                             {searchResults.map((report) => (
@@ -268,13 +294,13 @@ export default function LandingPage() {
                         </ul>
                         ) : noResults ? (
                             <div className="text-center p-6 border-2 border-dashed rounded-lg">
-                            <p className="text-muted-foreground">No reports found for '<span className='font-semibold text-foreground'>{searchTerm}</span>'.</p>
-                            <p className="text-sm text-muted-foreground mt-1">Start a new valuation for this vehicle.</p>
+                            <p className="text-muted-foreground">No records found matching '<span className='font-semibold text-foreground'>{searchTerm}</span>' in {searchCategory === 'all' ? 'any field' : searchCategory}.</p>
+                            <p className="text-sm text-muted-foreground mt-1">Check the ID or click the button above to start a new entry.</p>
                         </div>
                         ) : (
                         !searchTerm && (
                             <div className="text-center p-6 border-2 border-dashed rounded-lg">
-                            <p className="text-muted-foreground">Enter search criteria to begin.</p>
+                            <p className="text-muted-foreground">Select a category and enter an ID to begin.</p>
                             </div>
                         )
                         )}

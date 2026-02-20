@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -8,7 +7,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShieldOff, Search, History, Save, TrendingUp, Eye, LayoutTemplate } from 'lucide-react';
+import { ShieldOff, Search, History, Save, TrendingUp, Eye, LayoutTemplate, Filter } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { startOfDay, startOfWeek, startOfMonth } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const INITIAL_VISIBLE_REPORTS = 6;
@@ -131,6 +131,7 @@ export default function AdminPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchCategory, setSearchCategory] = useState('all');
   const [visibleReportsCount, setVisibleReportsCount] = useState(INITIAL_VISIBLE_REPORTS);
 
   useEffect(() => {
@@ -165,14 +166,21 @@ export default function AdminPage() {
   const filteredReports = useMemo(() => {
     if (!searchTerm) return reports;
     const term = searchTerm.toUpperCase();
-    // Search sensitivity across all mandatory identifiers
-    return reports.filter(report => 
-      report.vehicleId.toUpperCase().includes(term) ||
-      (report.engineNumber && report.engineNumber.toUpperCase().includes(term)) ||
-      (report.chassisNumber && report.chassisNumber.toUpperCase().includes(term)) ||
-      (report.reportNumber && report.reportNumber.toUpperCase().includes(term))
-    );
-  }, [reports, searchTerm]);
+    
+    return reports.filter(report => {
+      if (searchCategory === 'all') {
+        return (
+          report.vehicleId.toUpperCase().includes(term) ||
+          (report.engineNumber && report.engineNumber.toUpperCase().includes(term)) ||
+          (report.chassisNumber && report.chassisNumber.toUpperCase().includes(term)) ||
+          (report.reportNumber && report.reportNumber.toUpperCase().includes(term))
+        );
+      } else {
+        const value = report[searchCategory as keyof Report];
+        return typeof value === 'string' && value.toUpperCase().includes(term);
+      }
+    });
+  }, [reports, searchTerm, searchCategory]);
 
   const handleShowMore = () => {
     setVisibleReportsCount(prevCount => prevCount + INITIAL_VISIBLE_REPORTS);
@@ -255,9 +263,24 @@ export default function AdminPage() {
             <CardHeader>
                 <CardTitle>All Reports ({reports.length})</CardTitle>
                 <CardDescription>
-                  Search by any identifier: Reg No, Eng No, Chassis No, or ID.
+                  Search database with specific filters.
                 </CardDescription>
-                 <div className="relative pt-4 flex items-center gap-4">
+                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                    <div className="w-full sm:w-48">
+                        <Select value={searchCategory} onValueChange={setSearchCategory}>
+                          <SelectTrigger>
+                            <Filter className="mr-2 h-4 w-4 opacity-50" />
+                            <SelectValue placeholder="Category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Identifiers</SelectItem>
+                            <SelectItem value="vehicleId">Registration No</SelectItem>
+                            <SelectItem value="engineNumber">Engine No</SelectItem>
+                            <SelectItem value="chassisNumber">Chassis No</SelectItem>
+                            <SelectItem value="reportNumber">Report No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                    </div>
                     <div className="relative flex-grow">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
