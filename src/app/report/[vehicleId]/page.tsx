@@ -91,18 +91,21 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   useEffect(() => { if (isAdmin) setIsAuthorized(true); }, [isAdmin]);
 
+  // Initial Data Generation & Persistance Hook
   useEffect(() => {
     if (isAuthorized) {
       setReportData(prev => {
-        const needsUpdate = prev.reportNumber === "V-PENDING" || prev.date === "";
-        if (!needsUpdate) return prev;
+        const needsReportNum = prev.reportNumber === "V-PENDING" || !prev.reportNumber;
+        const needsDate = !prev.date;
+        
+        if (!needsReportNum && !needsDate) return prev;
 
         return {
           ...prev,
-          reportNumber: prev.reportNumber === "V-PENDING" 
+          reportNumber: needsReportNum 
             ? "V" + Math.floor(1000 + Math.random() * 9000) 
             : prev.reportNumber,
-          date: prev.date === "" 
+          date: needsDate 
             ? new Date().toLocaleDateString('en-CA') 
             : prev.date
         };
@@ -129,7 +132,14 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
       if (docSnap.exists()) {
         const report = docSnap.data() as Report;
-        setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
+        // Merge fetched data with current regNumber
+        setReportData(prev => ({ 
+          ...prev, 
+          ...report.reportData, 
+          regNumber: vehicleId,
+          // If we just generated a report number in the previous effect, don't let the fetched data (if empty) overwrite it
+          reportNumber: (report.reportData?.reportNumber || prev.reportNumber)
+        }));
         
         const layoutToLoad = latestId || report.layoutId;
         if (layoutToLoad) {
@@ -157,9 +167,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   /**
    * Triple-Layer Greedy Identifier Detection
-   * 1. Exact ID match
-   * 2. Visual label match (from current layout)
-   * 3. Greedy partial match on any field key
+   * Scans document structure, layout labels, and raw data keys.
    */
   const findIdentifier = (patterns: string[]) => {
     // 1. Direct ID exact match
@@ -184,18 +192,17 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     return entry ? entry[1] : '';
   };
 
-  // Real-time Debounced Sync for Identifiers
+  // Real-time Debounced Sync for Search Identifiers
   useEffect(() => {
     if (!firestore || !isAuthorized || !user || isLoading) return;
 
-    // Expanded patterns for greedy detection
     const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor', 'engnum', 'eng']);
     const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial', 'vin', 'chas']);
     const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum', 'ref', 'val', 'v-', 'valuation', 'id']);
     const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate', 'inspectedOn']);
 
-    const hasData = engineVal || chassisVal || reportNumVal || dateVal;
-    if (!hasData) return;
+    // Don't sync if everything is truly empty or pending
+    if (!engineVal && !chassisVal && (!reportNumVal || reportNumVal === 'V-PENDING') && !dateVal) return;
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
@@ -225,7 +232,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       } finally {
         setIsSyncing(false);
       }
-    }, 800); 
+    }, 1000); 
 
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
@@ -347,7 +354,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                 Vehicle: <span className="text-primary font-mono">{vehicleId}</span>
                 {isSyncing && (
                   <span className="flex items-center gap-1.5 text-[10px] text-primary font-bold animate-pulse bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-                    <RefreshCw size={10} className="animate-spin" /> Syncing Filter Indexes...
+                    <RefreshCw size={10} className="animate-spin" /> Syncing Identifiers...
                   </span>
                 )}
               </div>
