@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -17,22 +18,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const INITIAL_VISIBLE_REPORTS = 6;
 
+/**
+ * Utility to filter out duplicate vehicle reports, keeping only the most recent version.
+ */
+function getUniqueReports(reports: Report[]) {
+  const seen = new Set<string>();
+  return reports.filter(report => {
+    const normalizedId = report.vehicleId.toUpperCase().trim();
+    const isDuplicate = seen.has(normalizedId);
+    seen.add(normalizedId);
+    return !isDuplicate;
+  });
+}
+
 function ReportStats({ reports }: { reports: Report[] }) {
-    const totalCount = useMemo(() => {
+    const uniqueCount = useMemo(() => {
         if (!reports || reports.length === 0) return 0;
-        return reports.length;
+        return getUniqueReports(reports).length;
     }, [reports]);
 
     return (
          <Card className="bg-card/50 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{totalCount}</div>
+                <div className="text-2xl font-bold">{uniqueCount}</div>
                 <p className="text-xs text-muted-foreground">
-                    Number of reports in the system
+                    Unique vehicles in the database
                 </p>
             </CardContent>
         </Card>
@@ -53,7 +67,6 @@ export default function LandingPage() {
     return user?.email && ADMIN_EMAILS.includes(user.email);
   }, [user]);
 
-  // Fetch all reports in real-time to allow for substring "similar" search
   useEffect(() => {
     if (user && firestore) {
       setIsLoadingReports(true);
@@ -79,12 +92,13 @@ export default function LandingPage() {
     }
   }, [user, firestore]);
 
-  // Filter reports locally to show "similar" results (substring match)
+  const uniqueReports = useMemo(() => getUniqueReports(allReports), [allReports]);
+
   const searchResults = useMemo(() => {
     if (!searchTerm || searchTerm.length < 1) return [];
     const term = searchTerm.toUpperCase().trim();
     
-    return allReports.filter(report => {
+    return uniqueReports.filter(report => {
       if (searchCategory === 'all') {
         return (
           report.vehicleId.toUpperCase().includes(term) ||
@@ -98,7 +112,7 @@ export default function LandingPage() {
         return typeof value === 'string' && value.toUpperCase().includes(term);
       }
     }).slice(0, 10);
-  }, [allReports, searchTerm, searchCategory]);
+  }, [uniqueReports, searchTerm, searchCategory]);
 
   const noResults = searchTerm.length >= 2 && searchResults.length === 0;
 
@@ -129,8 +143,8 @@ export default function LandingPage() {
   };
   
   const visibleReports = useMemo(() => {
-      return allReports.slice(0, visibleReportsCount);
-  }, [allReports, visibleReportsCount]);
+      return uniqueReports.slice(0, visibleReportsCount);
+  }, [uniqueReports, visibleReportsCount]);
 
   const renderContent = () => {
     if (isUserLoading) {
@@ -376,7 +390,7 @@ export default function LandingPage() {
                   <p className="text-muted-foreground">No reports found in the system.</p>
                 </div>
               )}
-               {allReports.length > visibleReportsCount && (
+               {uniqueReports.length > visibleReportsCount && (
                 <div className="mt-6 text-center">
                     <Button onClick={handleShowMore} variant="secondary" className="px-10">See More Reports</Button>
                 </div>

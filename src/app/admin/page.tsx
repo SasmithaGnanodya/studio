@@ -21,6 +21,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const INITIAL_VISIBLE_REPORTS = 12;
 
+/**
+ * Utility to filter out duplicate vehicle reports, keeping only the most recent version.
+ */
+function getUniqueReports(reports: Report[]) {
+  const seen = new Set<string>();
+  return reports.filter(report => {
+    const normalizedId = report.vehicleId.toUpperCase().trim();
+    const isDuplicate = seen.has(normalizedId);
+    seen.add(normalizedId);
+    return !isDuplicate;
+  });
+}
+
 function PasswordManager({ firestore }: { firestore: any }) {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -82,25 +95,27 @@ function PasswordManager({ firestore }: { firestore: any }) {
 function ReportStats({ reports }: { reports: Report[] }) {
     const [filter, setFilter] = useState('all');
 
+    const uniqueReports = useMemo(() => getUniqueReports(reports), [reports]);
+
     const filteredCount = useMemo(() => {
-        if (!reports || reports.length === 0) return 0;
+        if (!uniqueReports || uniqueReports.length === 0) return 0;
         
         const now = new Date();
         switch (filter) {
             case 'today':
                 const todayStart = startOfDay(now);
-                return reports.filter(r => r.createdAt && new Date(r.createdAt.seconds * 1000) >= todayStart).length;
+                return uniqueReports.filter(r => r.createdAt && new Date(r.createdAt.seconds * 1000) >= todayStart).length;
             case 'week':
                 const weekStart = startOfWeek(now);
-                return reports.filter(r => r.createdAt && new Date(r.createdAt.seconds * 1000) >= weekStart).length;
+                return uniqueReports.filter(r => r.createdAt && new Date(r.createdAt.seconds * 1000) >= weekStart).length;
             case 'month':
                 const monthStart = startOfMonth(now);
-                return reports.filter(r => r.createdAt && new Date(r.createdAt.seconds * 1000) >= monthStart).length;
+                return uniqueReports.filter(r => r.createdAt && new Date(r.createdAt.seconds * 1000) >= monthStart).length;
             case 'all':
             default:
-                return reports.length;
+                return uniqueReports.length;
         }
-    }, [reports, filter]);
+    }, [uniqueReports, filter]);
     
     return (
          <Card>
@@ -111,7 +126,7 @@ function ReportStats({ reports }: { reports: Report[] }) {
             <CardContent>
                 <div className="text-2xl font-bold">{filteredCount}</div>
                 <p className="text-xs text-muted-foreground">
-                    Total reports for the selected period
+                    Unique vehicles for the selected period
                 </p>
                 <Tabs defaultValue="all" onValueChange={setFilter} className="mt-4">
                     <TabsList className="grid w-full grid-cols-4">
@@ -164,11 +179,13 @@ export default function AdminPage() {
     }
   }, [user, firestore, isUserLoading, router]);
 
+  const uniqueReports = useMemo(() => getUniqueReports(reports), [reports]);
+
   const filteredReports = useMemo(() => {
-    if (!searchTerm) return reports;
+    if (!searchTerm) return uniqueReports;
     const term = searchTerm.toUpperCase().trim();
     
-    return reports.filter(report => {
+    return uniqueReports.filter(report => {
       if (searchCategory === 'all') {
         return (
           report.vehicleId.toUpperCase().includes(term) ||
@@ -182,13 +199,13 @@ export default function AdminPage() {
         return typeof value === 'string' && value.toUpperCase().includes(term);
       }
     });
-  }, [reports, searchTerm, searchCategory]);
+  }, [uniqueReports, searchTerm, searchCategory]);
 
   const handleShowMore = () => {
     setVisibleReportsCount(prevCount => prevCount + INITIAL_VISIBLE_REPORTS);
   };
   
-  const visibleReports = useMemo(() => {
+  const visibleReportsList = useMemo(() => {
       return filteredReports.slice(0, visibleReportsCount);
   }, [filteredReports, visibleReportsCount]);
 
@@ -263,9 +280,9 @@ export default function AdminPage() {
 
         <Card>
             <CardHeader>
-                <CardTitle>All Reports Database ({reports.length})</CardTitle>
+                <CardTitle>All Reports Database ({uniqueReports.length})</CardTitle>
                 <CardDescription>
-                  Advanced filtering across all stored vehicle records.
+                  Advanced filtering across all stored vehicle records. Duplicates are hidden.
                 </CardDescription>
                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
                     <div className="w-full sm:w-48">
@@ -297,9 +314,9 @@ export default function AdminPage() {
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
-            {visibleReports.length > 0 ? (
+            {visibleReportsList.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {visibleReports.map(report => (
+                    {visibleReportsList.map(report => (
                         <Card key={report.id} className="border border-primary/10 shadow-sm overflow-hidden flex flex-col hover:border-primary/40 transition-all">
                              <CardHeader className="pb-3 bg-muted/30">
                                 <div className="flex justify-between items-start">
