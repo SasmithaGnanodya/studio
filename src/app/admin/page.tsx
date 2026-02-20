@@ -24,10 +24,6 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const INITIAL_VISIBLE_REPORTS = 12;
 
-/**
- * Robust utility to extract identifiers from a report.
- * Scans top-level fields and nested reportData for Engine, Chassis, and Report numbers.
- */
 function getIdentifiers(report: Report) {
   const data = report.reportData || {};
   
@@ -60,9 +56,6 @@ function getIdentifiers(report: Report) {
   };
 }
 
-/**
- * Utility to filter out duplicate vehicle reports, keeping only the most recent version.
- */
 function getUniqueReports(reports: Report[]) {
   const seen = new Set<string>();
   return reports.filter(report => {
@@ -189,7 +182,7 @@ export default function AdminPage() {
       <main className="flex-1 p-6 space-y-6">
         
         {/* TOP DASHBOARD: 4 STAT CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
           <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative min-h-[140px]">
             <div className="absolute top-0 right-0 p-3 opacity-10">
               <Car size={48} className="text-primary" />
@@ -235,16 +228,16 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg relative min-h-[140px] overflow-visible">
+          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg relative min-h-[140px] overflow-hidden">
             <CardHeader className="pb-0 pt-4 flex flex-row items-center justify-between">
               <CardDescription className="text-[10px] font-bold uppercase tracking-wider">7-Day Activity</CardDescription>
               <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center">
                 <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
               </div>
             </CardHeader>
-            <CardContent className="h-[80px] pt-4 overflow-visible">
-              <ChartContainer config={{ reports: { label: "Reports", color: "hsl(var(--primary))" } }}>
-                  <BarChart data={stats.chartData}>
+            <CardContent className="h-[100px] pt-4 px-2">
+              <ChartContainer config={{ reports: { label: "Reports", color: "hsl(var(--primary))" } }} className="aspect-auto h-full w-full">
+                  <BarChart data={stats.chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                     <Bar dataKey="reports" fill="var(--color-reports)" radius={[2, 2, 0, 0]} />
                     <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                   </BarChart>
@@ -253,8 +246,8 @@ export default function AdminPage() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <Card className="xl:col-span-2 border-primary/20 bg-card/50 backdrop-blur-sm shadow-xl">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 relative z-20">
+          <Card className="xl:col-span-2 border-primary/20 bg-card/50 backdrop-blur-sm shadow-xl overflow-visible">
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -270,7 +263,7 @@ export default function AdminPage() {
                 </Link>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t mt-4 relative z-20">
+              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t mt-4 relative z-30">
                 <Select value={searchCategory} onValueChange={(val) => { setSearchCategory(val); setSearchTerm(''); }}>
                   <SelectTrigger className="w-full sm:w-48 bg-background/50"><Filter className="mr-2 h-4 w-4 text-primary" /><SelectValue placeholder="Category" /></SelectTrigger>
                   <SelectContent className="z-[100]">
