@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter, Calendar, Hash, Fingerprint } from 'lucide-react';
 import { useFirebase } from '@/firebase';
-import { collection, query, where, getDocs, limit, onSnapshot, orderBy, or } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,9 +42,6 @@ function ReportStats({ reports }: { reports: Report[] }) {
 export default function LandingPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchCategory, setSearchCategory] = useState('all');
-  const [searchResults, setSearchResults] = useState<Report[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [noResults, setNoResults] = useState(false);
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [isLoadingReports, setIsLoadingReports] = useState(true);
   const [visibleReportsCount, setVisibleReportsCount] = useState(INITIAL_VISIBLE_REPORTS);
@@ -56,58 +53,7 @@ export default function LandingPage() {
     return user?.email && ADMIN_EMAILS.includes(user.email);
   }, [user]);
 
-  useEffect(() => {
-    if (!user || !firestore || searchTerm.length < 2) {
-      setSearchResults([]);
-      setNoResults(false);
-      return;
-    }
-
-    setIsSearching(true);
-    const debounceTimeout = setTimeout(async () => {
-      const reportsRef = collection(firestore, `reports`);
-      const term = searchTerm.toUpperCase().trim();
-      
-      let q;
-      if (searchCategory === 'all') {
-        q = query(
-          reportsRef,
-          or(
-            where('vehicleId', '==', term),
-            where('engineNumber', '==', term),
-            where('chassisNumber', '==', term),
-            where('reportNumber', '==', term),
-            where('reportDate', '==', term)
-          ),
-          limit(10)
-        );
-      } else {
-        q = query(
-          reportsRef,
-          where(searchCategory, '==', term),
-          limit(10)
-        );
-      }
-
-      try {
-        const querySnapshot = await getDocs(q);
-        const results: Report[] = [];
-        querySnapshot.forEach((doc) => {
-          results.push({ id: doc.id, ...(doc.data() as Omit<Report, 'id'>) });
-        });
-        setSearchResults(results);
-        setNoResults(results.length === 0);
-      } catch (error) {
-        console.error("Error searching reports: ", error);
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 400);
-
-    return () => clearTimeout(debounceTimeout);
-  }, [searchTerm, searchCategory, firestore, user]);
-
+  // Fetch all reports in real-time to allow for substring "similar" search
   useEffect(() => {
     if (user && firestore) {
       setIsLoadingReports(true);
@@ -132,6 +78,29 @@ export default function LandingPage() {
         setIsLoadingReports(false);
     }
   }, [user, firestore]);
+
+  // Filter reports locally to show "similar" results (substring match)
+  const searchResults = useMemo(() => {
+    if (!searchTerm || searchTerm.length < 1) return [];
+    const term = searchTerm.toUpperCase().trim();
+    
+    return allReports.filter(report => {
+      if (searchCategory === 'all') {
+        return (
+          report.vehicleId.toUpperCase().includes(term) ||
+          (report.engineNumber || report.reportData?.engineNumber || '').toUpperCase().includes(term) ||
+          (report.chassisNumber || report.reportData?.chassisNumber || '').toUpperCase().includes(term) ||
+          (report.reportNumber || report.reportData?.reportNumber || '').toUpperCase().includes(term) ||
+          (report.reportDate || '').toUpperCase().includes(term)
+        );
+      } else {
+        const value = report[searchCategory as keyof Report] || report.reportData?.[searchCategory];
+        return typeof value === 'string' && value.toUpperCase().includes(term);
+      }
+    }).slice(0, 10);
+  }, [allReports, searchTerm, searchCategory]);
+
+  const noResults = searchTerm.length >= 2 && searchResults.length === 0;
 
   const handleCreateNew = () => {
     if (searchTerm) {
@@ -274,10 +243,10 @@ export default function LandingPage() {
                     </div>
 
                     <div className="mt-6 min-h-[100px]">
-                        {isSearching ? (
+                        {isLoadingReports ? (
                         <div className="flex flex-col items-center justify-center py-6 gap-2">
                           <Wrench className="h-6 w-6 animate-spin text-primary" />
-                          <p className="text-sm text-muted-foreground">Searching database...</p>
+                          <p className="text-sm text-muted-foreground">Loading database...</p>
                         </div>
                         ) : searchResults.length > 0 ? (
                         <ul className="space-y-2">
@@ -330,7 +299,7 @@ export default function LandingPage() {
                             <div className="text-center p-8 border-2 border-dashed rounded-xl bg-muted/10 opacity-60">
                               <p className="text-muted-foreground flex flex-col items-center gap-2">
                                 <Filter size={24} />
-                                Select a category and enter an ID to find existing reports.
+                                Search for existing reports or enter a Reg No to create a new one.
                               </p>
                             </div>
                         )
