@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Printer, Save, LockKeyhole, AlertTriangle, LayoutTemplate, RefreshCw } from 'lucide-react';
+import { Printer, Save, LockKeyhole, AlertTriangle, LayoutTemplate, RefreshCw, Hash } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
@@ -350,12 +349,32 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                 <Switch id="fill-mode" checked={isFilling} onCheckedChange={setIsFilling} />
                 <Label htmlFor="fill-mode" className="cursor-pointer">Filling Mode</Label>
               </div>
-              <div className="text-sm font-medium flex items-center gap-3">
-                Vehicle: <span className="text-primary font-mono">{vehicleId}</span>
+              <div className="flex items-center gap-6 border-l pl-6">
+                <div className="text-sm font-medium flex flex-col">
+                  <span className="text-[10px] uppercase text-muted-foreground font-bold">Vehicle ID</span>
+                  <span className="text-primary font-mono">{vehicleId}</span>
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="top-report-num" className="text-[10px] uppercase font-bold text-muted-foreground">Report Number</Label>
+                  <div className="relative">
+                    <Hash className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-primary/50" />
+                    <Input 
+                      id="top-report-num"
+                      value={reportData.reportNumber || ''} 
+                      onChange={(e) => handleDataChange('reportNumber', e.target.value.toUpperCase())}
+                      className="h-8 w-32 pl-7 font-mono text-xs bg-background/50 border-primary/20 focus:border-primary"
+                      placeholder="Report #"
+                    />
+                  </div>
+                </div>
+
                 {isSyncing && (
-                  <span className="flex items-center gap-1.5 text-[10px] text-primary font-bold animate-pulse bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-                    <RefreshCw size={10} className="animate-spin" /> Syncing Identifiers...
-                  </span>
+                  <div className="flex flex-col justify-center">
+                    <span className="flex items-center gap-1.5 text-[10px] text-primary font-bold animate-pulse bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                      <RefreshCw size={10} className="animate-spin" /> Syncing...
+                    </span>
+                  </div>
                 )}
               </div>
               <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Layout v{layoutVersion}</div>
@@ -395,7 +414,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
       <div className="hidden print-view">
         <ReportPage 
-          staticLabels={staticLabels}
+          staticLabels={staticLabels} 
           dynamicValues={dynamicValues}
           imageValues={imageValues}
         />
