@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -7,7 +8,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShieldOff, Search, History, Save, TrendingUp, Eye } from 'lucide-react';
+import { ShieldOff, Search, History, Save, TrendingUp, Eye, LayoutTemplate } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -221,10 +222,30 @@ export default function AdminPage() {
 
     return (
     <div className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-            <ReportStats reports={reports} />
-            <PasswordManager firestore={firestore} />
+        <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex-1">
+                <ReportStats reports={reports} />
+            </div>
+            <div className="flex-1">
+                 <Card className="h-full">
+                    <CardHeader>
+                        <CardTitle>Layout Management</CardTitle>
+                        <CardDescription>Customize the visual template used for all reports.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center">
+                        <Link href="/editor" passHref>
+                            <Button size="lg" className="w-full">
+                                <LayoutTemplate className="mr-2 h-5 w-5" />
+                                Edit Master Layout
+                            </Button>
+                        </Link>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
+        
+        <PasswordManager firestore={firestore} />
+
         <Card>
             <CardHeader>
                 <CardTitle>All Reports ({reports.length})</CardTitle>

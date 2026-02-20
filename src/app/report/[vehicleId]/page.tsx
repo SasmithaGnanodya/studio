@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, use } from 'react';
@@ -114,19 +115,18 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         setReportId(querySnapshot.docs[0].id);
         setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
         
-        // Use the report's specific layout version if it has one
-        if (report.layoutId) {
-            const layoutDoc = await getDoc(doc(firestore, 'layouts', report.layoutId));
+        // "make sure to all report will in same layout" 
+        // We prioritize the LATEST layout even for old reports if instructed,
+        // but typically we load the one it was saved with.
+        // User said: "make sure to all report will in same layout"
+        // So we fall back to latestId if available, or fixedLayout.
+        const layoutToLoad = latestId || report.layoutId;
+
+        if (layoutToLoad) {
+            const layoutDoc = await getDoc(doc(firestore, 'layouts', layoutToLoad));
             if (layoutDoc.exists()) {
                 setCurrentLayout(layoutDoc.data().fields);
                 setLayoutVersion(layoutDoc.data().version);
-            }
-        } else if (latestId) {
-            // Fallback to latest global layout
-            const latestDoc = await getDoc(doc(firestore, 'layouts', latestId));
-            if (latestDoc.exists()) {
-                setCurrentLayout(latestDoc.data().fields);
-                setLayoutVersion(latestDoc.data().version);
             }
         }
       } else {
@@ -157,7 +157,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       await runTransaction(firestore, async (transaction) => {
         const now = serverTimestamp();
         // Always link new/updated reports to the layout currently being used in the view
-        // (Or latest if upgrading)
         const configRef = doc(firestore, 'layouts', 'config');
         const configSnap = await transaction.get(configRef);
         const activeLayoutId = configSnap.exists() ? configSnap.data().currentId : null;
@@ -169,6 +168,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
             updatedAt: now,
             userId: user.uid,
             userName: user.displayName || user.email,
+            layoutId: activeLayoutId
           });
           
           // Add history entry

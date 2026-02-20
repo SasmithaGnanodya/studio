@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, use } from 'react';
@@ -10,7 +11,7 @@ import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { fixedLayout as initialLayout, initialReportState } from '@/lib/initialReportState';
+import { fixedLayout, initialReportState } from '@/lib/initialReportState';
 import type { FieldLayout, FieldPart, LayoutDocument } from '@/lib/types';
 import { EditorSidebar } from '@/components/EditorSidebar';
 import { ReportPage } from '@/components/ReportPage';
@@ -58,9 +59,8 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
 };
 
 
-export default function EditorPage({ params }: { params: Promise<any> }) {
-  const resolvedParams = use(params);
-  const [fields, setFields] = useState<FieldLayout[]>(initialLayout);
+export default function EditorPage() {
+  const [fields, setFields] = useState<FieldLayout[]>(fixedLayout);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const { firestore, user, isUserLoading } = useFirebase();
   const { toast } = useToast();
