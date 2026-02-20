@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -7,9 +6,8 @@ import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc } from 'fir
 import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, ShieldOff, Search, History, Save, TrendingUp } from 'lucide-react';
+import { ShieldOff, Search, History, Save, TrendingUp, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -229,9 +227,9 @@ export default function AdminPage() {
         </div>
         <Card>
             <CardHeader>
-                <CardTitle>All Reports</CardTitle>
+                <CardTitle>All Reports ({reports.length})</CardTitle>
                 <CardDescription>
-                  {`Overview of all ${reports.length} valuation reports in the system.`}
+                  Overview of all valuation reports in the system.
                 </CardDescription>
                  <div className="relative pt-4 flex items-center gap-4">
                     <div className="relative flex-grow">
@@ -244,9 +242,6 @@ export default function AdminPage() {
                             className="pl-10 w-full"
                         />
                     </div>
-                    <Link href="/editor" passHref>
-                        <Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit Layout</Button>
-                    </Link>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -271,7 +266,7 @@ export default function AdminPage() {
                                 </Link>
                                 <Link href={`/report/${report.vehicleId}`} passHref>
                                 <Button variant="outline" size="sm">
-                                    <Edit className="mr-2 h-3 w-3" /> View
+                                    <Eye className="mr-2 h-3 w-3" /> View
                                 </Button>
                                 </Link>
                             </CardFooter>
@@ -303,5 +298,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    

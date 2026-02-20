@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Printer, Eye, Save, LockKeyhole, AlertTriangle } from 'lucide-react';
+import { Printer, Save, LockKeyhole, AlertTriangle } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, collection, query, where, getDocs, serverTimestamp, runTransaction } from 'firebase/firestore';
-import type { FieldLayout, ImageData, Report } from '@/lib/types';
+import type { ImageData, Report } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
@@ -67,7 +67,7 @@ function PasswordGate({ onPasswordCorrect }: { onPasswordCorrect: () => void }) 
   );
 }
 
-export default function ReportBuilderPage({ params }: { params: { vehicleId: string } }) {
+export default function ReportBuilderPage({ params }: { params: Promise<{ vehicleId: string }> }) {
   const resolvedParams = use(params);
   const vehicleId = decodeURIComponent(resolvedParams.vehicleId);
 
@@ -145,7 +145,7 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
   };
 
   const { staticLabels, dynamicValues, imageValues } = useMemo(() => {
-    const labels = fixedLayout.map(f => ({
+    const labels = fixedLayout.filter(f => f.fieldType === 'staticText').map(f => ({
       ...f.label,
       id: `l-${f.id}`,
       fieldId: f.fieldId,
@@ -156,7 +156,9 @@ export default function ReportBuilderPage({ params }: { params: { vehicleId: str
       ...f.value,
       id: `v-${f.id}`,
       fieldId: f.fieldId,
-      value: String(reportData[f.fieldId] || '')
+      value: String(reportData[f.fieldId] || ''),
+      inputType: f.value.inputType,
+      options: f.value.options
     }));
 
     const images = fixedLayout.filter(f => f.fieldType === 'image').map(f => ({
