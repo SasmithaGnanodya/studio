@@ -1,15 +1,14 @@
-
-"use client";
+'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Search, PlusCircle, Car, FileText, Wrench, Shield, Edit, History } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Search, PlusCircle, Car, FileText, Wrench, Shield } from 'lucide-react';
 import { useFirebase } from '@/firebase';
-import { collection, query, where, getDocs, limit, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, onSnapshot, orderBy, or } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -55,9 +54,8 @@ export default function LandingPage() {
     return user?.email && ADMIN_EMAILS.includes(user.email);
   }, [user]);
 
-  // Effect for handling live search results
   useEffect(() => {
-    if (!user || !firestore || searchTerm.length < 1) {
+    if (!user || !firestore || searchTerm.length < 2) {
       setSearchResults([]);
       setNoResults(false);
       return;
@@ -66,11 +64,18 @@ export default function LandingPage() {
     setIsSearching(true);
     const debounceTimeout = setTimeout(async () => {
       const reportsRef = collection(firestore, `reports`);
+      const term = searchTerm.toUpperCase();
+      
+      // Multi-field search for key identifiers
       const q = query(
         reportsRef,
-        where('vehicleId', '>=', searchTerm.toUpperCase()),
-        where('vehicleId', '<=', searchTerm.toUpperCase() + '\uf8ff'),
-        limit(10)
+        or(
+          where('vehicleId', '==', term),
+          where('engineNumber', '==', term),
+          where('chassisNumber', '==', term),
+          where('reportNumber', '==', term)
+        ),
+        limit(5)
       );
 
       try {
@@ -87,14 +92,13 @@ export default function LandingPage() {
       } finally {
         setIsSearching(false);
       }
-    }, 500);
+    }, 400);
 
     return () => clearTimeout(debounceTimeout);
   }, [searchTerm, firestore, user]);
 
-  // Effect for fetching all reports for statistics and admin list
-   useEffect(() => {
-    if (user && firestore) { // Fetch for any logged-in user
+  useEffect(() => {
+    if (user && firestore) {
       setIsLoadingReports(true);
       const reportsRef = collection(firestore, 'reports');
       const q = query(reportsRef, orderBy('updatedAt', 'desc'));
@@ -125,17 +129,17 @@ export default function LandingPage() {
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && noResults && searchTerm) {
-      handleCreateNew();
-    } else if (e.key === 'Enter' && searchResults.length > 0) {
-      router.push(`/report/${searchResults[0].vehicleId}`);
-    } else if (e.key === 'Enter' && searchTerm) {
-      router.push(`/report/${searchTerm.toUpperCase()}`);
+    if (e.key === 'Enter') {
+      if (searchResults.length > 0) {
+        router.push(`/report/${searchResults[0].vehicleId}`);
+      } else if (searchTerm) {
+        router.push(`/report/${searchTerm.toUpperCase()}`);
+      }
     }
   }
   
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedValue = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const formattedValue = e.target.value.toUpperCase();
     setSearchTerm(formattedValue);
   };
   
@@ -181,20 +185,19 @@ export default function LandingPage() {
                     <div className="space-y-2">
                         <FileText className="mx-auto h-10 w-10 text-accent" />
                         <h3 className="font-semibold">Dynamic Reports</h3>
-                        <p className="text-sm text-muted-foreground">Instantly create new reports or search for existing ones by vehicle ID. Enjoy a live preview as you fill in data.</p>
+                        <p className="text-sm text-muted-foreground">Instantly create new reports or search for existing ones by ID. Enjoy a live preview as you fill in data.</p>
                     </div>
                     <div className="space-y-2">
                         <Wrench className="mx-auto h-10 w-10 text-accent" />
-                        <h3 className="font-semibold">Layout Customization</h3>
-                        <p className="text-sm text-muted-foreground">Admins can visually drag, drop, resize, and configure every field on the report, creating perfect, versioned layouts.</p>
+                        <h3 className="font-semibold">Interactive Editing</h3>
+                        <p className="text-sm text-muted-foreground">Fill out reports directly within the PDF layout. Drag and drop fields in the admin editor for pixel-perfect templates.</p>
                     </div>
                     <div className="space-y-2">
                         <Shield className="mx-auto h-10 w-10 text-accent" />
-                        <h3 className="font-semibold">Admin Control</h3>
-                        <p className="text-sm text-muted-foreground">A secure admin panel provides a full overview of all reports and access to a detailed save history for auditing.</p>
+                        <h3 className="font-semibold">Advanced Search</h3>
+                        <p className="text-sm text-muted-foreground">Quickly find reports using Registration Number, Engine Number, Chassis Number, or Report ID.</p>
                     </div>
                 </div>
-
                 <div className="text-center pt-4 border-t">
                     <p className="mt-4 text-base text-muted-foreground">
                         Please sign in to access the dashboard and begin.
@@ -213,7 +216,7 @@ export default function LandingPage() {
                     <CardHeader>
                     <CardTitle className="text-2xl">Vehicle Report Database</CardTitle>
                     <CardDescription>
-                        Search for an existing report by vehicle registration number or create a new one.
+                        Search by Reg No, Engine No, Chassis No, or Report ID.
                     </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -222,7 +225,7 @@ export default function LandingPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
                             type="text"
-                            placeholder="Enter Vehicle Registration No..."
+                            placeholder="Enter Search Criteria..."
                             value={searchTerm}
                             onChange={handleSearchChange}
                             onKeyDown={handleKeyDown}
@@ -232,7 +235,7 @@ export default function LandingPage() {
                         {noResults && searchTerm && (
                         <Button onClick={handleCreateNew} className="w-full sm:w-auto">
                             <PlusCircle className="mr-2 h-5 w-5" />
-                            Create New
+                            New Report
                         </Button>
                         )}
                     </div>
@@ -249,6 +252,10 @@ export default function LandingPage() {
                                     <Car className="mr-4 h-5 w-5 text-primary shrink-0" />
                                     <div className='flex-grow overflow-hidden'>
                                         <p className="font-semibold truncate">{report.vehicleId}</p>
+                                        <div className="flex gap-4 text-xs text-muted-foreground truncate">
+                                          <span>Eng: {report.engineNumber || 'N/A'}</span>
+                                          <span>Chassis: {report.chassisNumber || 'N/A'}</span>
+                                        </div>
                                     </div>
                                 </div>
                                 </Link>
@@ -258,12 +265,12 @@ export default function LandingPage() {
                         ) : noResults ? (
                             <div className="text-center p-6 border-2 border-dashed rounded-lg">
                             <p className="text-muted-foreground">No reports found for '<span className='font-semibold text-foreground'>{searchTerm}</span>'.</p>
-                            <p className="text-sm text-muted-foreground mt-1">You can create a new one now.</p>
+                            <p className="text-sm text-muted-foreground mt-1">Start a new valuation for this vehicle.</p>
                         </div>
                         ) : (
                         !searchTerm && (
                             <div className="text-center p-6 border-2 border-dashed rounded-lg">
-                            <p className="text-muted-foreground">Enter a vehicle number to begin searching.</p>
+                            <p className="text-muted-foreground">Enter search criteria to begin.</p>
                             </div>
                         )
                         )}
@@ -279,8 +286,8 @@ export default function LandingPage() {
         {isAdmin && (
           <Card className="bg-card/50 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>All Reports</CardTitle>
-              <CardDescription>A list of all reports in the system, sorted by the most recently updated.</CardDescription>
+              <CardTitle>Recent Reports</CardTitle>
+              <CardDescription>Most recently updated vehicle valuations.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {isLoadingReports ? (
@@ -296,11 +303,13 @@ export default function LandingPage() {
                             <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer">
                                 <CardHeader>
                                     <CardTitle className="font-mono text-primary">{report.vehicleId}</CardTitle>
-                                    <CardDescription>Last Saved By: {report.userName || 'Unknown'}</CardDescription>
+                                    <CardDescription>{report.reportNumber || 'No ID'}</CardDescription>
                                 </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-muted-foreground">
-                                        Last Updated: {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleString() : 'N/A'}
+                                <CardContent className="space-y-1">
+                                    <p className="text-xs text-muted-foreground truncate">Eng: {report.engineNumber || 'N/A'}</p>
+                                    <p className="text-xs text-muted-foreground truncate">Chassis: {report.chassisNumber || 'N/A'}</p>
+                                    <p className="text-[10px] text-muted-foreground mt-2 border-t pt-1">
+                                        Saved: {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -333,5 +342,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    

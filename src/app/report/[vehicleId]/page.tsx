@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, use } from 'react';
@@ -13,7 +12,7 @@ import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, collection, query, where, getDocs, serverTimestamp, runTransaction } from 'firebase/firestore';
-import type { ImageData, Report, LayoutDocument, FieldLayout } from '@/lib/types';
+import type { ImageData, Report, FieldLayout } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
@@ -89,14 +88,12 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   useEffect(() => { if (isAdmin) setIsAuthorized(true); }, [isAdmin]);
 
-  // Fetch report data and the latest layout config
   useEffect(() => {
     if (!user || !firestore || !isAuthorized) return;
 
     const fetchData = async () => {
       setIsLoading(true);
       
-      // 1. Fetch latest layout config
       const configRef = doc(firestore, 'layouts', 'config');
       const configSnap = await getDoc(configRef);
       let latestId = null;
@@ -105,7 +102,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           setLatestLayoutId(latestId);
       }
 
-      // 2. Fetch the report
       const reportsRef = collection(firestore, 'reports');
       const q = query(reportsRef, where('vehicleId', '==', vehicleId));
       const querySnapshot = await getDocs(q);
@@ -115,11 +111,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         setReportId(querySnapshot.docs[0].id);
         setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
         
-        // "make sure to all report will in same layout" 
-        // We prioritize the LATEST layout even for old reports if instructed,
-        // but typically we load the one it was saved with.
-        // User said: "make sure to all report will in same layout"
-        // So we fall back to latestId if available, or fixedLayout.
         const layoutToLoad = latestId || report.layoutId;
 
         if (layoutToLoad) {
@@ -130,7 +121,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
             }
         }
       } else {
-        // New report: Use latest global layout
         setReportData({ ...initialReportState, regNumber: vehicleId });
         if (latestId) {
             const latestDoc = await getDoc(doc(firestore, 'layouts', latestId));
@@ -156,44 +146,40 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     try {
       await runTransaction(firestore, async (transaction) => {
         const now = serverTimestamp();
-        // Always link new/updated reports to the layout currently being used in the view
         const configRef = doc(firestore, 'layouts', 'config');
         const configSnap = await transaction.get(configRef);
         const activeLayoutId = configSnap.exists() ? configSnap.data().currentId : null;
 
+        const reportHeaderData = {
+          vehicleId: vehicleId.toUpperCase(),
+          engineNumber: String(reportData.engineNumber || '').toUpperCase(),
+          chassisNumber: String(reportData.chassisNumber || '').toUpperCase(),
+          reportNumber: String(reportData.reportNumber || '').toUpperCase(),
+          reportDate: String(reportData.date || ''),
+          userId: user.uid,
+          userName: user.displayName || user.email,
+          reportData: reportData,
+          updatedAt: now,
+          layoutId: activeLayoutId
+        };
+
         if (reportId) {
           const reportRef = doc(firestore, 'reports', reportId);
-          transaction.update(reportRef, {
-            reportData: reportData,
-            updatedAt: now,
-            userId: user.uid,
-            userName: user.displayName || user.email,
-            layoutId: activeLayoutId
-          });
+          transaction.update(reportRef, reportHeaderData);
           
-          // Add history entry
           const historyRef = doc(collection(firestore, 'reports', reportId, 'history'));
           transaction.set(historyRef, {
+              ...reportHeaderData,
               reportId,
-              vehicleId,
-              userId: user.uid,
-              userName: user.displayName || user.email,
-              reportData: reportData,
-              savedAt: now,
-              layoutId: activeLayoutId
+              savedAt: now
           });
 
         } else {
           const newReportRef = doc(collection(firestore, 'reports'));
           transaction.set(newReportRef, {
+            ...reportHeaderData,
             id: newReportRef.id,
-            vehicleId,
-            userId: user.uid,
-            userName: user.displayName || user.email,
-            reportData: reportData,
-            createdAt: now,
-            updatedAt: now,
-            layoutId: activeLayoutId
+            createdAt: now
           });
           setReportId(newReportRef.id);
         }

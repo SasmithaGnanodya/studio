@@ -37,10 +37,15 @@ export type ImageData = {
 
 export type Report = {
   id: string;
-  vehicleId: string;
+  vehicleId: string; // Registration Number
+  engineNumber?: string;
+  chassisNumber?: string;
+  reportNumber?: string;
+  reportDate?: string;
   userId: string;
   userName?: string;
   reportData: { [key: string]: any };
   createdAt: { seconds: number, nanoseconds: number };
   updatedAt: { seconds: number, nanoseconds: number };
+  layoutId?: string | null;
 };

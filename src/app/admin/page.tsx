@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -164,8 +163,12 @@ export default function AdminPage() {
 
   const filteredReports = useMemo(() => {
     if (!searchTerm) return reports;
+    const term = searchTerm.toUpperCase();
     return reports.filter(report => 
-      report.vehicleId.toUpperCase().includes(searchTerm.toUpperCase())
+      report.vehicleId.toUpperCase().includes(term) ||
+      (report.engineNumber && report.engineNumber.toUpperCase().includes(term)) ||
+      (report.chassisNumber && report.chassisNumber.toUpperCase().includes(term)) ||
+      (report.reportNumber && report.reportNumber.toUpperCase().includes(term))
     );
   }, [reports, searchTerm]);
 
@@ -250,14 +253,14 @@ export default function AdminPage() {
             <CardHeader>
                 <CardTitle>All Reports ({reports.length})</CardTitle>
                 <CardDescription>
-                  Overview of all valuation reports in the system.
+                  Search by any identifier: Reg No, Eng No, Chassis No, or ID.
                 </CardDescription>
                  <div className="relative pt-4 flex items-center gap-4">
                     <div className="relative flex-grow">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
                             type="text"
-                            placeholder="Search by Vehicle ID..."
+                            placeholder="Search reports..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10 w-full"
@@ -272,11 +275,16 @@ export default function AdminPage() {
                         <Card key={report.id}>
                              <CardHeader>
                                 <CardTitle className="font-mono text-primary">{report.vehicleId}</CardTitle>
-                                <CardDescription>Last Saved By: {report.userName || 'Unknown'}</CardDescription>
+                                <CardDescription>{report.reportNumber || 'No Report ID'}</CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground">
-                                    Last Updated: {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleString() : 'N/A'}
+                            <CardContent className="space-y-1">
+                                <p className="text-xs text-muted-foreground truncate">Eng: {report.engineNumber || 'N/A'}</p>
+                                <p className="text-xs text-muted-foreground truncate">Chassis: {report.chassisNumber || 'N/A'}</p>
+                                <p className="text-xs text-muted-foreground mt-2 border-t pt-2">
+                                    Last Saved By: {report.userName || 'Unknown'}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">
+                                    Updated: {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleString() : 'N/A'}
                                 </p>
                             </CardContent>
                             <CardFooter className="flex justify-end gap-2">
