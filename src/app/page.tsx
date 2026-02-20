@@ -346,7 +346,7 @@ export default function LandingPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-1">
-                                    <p className="text-[10px] text-muted-foreground truncate">
+                                    <p className="text-[10px] text-muted-foreground truncate font-semibold">
                                       Eng: {report.engineNumber || report.reportData?.engineNumber || 'N/A'}
                                     </p>
                                     <p className="text-[10px] text-muted-foreground truncate">

@@ -310,7 +310,7 @@ export default function AdminPage() {
                                 <CardDescription className="text-xs">{report.reportDate || 'No Date'}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-1">
-                                <p className="text-xs text-muted-foreground truncate">
+                                <p className="text-xs text-muted-foreground truncate font-semibold">
                                   Eng: {report.engineNumber || report.reportData?.engineNumber || 'N/A'}
                                 </p>
                                 <p className="text-xs text-muted-foreground truncate">
