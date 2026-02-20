@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
 import { Button } from './ui/button';
@@ -21,7 +21,7 @@ type ImageAdjustmentControlProps = {
   height?: number; // height in mm
   isInline?: boolean; // If true, only shows the button
   forceOpen?: boolean;
-  onOpenToggle?: (isOpen: boolean) => void;
+  onOpen?: () => void;
   onClose?: () => void;
 };
 
@@ -34,22 +34,14 @@ export const ImageAdjustmentControl = ({
   height = 100,
   isInline = false,
   forceOpen = false,
-  onOpenToggle,
+  onOpen,
   onClose
 }: ImageAdjustmentControlProps) => {
   const { storage } = useFirebase();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
-  const [internalOpen, setInternalOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(!value.url);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const isOpen = forceOpen || internalOpen;
-
-  const toggleOpen = (val: boolean) => {
-    setInternalOpen(val);
-    onOpenToggle?.(val);
-  };
 
   const handleScaleChange = (newScale: number[]) => {
     onChange({ ...value, scale: newScale[0] });
@@ -128,12 +120,8 @@ export const ImageAdjustmentControl = ({
     setShowSettings(true);
   };
 
-  const closeControl = () => {
-    toggleOpen(false);
-    onClose?.();
-  };
-
-  if (!isOpen) {
+  // If not explicitly forced open (modal mode), render the trigger button
+  if (!forceOpen) {
     return (
       <Button 
         variant="secondary" 
@@ -142,23 +130,27 @@ export const ImageAdjustmentControl = ({
           "shadow-xl ring-2 ring-primary/30 hover:ring-primary/60 transition-all font-bold gap-2 pointer-events-auto",
           !isInline && "bg-background/90 backdrop-blur-md opacity-0 group-hover:opacity-100"
         )}
-        onClick={() => toggleOpen(true)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpen?.();
+        }}
       >
         <Move size={14} /> Adjust Image
       </Button>
     );
   }
 
+  // Render the Modal UI (only when forceOpen is true)
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[99999] pointer-events-auto p-4 overflow-hidden">
       <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" 
-        onClick={closeControl} 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+        onClick={onClose} 
       />
       
       <Card className="relative w-full max-w-lg max-h-[90vh] bg-card border-2 shadow-2xl ring-4 ring-primary/10 animate-in zoom-in-95 duration-200 flex flex-col overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-muted/30 shrink-0">
-          <CardTitle className="text-sm font-bold flex items-center gap-2">
+          <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
             <ImageIcon className="h-4 w-4 text-primary" />
             {showSettings ? 'Upload Photo' : 'Image Adjuster'}
           </CardTitle>
@@ -176,14 +168,14 @@ export const ImageAdjustmentControl = ({
               variant="ghost" 
               size="icon" 
               className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" 
-              onClick={closeControl}
+              onClick={onClose}
             >
                 <X size={18} />
             </Button>
           </div>
         </CardHeader>
 
-        <ScrollArea className="flex-1 overflow-y-auto bg-background/50">
+        <ScrollArea className="flex-1 overflow-y-auto bg-background">
           <CardContent className="p-6 space-y-6">
             <div className="space-y-2">
               <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Live Frame Preview</Label>
@@ -318,7 +310,7 @@ export const ImageAdjustmentControl = ({
         </ScrollArea>
         
         <CardFooter className="p-4 border-t bg-muted/10 shrink-0">
-          <Button className="w-full h-12 text-sm font-bold uppercase tracking-widest shadow-xl" onClick={closeControl}>
+          <Button className="w-full h-12 text-sm font-bold uppercase tracking-widest shadow-xl" onClick={onClose}>
               Finish Adjusting
           </Button>
         </CardFooter>

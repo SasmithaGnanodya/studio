@@ -172,7 +172,7 @@ export const ReportPage = ({
                 onChange={(val) => onValueChange?.(field.fieldId, val)}
                 width={field.width}
                 height={field.height}
-                onOpenToggle={(isOpen) => isOpen ? setAdjustingFieldId(field.fieldId) : setAdjustingFieldId(null)}
+                onOpen={() => setAdjustingFieldId(field.fieldId)}
               />
             </div>
           </div>
