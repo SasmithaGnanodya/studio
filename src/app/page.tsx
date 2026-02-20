@@ -293,23 +293,23 @@ export default function LandingPage() {
                                             #{report.reportNumber || report.reportData?.reportNumber || 'N/A'}
                                           </span>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
-                                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                                            <Fingerprint size={12} className="text-primary/60" />
-                                            Eng: <span className="font-bold text-foreground truncate">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
-                                          </span>
-                                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                                            <Hash size={12} className="text-primary/60" />
-                                            Chas: <span className="font-bold text-foreground truncate">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
-                                          </span>
-                                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                                            <Calendar size={12} className="text-primary/60" />
-                                            Date: <span className="font-bold text-foreground">{report.reportDate || 'N/A'}</span>
-                                          </span>
-                                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                                            <Wrench size={12} className="text-primary/60" />
-                                            Mod: <span className="font-bold text-foreground">{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
-                                          </span>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 mt-2">
+                                          <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
+                                            <span className="text-muted-foreground flex items-center gap-1"><Fingerprint size={12} className="text-primary/60" /> Eng:</span>
+                                            <span className="font-bold text-foreground truncate">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
+                                          </div>
+                                          <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
+                                            <span className="text-muted-foreground flex items-center gap-1"><Hash size={12} className="text-primary/60" /> Chas:</span>
+                                            <span className="font-bold text-foreground truncate">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
+                                          </div>
+                                          <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
+                                            <span className="text-muted-foreground flex items-center gap-1"><Calendar size={12} className="text-primary/60" /> Date:</span>
+                                            <span className="font-bold text-foreground">{report.reportDate || 'N/A'}</span>
+                                          </div>
+                                          <div className="flex justify-between sm:justify-start items-center gap-2 text-[11px]">
+                                            <span className="text-muted-foreground flex items-center gap-1"><Wrench size={12} className="text-primary/60" /> Mod:</span>
+                                            <span className="font-bold text-foreground">{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
+                                          </div>
                                         </div>
                                     </div>
                                 </div>
@@ -387,23 +387,25 @@ export default function LandingPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-3 pt-4">
-                                    <div className="space-y-1.5">
-                                      <div className="flex justify-between text-[11px]">
-                                        <span className="text-muted-foreground flex items-center gap-1"><Fingerprint size={10} /> Engine:</span>
+                                    <div className="space-y-2">
+                                      <div className="flex justify-between items-center text-[11px]">
+                                        <span className="text-muted-foreground flex items-center gap-1.5"><Fingerprint size={12} className="text-primary/70" /> Engine:</span>
                                         <span className="font-bold text-foreground truncate">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
                                       </div>
-                                      <div className="flex justify-between text-[11px]">
-                                        <span className="text-muted-foreground flex items-center gap-1"><Hash size={10} /> Chassis:</span>
+                                      <div className="flex justify-between items-center text-[11px]">
+                                        <span className="text-muted-foreground flex items-center gap-1.5"><Hash size={12} className="text-primary/70" /> Chassis:</span>
                                         <span className="font-bold text-foreground truncate max-w-[120px]">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
                                       </div>
-                                      <div className="flex justify-between text-[11px]">
-                                        <span className="text-muted-foreground flex items-center gap-1"><Calendar size={10} /> Date:</span>
+                                      <div className="flex justify-between items-center text-[11px]">
+                                        <span className="text-muted-foreground flex items-center gap-1.5"><Calendar size={12} className="text-primary/70" /> Date:</span>
                                         <span className="font-bold text-foreground">{report.reportDate || 'N/A'}</span>
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-2 pt-2 border-t mt-2 text-[10px] text-muted-foreground">
-                                        <Calendar size={12} className="shrink-0 text-primary/70" />
-                                        <span className="font-medium">{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
+                                    <div className="flex items-center gap-2 pt-2.5 border-t mt-2 text-[10px] text-muted-foreground">
+                                        <div className="flex items-center gap-1.5">
+                                          <Calendar size={12} className="shrink-0 text-primary/70" />
+                                          <span className="font-medium">{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
+                                        </div>
                                         <span className="ml-auto opacity-70 truncate bg-muted px-1.5 py-0.5 rounded-sm">{report.userName?.split(' ')[0] || 'User'}</span>
                                     </div>
                                 </CardContent>
