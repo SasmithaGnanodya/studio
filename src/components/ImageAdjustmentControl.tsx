@@ -12,15 +12,18 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
+import { cn } from '@/lib/utils';
 
 type ImageAdjustmentControlProps = {
   value: ImageData;
   onChange: (value: ImageData) => void;
+  width?: number; // width in mm
+  height?: number; // height in mm
 };
 
 const PAN_STEP = 10; // pixels per click
 
-export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentControlProps) => {
+export const ImageAdjustmentControl = ({ value, onChange, width = 180, height = 100 }: ImageAdjustmentControlProps) => {
   const { storage } = useFirebase();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
@@ -129,7 +132,7 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
         onClick={() => setIsOpen(false)} 
       />
       
-      <Card className="relative w-full max-w-sm bg-card border shadow-2xl ring-2 ring-primary/20 animate-in zoom-in-95 duration-200">
+      <Card className="relative w-full max-w-md bg-card border shadow-2xl ring-2 ring-primary/20 animate-in zoom-in-95 duration-200">
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
           <CardTitle className="text-sm font-bold flex items-center gap-2">
             <ImageIcon className="h-4 w-4 text-primary" />
@@ -157,26 +160,42 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
         </CardHeader>
 
         <CardContent className="space-y-4 pt-4">
+          {/* Real-time Preview Section */}
+          <div className="space-y-2">
+            <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Live Frame Preview</Label>
+            <div 
+              className="relative w-full overflow-hidden bg-muted border-2 border-primary/20 rounded-lg shadow-inner flex items-center justify-center"
+              style={{ 
+                aspectRatio: `${width} / ${height}`,
+                maxHeight: '200px'
+              }}
+            >
+              {value.url ? (
+                <img 
+                  src={value.url} 
+                  alt="Live preview" 
+                  className="w-full h-full pointer-events-none transition-transform duration-75 ease-out"
+                  style={{
+                    objectFit: value.fit || 'cover',
+                    transform: `scale(${value.scale}) translate(${value.x}px, ${value.y}px)`
+                  }}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground/40">
+                  <ImageIcon size={32} />
+                  <span className="text-xs">No image to preview</span>
+                </div>
+              )}
+            </div>
+          </div>
+
           {showSettings ? (
             <div className="space-y-4">
               <div className="flex flex-col gap-2">
-                {value.url ? (
-                  <div className="relative group rounded-md overflow-hidden border bg-muted aspect-video">
-                     <img src={value.url} alt="preview" className="w-full h-full object-cover" />
-                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
-                     <Button 
-                        variant="destructive" 
-                        size="icon" 
-                        className="absolute top-2 right-2 h-7 w-7 rounded-full shadow-lg"
-                        onClick={clearImage}
-                     >
-                       <X size={14} />
-                     </Button>
-                  </div>
-                ) : (
+                {!value.url && (
                   <Button 
                     variant="outline" 
-                    className="w-full h-32 flex flex-col items-center justify-center border-dashed border-2 gap-3 hover:bg-muted/50 hover:border-primary/50 transition-all"
+                    className="w-full h-24 flex flex-col items-center justify-center border-dashed border-2 gap-3 hover:bg-muted/50 hover:border-primary/50 transition-all"
                     onClick={handleUploadClick}
                     disabled={isUploading}
                   >
@@ -187,10 +206,10 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
                       </>
                     ) : (
                       <>
-                        <div className="p-3 rounded-full bg-primary/10">
-                          <Upload className="h-6 w-6 text-primary" />
+                        <div className="p-2 rounded-full bg-primary/10">
+                          <Upload className="h-5 w-5 text-primary" />
                         </div>
-                        <span className="text-xs font-semibold">Click to Upload Vehicle Photo</span>
+                        <span className="text-xs font-semibold">Upload Vehicle Photo</span>
                       </>
                     )}
                   </Button>
@@ -205,13 +224,20 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
               </div>
               <div className="space-y-1.5 pt-2">
                 <Label htmlFor="imageUrl" className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Direct Image URL</Label>
-                <Input
-                  id="imageUrl"
-                  placeholder="Paste URL here..."
-                  value={value.url}
-                  onChange={handleUrlChange}
-                  className="h-9 text-xs font-mono"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="imageUrl"
+                    placeholder="Paste URL here..."
+                    value={value.url}
+                    onChange={handleUrlChange}
+                    className="h-9 text-xs font-mono"
+                  />
+                  {value.url && (
+                    <Button variant="destructive" size="icon" onClick={clearImage} className="shrink-0 h-9 w-9">
+                      <X size={14} />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           ) : (

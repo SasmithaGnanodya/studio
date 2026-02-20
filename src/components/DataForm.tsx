@@ -59,6 +59,8 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
                   <ImageAdjustmentControl
                     value={data[field.fieldId] || { url: '', scale: 1, x: 0, y: 0 }}
                     onChange={(value) => onDataChange(field.fieldId, value)}
+                    width={field.placeholder?.width}
+                    height={field.placeholder?.height}
                   />
                 ) : (
                   <Input

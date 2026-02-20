@@ -155,6 +155,8 @@ export const ReportPage = ({
               <ImageAdjustmentControl
                 value={field.value}
                 onChange={(val) => onValueChange?.(field.fieldId, val)}
+                width={field.width}
+                height={field.height}
               />
             </div>
           </div>
