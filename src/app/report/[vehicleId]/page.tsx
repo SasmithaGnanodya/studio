@@ -1,17 +1,18 @@
+
 'use client';
 
-import React, { useState, useEffect, useMemo, use } from 'react';
+import React, { useState, useEffect, useMemo, use, useRef } from 'react';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Printer, Save, LockKeyhole, AlertTriangle, LayoutTemplate } from 'lucide-react';
+import { Printer, Save, LockKeyhole, AlertTriangle, LayoutTemplate, RefreshCw } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, collection, query, where, getDocs, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, serverTimestamp, runTransaction, updateDoc } from 'firebase/firestore';
 import type { ImageData, Report, FieldLayout } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -44,7 +45,7 @@ function PasswordGate({ onPasswordCorrect }: { onPasswordCorrect: () => void }) 
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm border-primary/20">
+      <Card className="w-full max-sm:max-w-xs border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary"><LockKeyhole className="h-5 w-5" /> Secure Access</CardTitle>
           <CardDescription>Enter password to unlock this report.</CardDescription>
@@ -80,11 +81,13 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const [isFilling, setIsFilling] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
 
   const isAdmin = useMemo(() => user?.email && ADMIN_EMAILS.includes(user.email), [user]);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => { if (isAdmin) setIsAuthorized(true); }, [isAdmin]);
 
@@ -155,6 +158,35 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
     fetchData();
   }, [user, firestore, vehicleId, isAuthorized]);
+
+  // Real-time Debounced Sync for Identifiers
+  useEffect(() => {
+    if (!reportId || !firestore || !isAuthorized) return;
+
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+
+    syncTimeoutRef.current = setTimeout(async () => {
+      setIsSyncing(true);
+      try {
+        const reportRef = doc(firestore, 'reports', reportId);
+        await updateDoc(reportRef, {
+          engineNumber: String(reportData.engineNumber || '').toUpperCase(),
+          chassisNumber: String(reportData.chassisNumber || '').toUpperCase(),
+          reportNumber: String(reportData.reportNumber || '').toUpperCase(),
+          reportDate: String(reportData.date || ''),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (err) {
+        console.error("Indexing sync failed:", err);
+      } finally {
+        setIsSyncing(false);
+      }
+    }, 2000); // 2 second debounce
+
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, [reportData.engineNumber, reportData.chassisNumber, reportData.reportNumber, reportData.date, reportId, firestore, isAuthorized]);
 
   const handleDataChange = (fieldId: string, value: string | ImageData) => {
     setReportData(prev => ({ ...prev, [fieldId]: value }));
@@ -263,7 +295,14 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                 <Switch id="fill-mode" checked={isFilling} onCheckedChange={setIsFilling} />
                 <Label htmlFor="fill-mode" className="cursor-pointer">Filling Mode</Label>
               </div>
-              <div className="text-sm font-medium">Vehicle: <span className="text-primary font-mono">{vehicleId}</span></div>
+              <div className="text-sm font-medium flex items-center gap-3">
+                Vehicle: <span className="text-primary font-mono">{vehicleId}</span>
+                {isSyncing && (
+                  <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground animate-pulse">
+                    <RefreshCw size={10} className="animate-spin" /> Syncing filters...
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Layout v{layoutVersion}</div>
             </div>
             <div className="flex gap-2">
@@ -273,7 +312,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                   </Button>
               )}
               <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  <Save className="mr-2 h-4 w-4" /> Save
+                  <Save className="mr-2 h-4 w-4" /> Save Report
               </Button>
               <Button variant="outline" onClick={() => window.print()}>
                   <Printer className="mr-2 h-4 w-4" /> Print

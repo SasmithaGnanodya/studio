@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -7,7 +8,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShieldOff, Search, History, Save, TrendingUp, Eye, LayoutTemplate, Filter } from 'lucide-react';
+import { ShieldOff, Search, History, Save, TrendingUp, Eye, LayoutTemplate, Filter, Car, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -145,7 +146,7 @@ export default function AdminPage() {
     if (firestore) {
       setIsLoading(true);
       const reportsRef = collection(firestore, 'reports');
-      const q = query(reportsRef, orderBy('createdAt', 'desc'));
+      const q = query(reportsRef, orderBy('updatedAt', 'desc'));
 
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const fetchedReports: Report[] = [];
@@ -297,41 +298,50 @@ export default function AdminPage() {
             {visibleReports.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {visibleReports.map(report => (
-                        <Card key={report.id}>
-                             <CardHeader>
-                                <CardTitle className="font-mono text-primary flex justify-between items-center text-lg">
-                                  {report.vehicleId}
+                        <Card key={report.id} className="border border-primary/10 shadow-sm overflow-hidden flex flex-col">
+                             <CardHeader className="pb-3 bg-muted/30">
+                                <div className="flex justify-between items-start">
+                                  <CardTitle className="font-mono text-primary font-bold text-xl">
+                                    {report.vehicleId}
+                                  </CardTitle>
                                   {(report.reportNumber || report.reportData?.reportNumber) && (
-                                    <span className="text-[10px] bg-primary/10 px-1.5 py-0.5 rounded font-mono">
+                                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 font-mono">
                                       {report.reportNumber || report.reportData?.reportNumber}
                                     </span>
                                   )}
-                                </CardTitle>
-                                <CardDescription className="text-xs">{report.reportDate || 'No Date'}</CardDescription>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                  <Calendar size={12} />
+                                  {report.reportDate || 'No Date'}
+                                </div>
                             </CardHeader>
-                            <CardContent className="space-y-1">
-                                <p className="text-xs text-muted-foreground truncate font-semibold">
-                                  Eng: {report.engineNumber || report.reportData?.engineNumber || 'N/A'}
-                                </p>
-                                <p className="text-xs text-muted-foreground truncate">
-                                  Chassis: {report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-2 border-t pt-2">
-                                    Last Saved By: {report.userName || 'Unknown'}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground">
-                                    Updated: {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleString() : 'N/A'}
-                                </p>
+                            <CardContent className="space-y-3 pt-4">
+                                <div className="space-y-1.5">
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-muted-foreground">Engine No:</span>
+                                    <span className="font-bold">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-muted-foreground">Chassis No:</span>
+                                    <span className="font-bold truncate max-w-[120px]">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
+                                  </div>
+                                </div>
+                                <div className="pt-2 border-t text-[10px] text-muted-foreground flex justify-between items-center">
+                                    <span>Last Saved By: <span className="text-foreground/80 font-medium">{report.userName?.split(' ')[0] || 'Unknown'}</span></span>
+                                    <span className="opacity-70">
+                                      {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                                    </span>
+                                </div>
                             </CardContent>
-                            <CardFooter className="flex justify-end gap-2">
+                            <CardFooter className="flex justify-end gap-2 pt-2 border-t mt-auto bg-muted/10">
                                 <Link href={`/admin/history/${report.id}`} passHref>
-                                    <Button variant="ghost" size="sm">
-                                        <History className="mr-2 h-3 w-3" /> History
+                                    <Button variant="ghost" size="sm" className="h-8 text-xs">
+                                        <History className="mr-1.5 h-3 w-3" /> History
                                     </Button>
                                 </Link>
                                 <Link href={`/report/${report.vehicleId}`} passHref>
-                                <Button variant="outline" size="sm">
-                                    <Eye className="mr-2 h-3 w-3" /> View
+                                <Button variant="outline" size="sm" className="h-8 text-xs border-primary/20 hover:border-primary hover:text-primary">
+                                    <Eye className="mr-1.5 h-3 w-3" /> View
                                 </Button>
                                 </Link>
                             </CardFooter>
@@ -345,7 +355,7 @@ export default function AdminPage() {
             )}
              {filteredReports.length > visibleReportsCount && (
                 <div className="mt-6 text-center">
-                    <Button onClick={handleShowMore} variant="secondary">See More</Button>
+                    <Button onClick={handleShowMore} variant="secondary">See More Reports</Button>
                 </div>
             )}
             </CardContent>

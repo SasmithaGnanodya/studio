@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -6,7 +7,7 @@ import { Header } from '@/components/header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter } from 'lucide-react';
+import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter, Calendar } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { collection, query, where, getDocs, limit, onSnapshot, orderBy, or } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
@@ -278,17 +279,17 @@ export default function LandingPage() {
                                 <div className="flex items-center p-3 rounded-md border bg-card hover:bg-muted transition-colors cursor-pointer">
                                     <Car className="mr-4 h-5 w-5 text-primary shrink-0" />
                                     <div className='flex-grow overflow-hidden'>
-                                        <div className="flex items-center gap-2">
-                                          <p className="font-semibold truncate">{report.vehicleId}</p>
+                                        <div className="flex items-center justify-between gap-2">
+                                          <p className="font-bold text-lg truncate font-mono text-primary">{report.vehicleId}</p>
                                           {(report.reportNumber || report.reportData?.reportNumber) && (
-                                            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono">
+                                            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono border border-primary/20">
                                               {report.reportNumber || report.reportData?.reportNumber}
                                             </span>
                                           )}
                                         </div>
-                                        <div className="flex gap-4 text-[10px] text-muted-foreground truncate">
-                                          <span>Eng: {report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
-                                          <span>Chassis: {report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
+                                        <div className="grid grid-cols-2 gap-x-4 text-[11px] text-muted-foreground">
+                                          <span className="truncate">Eng: <span className="font-bold text-foreground">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span></span>
+                                          <span className="truncate">Chassis: <span className="font-bold text-foreground">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span></span>
                                         </div>
                                     </div>
                                 </div>
@@ -319,9 +320,9 @@ export default function LandingPage() {
 
         {isAdmin && (
           <Card className="bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle>Recent Reports</CardTitle>
-              <CardDescription>Most recently updated vehicle valuations.</CardDescription>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xl">Recent Reports</CardTitle>
+              <CardDescription>Recently updated vehicle valuations.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {isLoadingReports ? (
@@ -334,27 +335,33 @@ export default function LandingPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {visibleReports.map(report => (
                         <Link key={report.id} href={`/report/${report.vehicleId}`} passHref>
-                            <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer">
+                            <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer border border-primary/10 shadow-sm shadow-primary/5">
                                 <CardHeader className="pb-2">
-                                    <CardTitle className="font-mono text-primary text-base flex justify-between items-center">
-                                      {report.vehicleId}
+                                    <div className="flex justify-between items-start">
+                                      <CardTitle className="font-mono text-primary text-xl font-bold">
+                                        {report.vehicleId}
+                                      </CardTitle>
                                       {(report.reportNumber || report.reportData?.reportNumber) && (
-                                        <span className="text-[10px] bg-primary/10 px-1.5 py-0.5 rounded-sm">
+                                        <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-sm border border-primary/20 font-mono">
                                           {report.reportNumber || report.reportData?.reportNumber}
                                         </span>
                                       )}
-                                    </CardTitle>
+                                    </div>
                                 </CardHeader>
-                                <CardContent className="space-y-1">
-                                    <p className="text-[10px] text-muted-foreground truncate font-semibold">
-                                      Eng: {report.engineNumber || report.reportData?.engineNumber || 'N/A'}
-                                    </p>
-                                    <p className="text-[10px] text-muted-foreground truncate">
-                                      Chassis: {report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}
-                                    </p>
-                                    <p className="text-[9px] text-muted-foreground mt-2 border-t pt-1">
-                                        Saved: {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}
-                                    </p>
+                                <CardContent className="space-y-2">
+                                    <div className="space-y-1">
+                                      <p className="text-[11px] text-muted-foreground truncate leading-none">
+                                        Eng: <span className="font-bold text-foreground">{report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
+                                      </p>
+                                      <p className="text-[11px] text-muted-foreground truncate leading-none">
+                                        Chassis: <span className="font-bold text-foreground">{report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 pt-2 border-t mt-2 text-[10px] text-muted-foreground">
+                                        <Calendar size={12} className="shrink-0" />
+                                        <span>{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
+                                        <span className="ml-auto opacity-70 truncate">{report.userName?.split(' ')[0] || 'User'}</span>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </Link>
@@ -367,7 +374,7 @@ export default function LandingPage() {
               )}
                {allReports.length > visibleReportsCount && (
                 <div className="mt-6 text-center">
-                    <Button onClick={handleShowMore} variant="secondary">See More</Button>
+                    <Button onClick={handleShowMore} variant="secondary">See More Reports</Button>
                 </div>
               )}
             </CardContent>
