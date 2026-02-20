@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Mail, ShieldCheck, Globe, Info } from 'lucide-react';
+import { FileText, ShieldCheck, Info, CheckCircle2, Lock, Database, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 export function Footer() {
@@ -53,23 +53,54 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Support & Security */}
+          {/* Verification & Security */}
           <div className="space-y-4">
             <h3 className="text-sm font-bold uppercase tracking-wider text-primary flex items-center gap-2">
-              <ShieldCheck size={16} /> Security & Support
+              <ShieldCheck size={16} /> System Verification
             </h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 p-2 rounded-md border border-border/50">
-                <ShieldCheck size={16} className="text-green-500 shrink-0" />
-                <span className="truncate">Cloud Data Sovereignty: Verified</span>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border border-border/50 text-[11px] font-medium text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={14} className="text-primary" />
+                  <span>Data Sovereignty</span>
+                </div>
+                <div className="flex items-center gap-1 text-green-600">
+                  <CheckCircle2 size={12} />
+                  <span>VERIFIED</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail size={16} className="text-primary shrink-0" />
-                <span className="hover:underline cursor-pointer">support@drivecare.lk</span>
+
+              <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border border-border/50 text-[11px] font-medium text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Lock size={14} className="text-primary" />
+                  <span>Encryption Layer</span>
+                </div>
+                <div className="flex items-center gap-1 text-green-600">
+                  <CheckCircle2 size={12} />
+                  <span>SECURE</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Globe size={16} className="text-primary shrink-0" />
-                <span>Regional Office: Colombo, LK</span>
+
+              <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border border-border/50 text-[11px] font-medium text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Database size={14} className="text-primary" />
+                  <span>Cloud Database</span>
+                </div>
+                <div className="flex items-center gap-1 text-green-600">
+                  <CheckCircle2 size={12} />
+                  <span>CERTIFIED</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border border-border/50 text-[11px] font-medium text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Zap size={14} className="text-primary" />
+                  <span>Layout Engine</span>
+                </div>
+                <div className="flex items-center gap-1 text-green-600">
+                  <CheckCircle2 size={12} />
+                  <span>OPTIMIZED</span>
+                </div>
               </div>
             </div>
           </div>
