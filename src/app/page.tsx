@@ -6,7 +6,7 @@ import { Header } from '@/components/header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter, Calendar as CalendarIcon, Hash, Fingerprint } from 'lucide-react';
+import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter, Calendar as CalendarIcon, Hash, Fingerprint, Clock, ChevronRight } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
@@ -95,6 +95,65 @@ function ReportStats({ reports }: { reports: Report[] }) {
     )
 }
 
+function ReportCard({ report }: { report: Report }) {
+    const ids = getIdentifiers(report);
+    return (
+        <Link href={`/report/${report.vehicleId}`} passHref>
+            <Card className="group hover:border-primary/50 transition-all cursor-pointer bg-card/40 backdrop-blur-md shadow-lg overflow-hidden h-full">
+                <CardHeader className="pb-3 bg-muted/20">
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <Car className="h-4 w-4 text-primary" />
+                            <CardTitle className="text-lg font-bold font-mono text-primary group-hover:underline">
+                                {report.vehicleId}
+                            </CardTitle>
+                        </div>
+                        <Badge variant="outline" className="font-mono text-[10px] bg-primary/5">
+                            #{ids.reportNum}
+                        </Badge>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-y-2 text-[11px]">
+                        <div className="flex flex-col">
+                            <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Engine Number</span>
+                            <span className="font-bold flex items-center gap-1"><Fingerprint size={12} className="text-primary" /> {ids.engine}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Chassis Number</span>
+                            <span className="font-bold flex items-center gap-1"><Hash size={12} className="text-primary" /> {ids.chassis}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Report Date</span>
+                            <span className="flex items-center gap-1"><CalendarIcon size={12} className="text-primary" /> {ids.date}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Last Sync</span>
+                            <span className="flex items-center gap-1 text-muted-foreground"><Clock size={12} /> {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                    </div>
+                </CardContent>
+                <div className="px-6 py-2 bg-muted/10 border-t flex justify-between items-center">
+                    <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">By: {report.userName || 'Unknown'}</span>
+                    <ChevronRight size={14} className="text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+            </Card>
+        </Link>
+    );
+}
+
+function Badge({ children, variant = "default", className }: { children: React.ReactNode, variant?: string, className?: string }) {
+    return (
+        <div className={cn(
+            "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            variant === "outline" ? "text-foreground" : "bg-primary text-primary-foreground",
+            className
+        )}>
+            {children}
+        </div>
+    );
+}
+
 export default function LandingPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchCategory, setSearchCategory] = useState('all');
@@ -104,10 +163,6 @@ export default function LandingPage() {
 
   const router = useRouter();
   const { firestore, user, isUserLoading } = useFirebase();
-
-  const isAdmin = useMemo(() => {
-    return user?.email && ADMIN_EMAILS.includes(user.email);
-  }, [user]);
 
   useEffect(() => {
     if (user && firestore) {
@@ -235,7 +290,8 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col bg-muted/10">
       <Header />
-      <main className="flex-1 flex flex-col items-center p-4 space-y-6">
+      <main className="flex-1 flex flex-col items-center p-4 space-y-12">
+        {/* Main Search & Stats Section */}
         <div className="w-full max-w-4xl grid gap-6 md:grid-cols-3">
           <div className="md:col-span-2">
             <Card className="bg-card/50 backdrop-blur-sm shadow-xl border-primary/10">
@@ -289,29 +345,14 @@ export default function LandingPage() {
 
                 <div className="mt-6">
                   {isLoadingReports ? (
-                    <div className="flex flex-col items-center py-6 gap-2"><Wrench className="animate-spin" /><p className="text-sm">Searching...</p></div>
+                    <div className="flex flex-col items-center py-6 gap-2"><Wrench className="animate-spin text-primary" /><p className="text-sm">Searching Database...</p></div>
                   ) : searchResults.length > 0 ? (
                     <ul className="space-y-3">
-                      {searchResults.map((report) => {
-                        const ids = getIdentifiers(report);
-                        return (
-                          <li key={report.id}>
-                            <Link href={`/report/${report.vehicleId}`} passHref>
-                              <div className="flex items-center p-4 rounded-xl border bg-card/80 hover:bg-primary/5 cursor-pointer shadow-sm">
-                                <div className="p-3 rounded-full bg-primary/10 mr-4"><Car className="h-6 w-6 text-primary" /></div>
-                                <div className='flex-grow overflow-hidden'>
-                                  <div className="flex justify-between items-center"><p className="font-bold text-xl font-mono text-primary">{report.vehicleId}</p><span className="text-[10px] bg-primary/10 px-2 py-1 rounded">#{ids.reportNum}</span></div>
-                                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2 text-[11px]">
-                                    <span className="flex items-center gap-1"><Fingerprint size={12} /> Eng: <strong>{ids.engine}</strong></span>
-                                    <span className="flex items-center gap-1"><Hash size={12} /> Chas: <strong>{ids.chassis}</strong></span>
-                                    <span className="flex items-center gap-1"><CalendarIcon size={12} /> Date: {ids.date}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </Link>
-                          </li>
-                        );
-                      })}
+                      {searchResults.map((report) => (
+                        <li key={report.id}>
+                          <ReportCard report={report} />
+                        </li>
+                      ))}
                     </ul>
                   ) : searchTerm && <div className="text-center p-8 border-2 border-dashed rounded-xl"><p>No results found matching "{searchTerm}"</p></div>}
                 </div>
@@ -320,9 +361,68 @@ export default function LandingPage() {
           </div>
           <div className="space-y-6">
             <ReportStats reports={allReports} />
-            <Card className="bg-card/50 backdrop-blur-sm"><CardHeader><CardTitle className="text-sm">Help</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground"><p>• Filter by any ID to find reports instantly.</p></CardContent></Card>
+            <Card className="bg-card/50 backdrop-blur-sm shadow-lg border-primary/10">
+                <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2"><Shield className="h-4 w-4 text-primary" /> Help & Tips</CardTitle>
+                </CardHeader>
+                <CardContent className="text-xs text-muted-foreground space-y-3">
+                    <p>• Use <strong>Registration Number</strong> for direct matching and new report creation.</p>
+                    <p>• Filter by <strong>Engine</strong> or <strong>Chassis</strong> to find vehicles with missing or changed plate numbers.</p>
+                    <p>• The <strong>Calendar</strong> helps find reports created on specific dates.</p>
+                    <div className="pt-2 border-t border-primary/10">
+                        <p className="italic">Pro Tip: Press 'Enter' after typing a new registration number to start a report instantly.</p>
+                    </div>
+                </CardContent>
+            </Card>
           </div>
         </div>
+
+        {/* Recent Reports Section */}
+        {!searchTerm && (
+            <div className="w-full max-w-6xl space-y-6">
+                <div className="flex items-center justify-between border-b pb-4 border-primary/20">
+                    <div className="space-y-1">
+                        <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3">
+                            <Clock className="text-primary" /> Recent Valuation Reports
+                        </h2>
+                        <p className="text-sm text-muted-foreground">Showing the latest synchronized records from all users.</p>
+                    </div>
+                    <Badge className="bg-primary/20 text-primary border-primary/30">
+                        Live Stream Active
+                    </Badge>
+                </div>
+                
+                {isLoadingReports ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[...Array(6)].map((_, i) => (
+                            <Skeleton key={i} className="h-48 w-full rounded-xl" />
+                        ))}
+                    </div>
+                ) : visibleRecentReports.length > 0 ? (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {visibleRecentReports.map((report) => (
+                                <ReportCard key={report.id} report={report} />
+                            ))}
+                        </div>
+                        
+                        {uniqueReports.length > visibleReportsCount && (
+                            <div className="flex justify-center pt-8">
+                                <Button onClick={handleShowMore} variant="outline" size="lg" className="border-primary/50 text-primary hover:bg-primary/10 min-w-[200px]">
+                                    Load More Reports
+                                </Button>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="text-center py-20 bg-card/20 rounded-2xl border-2 border-dashed border-primary/10">
+                        <FileText className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+                        <h3 className="text-lg font-medium">No reports found</h3>
+                        <p className="text-sm text-muted-foreground">Create your first vehicle report to see it appear here.</p>
+                    </div>
+                )}
+            </div>
+        )}
       </main>
     </div>
   );
