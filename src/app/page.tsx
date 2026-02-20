@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -23,31 +24,32 @@ const INITIAL_VISIBLE_REPORTS = 6;
 
 /**
  * Robust utility to extract identifiers from a report even if field names vary.
+ * Uses greedy scanning to ensure critical data is never missed in search results.
  */
 function getIdentifiers(report: Report) {
   const data = report.reportData || {};
   
+  // Greedy scanning for engine patterns
   const engine = report.engineNumber || 
                  data.engineNumber || 
                  Object.entries(data).find(([k]) => 
-                   k.toLowerCase().includes('engine') || 
-                   k.toLowerCase().includes('engno')
+                   ['engine', 'engno', 'motor', 'engnum'].some(p => k.toLowerCase().includes(p))
                  )?.[1] || 
                  'N/A';
                  
+  // Greedy scanning for chassis patterns
   const chassis = report.chassisNumber || 
                   data.chassisNumber || 
                   Object.entries(data).find(([k]) => 
-                    k.toLowerCase().includes('chassis') || 
-                    k.toLowerCase().includes('serial')
+                    ['chassis', 'serial', 'vin', 'chas'].some(p => k.toLowerCase().includes(p))
                   )?.[1] || 
                   'N/A';
 
+  // Greedy scanning for report number patterns
   const reportNum = report.reportNumber || 
                     data.reportNumber || 
                     Object.entries(data).find(([k]) => 
-                      k.toLowerCase().includes('reportnum') ||
-                      k.toLowerCase().includes('reportno')
+                      ['reportnum', 'reportno', 'ref-', 'val-', 'v-'].some(p => k.toLowerCase().includes(p))
                     )?.[1] || 
                     'N/A';
 
@@ -367,7 +369,7 @@ export default function LandingPage() {
                 </CardHeader>
                 <CardContent className="text-xs text-muted-foreground space-y-3">
                     <p>• Use <strong>Registration Number</strong> for direct matching and new report creation.</p>
-                    <p>• Filter by <strong>Engine</strong> or <strong>Chassis</strong> to find vehicles with missing or changed plate numbers.</p>
+                    <p>• Filter by <strong>Engine</strong>, <strong>Chassis</strong> or <strong>Report No</strong> to find specific vehicle records.</p>
                     <p>• The <strong>Calendar</strong> helps find reports created on specific dates.</p>
                     <div className="pt-2 border-t border-primary/10">
                         <p className="italic">Pro Tip: Press 'Enter' after typing a new registration number to start a report instantly.</p>

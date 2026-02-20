@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -23,7 +24,7 @@ const INITIAL_VISIBLE_REPORTS = 12;
 
 /**
  * Robust utility to extract identifiers from a report even if field names vary.
- * Matches logic used on the landing page for perfect consistency.
+ * Shared with LandingPage for 100% consistency.
  */
 function getIdentifiers(report: Report) {
   const data = report.reportData || {};
@@ -31,24 +32,21 @@ function getIdentifiers(report: Report) {
   const engine = report.engineNumber || 
                  data.engineNumber || 
                  Object.entries(data).find(([k]) => 
-                   k.toLowerCase().includes('engine') || 
-                   k.toLowerCase().includes('engno')
+                   ['engine', 'engno', 'motor', 'engnum'].some(p => k.toLowerCase().includes(p))
                  )?.[1] || 
                  'N/A';
                  
   const chassis = report.chassisNumber || 
                   data.chassisNumber || 
                   Object.entries(data).find(([k]) => 
-                    k.toLowerCase().includes('chassis') || 
-                    k.toLowerCase().includes('serial')
+                    ['chassis', 'serial', 'vin', 'chas'].some(p => k.toLowerCase().includes(p))
                   )?.[1] || 
                   'N/A';
 
   const reportNum = report.reportNumber || 
                     data.reportNumber || 
                     Object.entries(data).find(([k]) => 
-                      k.toLowerCase().includes('reportnum') ||
-                      k.toLowerCase().includes('reportno')
+                      ['reportnum', 'reportno', 'ref-', 'val-', 'v-'].some(p => k.toLowerCase().includes(p))
                     )?.[1] || 
                     'N/A';
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -156,16 +157,15 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   }, [user, firestore, vehicleId, isAuthorized]);
 
   /**
-   * Robust identifier detection across data and layout labels.
-   * Scans both technical IDs and visual labels to ensure critical 
-   * identifiers like Report Number are always correctly indexed.
+   * Greedy identifier detector. Scans visual labels and internal keys 
+   * using an expanded set of keyword patterns to ensure no ID is missed.
    */
   const findIdentifier = (patterns: string[]) => {
-    // 1. Direct ID match
+    // 1. Direct ID exact match
     const direct = patterns.map(p => reportData[p]).find(v => !!v);
     if (direct) return direct;
     
-    // 2. Scan layout for label matching patterns
+    // 2. Scan layout labels for any visual pattern match
     const layoutField = currentLayout.find(f => 
       f.fieldType === 'text' && 
       f.label && 
@@ -176,9 +176,9 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       return reportData[layoutField.fieldId];
     }
 
-    // 3. Fallback: scan all reportData keys for partial matches
-    const entry = Object.entries(reportData).find(([key]) => 
-      patterns.some(p => key.toLowerCase().includes(p.toLowerCase()))
+    // 3. Greedy fallback: partial match on any reportData key
+    const entry = Object.entries(reportData).find(([key, val]) => 
+      val && patterns.some(p => key.toLowerCase().includes(p.toLowerCase()))
     );
     return entry ? entry[1] : '';
   };
@@ -187,10 +187,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   useEffect(() => {
     if (!firestore || !isAuthorized || !user || isLoading) return;
 
-    const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor']);
-    const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial']);
-    const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum']);
-    const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate']);
+    // Expanded pattern set for extremely greedy detection
+    const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor', 'engnum', 'eng']);
+    const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial', 'vin', 'chas']);
+    const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum', 'ref-', 'val-', 'v-', 'id']);
+    const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate', 'inspectedOn']);
 
     const hasData = engineVal || chassisVal || reportNumVal || dateVal;
     if (!hasData) return;
@@ -244,10 +245,10 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const configSnap = await transaction.get(configRef);
         const activeLayoutId = configSnap.exists() ? configSnap.data().currentId : null;
 
-        const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor']);
-        const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'serial', 'chassis']);
-        const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum']);
-        const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate']);
+        const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor', 'engnum', 'eng']);
+        const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial', 'vin', 'chas']);
+        const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum', 'ref-', 'val-', 'v-', 'id']);
+        const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate', 'inspectedOn']);
 
         const reportHeaderData = {
           vehicleId: vehicleId,
