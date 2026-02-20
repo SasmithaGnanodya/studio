@@ -11,6 +11,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
+import { ScrollArea } from './ui/scroll-area';
 
 type ImageAdjustmentControlProps = {
   value: ImageData;
@@ -120,15 +121,15 @@ export const ImageAdjustmentControl = ({ value, onChange, width = 180, height = 
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[100000] pointer-events-auto p-4">
+    <div className="fixed inset-0 flex items-center justify-center z-[100000] pointer-events-auto p-2 sm:p-4 overflow-hidden">
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity" 
         onClick={() => setIsOpen(false)} 
       />
       
-      <Card className="relative w-full max-w-md bg-card border shadow-2xl ring-2 ring-primary/20 animate-in zoom-in-95 duration-200">
-        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-          <CardTitle className="text-sm font-bold flex items-center gap-2">
+      <Card className="relative w-full max-w-lg max-h-[95vh] bg-card border shadow-2xl ring-2 ring-primary/20 animate-in zoom-in-95 duration-200 flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-4 border-b shrink-0">
+          <CardTitle className="text-xs sm:text-sm font-bold flex items-center gap-2">
             <ImageIcon className="h-4 w-4 text-primary" />
             {showSettings ? 'Image Upload' : 'Position Adjuster'}
           </CardTitle>
@@ -153,142 +154,146 @@ export const ImageAdjustmentControl = ({ value, onChange, width = 180, height = 
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4 pt-4">
-          <div className="space-y-2">
-            <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Live Frame Preview</Label>
-            <div 
-              className="relative w-full overflow-hidden bg-muted border-2 border-primary/20 rounded-lg shadow-inner flex items-center justify-center"
-              style={{ 
-                aspectRatio: `${width} / ${height}`,
-                maxHeight: '200px'
-              }}
-            >
-              {value.url ? (
-                <img 
-                  src={value.url} 
-                  alt="Live preview" 
-                  className="w-full h-full pointer-events-none transition-transform duration-75 ease-out"
-                  style={{
-                    objectFit: value.fit || 'cover',
-                    transform: `scale(${value.scale}) translate(${value.x}px, ${value.y}px)`
-                  }}
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground/40">
-                  <ImageIcon size={32} />
-                  <span className="text-xs">No image to preview</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {showSettings ? (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-3">
-                <Button 
-                  variant="outline" 
-                  className="w-full h-32 flex flex-col items-center justify-center border-dashed border-2 gap-3 hover:bg-muted/50 hover:border-primary/50 transition-all"
-                  onClick={handleUploadClick}
-                  disabled={isUploading}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <span className="text-xs font-medium">Uploading Photo...</span>
-                    </>
-                  ) : (
-                    <>
-                      <div className="p-2 rounded-full bg-primary/10">
-                        <Upload className="h-5 w-5 text-primary" />
-                      </div>
-                      <span className="text-xs font-semibold">{value.url ? 'Replace Vehicle Photo' : 'Upload Vehicle Photo'}</span>
-                    </>
-                  )}
-                </Button>
-                <input 
-                  type="file" 
-                  className="hidden" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange}
-                  accept="image/*"
-                />
-
-                {value.url && !isUploading && (
-                  <Button 
-                    variant="outline" 
-                    className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive" 
-                    onClick={clearImage}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" /> Remove Current Photo
-                  </Button>
+        <ScrollArea className="flex-1 overflow-y-auto">
+          <CardContent className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Live Frame Preview</Label>
+              <div 
+                className="relative w-full overflow-hidden bg-muted border-2 border-primary/20 rounded-lg shadow-inner flex items-center justify-center mx-auto"
+                style={{ 
+                  aspectRatio: `${width} / ${height}`,
+                  maxHeight: '25vh'
+                }}
+              >
+                {value.url ? (
+                  <img 
+                    src={value.url} 
+                    alt="Live preview" 
+                    className="w-full h-full pointer-events-none transition-transform duration-75 ease-out"
+                    style={{
+                      objectFit: value.fit || 'cover',
+                      transform: `scale(${value.scale}) translate(${value.x}px, ${value.y}px)`
+                    }}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground/40">
+                    <ImageIcon size={32} />
+                    <span className="text-xs">No image to preview</span>
+                  </div>
                 )}
               </div>
             </div>
-          ) : (
-            <div className="space-y-5">
-              <div className="flex flex-col gap-2">
-                <Label className="text-[10px] uppercase text-muted-foreground font-bold">Frame Fit Mode</Label>
-                <Tabs value={value.fit || 'cover'} onValueChange={handleFitChange} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 h-9">
-                    <TabsTrigger value="cover" className="text-xs gap-2">
-                      <Maximize className="h-3 w-3" /> Fill Frame
-                    </TabsTrigger>
-                    <TabsTrigger value="contain" className="text-xs gap-2">
-                      <Minimize className="h-3 w-3" /> Fit Frame
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
 
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-[10px] uppercase text-muted-foreground font-bold">Scale / Zoom</Label>
-                  <span className="text-[10px] font-mono font-bold text-primary">{(value.scale * 100).toFixed(0)}%</span>
-                </div>
-                <div className="flex items-center gap-3 bg-muted/30 p-2 rounded-md border">
-                    <ZoomOut size={16} className="text-muted-foreground shrink-0" />
-                    <Slider
-                      min={0.5}
-                      max={5}
-                      step={0.1}
-                      value={[value.scale]}
-                      onValueChange={handleScaleChange}
-                      className="flex-1"
-                    />
-                    <ZoomIn size={16} className="text-muted-foreground shrink-0" />
+            {showSettings ? (
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="w-full min-h-[120px] sm:h-32 flex flex-col items-center justify-center border-dashed border-2 gap-3 hover:bg-muted/50 hover:border-primary/50 transition-all"
+                    onClick={handleUploadClick}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <span className="text-xs font-medium">Uploading Photo...</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="p-2 rounded-full bg-primary/10">
+                          <Upload className="h-5 w-5 text-primary" />
+                        </div>
+                        <span className="text-xs font-semibold">{value.url ? 'Replace Vehicle Photo' : 'Upload Vehicle Photo'}</span>
+                      </>
+                    )}
+                  </Button>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange}
+                    accept="image/*"
+                  />
+
+                  {value.url && !isUploading && (
+                    <Button 
+                      variant="outline" 
+                      className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive" 
+                      onClick={clearImage}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Remove Current Photo
+                    </Button>
+                  )}
                 </div>
               </div>
-              
-              <div className="flex flex-col gap-2">
-                <Label className="text-[10px] uppercase text-muted-foreground font-bold">Manual Positioning</Label>
-                <div className="flex flex-col items-center gap-2 p-4 bg-muted/20 rounded-lg border border-dashed">
-                  <Button variant="outline" size="icon" className="h-9 w-9 rounded-full bg-background shadow-sm hover:text-primary hover:border-primary" onClick={() => handlePan(0, -PAN_STEP)}>
-                      <ArrowUp size={18} />
-                  </Button>
-                  <div className="flex gap-4">
-                      <Button variant="outline" size="icon" className="h-9 w-9 rounded-full bg-background shadow-sm hover:text-primary hover:border-primary" onClick={() => handlePan(-PAN_STEP, 0)}>
-                          <ArrowLeft size={18} />
-                      </Button>
-                      <div className="h-9 w-9 flex items-center justify-center text-primary font-bold">
-                        <Move size={16} />
-                      </div>
-                      <Button variant="outline" size="icon" className="h-9 w-9 rounded-full bg-background shadow-sm hover:text-primary hover:border-primary" onClick={() => handlePan(PAN_STEP, 0)}>
-                          <ArrowRight size={18} />
-                      </Button>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-bold">Frame Fit Mode</Label>
+                    <Tabs value={value.fit || 'cover'} onValueChange={handleFitChange} className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 h-9">
+                        <TabsTrigger value="cover" className="text-xs gap-1 px-1">
+                          <Maximize className="h-3 w-3" /> Fill
+                        </TabsTrigger>
+                        <TabsTrigger value="contain" className="text-xs gap-1 px-1">
+                          <Minimize className="h-3 w-3" /> Fit
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
                   </div>
-                  <Button variant="outline" size="icon" className="h-9 w-9 rounded-full bg-background shadow-sm hover:text-primary hover:border-primary" onClick={() => handlePan(0, PAN_STEP)}>
-                      <ArrowDown size={18} />
-                  </Button>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[10px] uppercase text-muted-foreground font-bold">Scale / Zoom</Label>
+                      <span className="text-[10px] font-mono font-bold text-primary">{(value.scale * 100).toFixed(0)}%</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-md border h-9">
+                        <ZoomOut size={14} className="text-muted-foreground shrink-0" />
+                        <Slider
+                          min={0.5}
+                          max={5}
+                          step={0.1}
+                          value={[value.scale]}
+                          onValueChange={handleScaleChange}
+                          className="flex-1"
+                        />
+                        <ZoomIn size={14} className="text-muted-foreground shrink-0" />
+                    </div>
+                  </div>
                 </div>
-                <div className="text-center text-[10px] font-mono text-muted-foreground mt-1">
-                  Pos: {value.x}px X, {value.y}px Y
+                
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase text-muted-foreground font-bold">Manual Positioning</Label>
+                  <div className="flex flex-col items-center gap-2 p-3 bg-muted/20 rounded-lg border border-dashed">
+                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background shadow-sm hover:text-primary hover:border-primary shrink-0" onClick={() => handlePan(0, -PAN_STEP)}>
+                        <ArrowUp size={16} />
+                    </Button>
+                    <div className="flex gap-4">
+                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background shadow-sm hover:text-primary hover:border-primary shrink-0" onClick={() => handlePan(-PAN_STEP, 0)}>
+                            <ArrowLeft size={16} />
+                        </Button>
+                        <div className="h-8 w-8 flex items-center justify-center text-primary font-bold">
+                          <Move size={14} />
+                        </div>
+                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background shadow-sm hover:text-primary hover:border-primary shrink-0" onClick={() => handlePan(PAN_STEP, 0)}>
+                            <ArrowRight size={16} />
+                        </Button>
+                    </div>
+                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background shadow-sm hover:text-primary hover:border-primary shrink-0" onClick={() => handlePan(0, PAN_STEP)}>
+                        <ArrowDown size={16} />
+                    </Button>
+                  </div>
+                  <div className="text-center text-[9px] font-mono text-muted-foreground mt-1">
+                    Pos: {value.x}px X, {value.y}px Y
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </CardContent>
+            )}
+          </CardContent>
+        </ScrollArea>
         
-        <CardFooter className="pt-2">
+        <CardFooter className="p-3 sm:p-4 border-t shrink-0">
           <Button className="w-full shadow-lg" onClick={() => setIsOpen(false)}>
               Done Adjusting
           </Button>
