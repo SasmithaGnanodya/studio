@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -21,14 +22,9 @@ import { cn } from '@/lib/utils';
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const INITIAL_VISIBLE_REPORTS = 6;
 
-/**
- * Robust utility to extract identifiers from a report using greedy scanning.
- * This ensures that critical data is never missed in search results, even with unique IDs.
- */
 function getIdentifiers(report: Report) {
   const data = report.reportData || {};
   
-  // Greedy scanning for engine patterns
   const engine = report.engineNumber || 
                  data.engineNumber || 
                  Object.entries(data).find(([k]) => 
@@ -36,7 +32,6 @@ function getIdentifiers(report: Report) {
                  )?.[1] || 
                  'N/A';
                  
-  // Greedy scanning for chassis patterns
   const chassis = report.chassisNumber || 
                   data.chassisNumber || 
                   Object.entries(data).find(([k]) => 
@@ -44,7 +39,6 @@ function getIdentifiers(report: Report) {
                   )?.[1] || 
                   'N/A';
 
-  // Greedy scanning for report number patterns
   const reportNum = report.reportNumber || 
                     data.reportNumber || 
                     Object.entries(data).find(([k]) => 
@@ -60,9 +54,6 @@ function getIdentifiers(report: Report) {
   };
 }
 
-/**
- * Utility to filter out duplicate vehicle reports, keeping only the most recent version.
- */
 function getUniqueReports(reports: Report[]) {
   const seen = new Set<string>();
   return reports.filter(report => {
@@ -109,9 +100,9 @@ function ReportCard({ report }: { report: Report }) {
                                 {report.vehicleId}
                             </CardTitle>
                         </div>
-                        <Badge variant="outline" className="font-mono text-[10px] bg-primary/5">
+                        <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary/5 text-foreground font-mono">
                             #{ids.reportNum}
-                        </Badge>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-3">
@@ -140,18 +131,6 @@ function ReportCard({ report }: { report: Report }) {
                 </div>
             </Card>
         </Link>
-    );
-}
-
-function Badge({ children, variant = "default", className }: { children: React.ReactNode, variant?: string, className?: string }) {
-    return (
-        <div className={cn(
-            "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-            variant === "outline" ? "text-foreground" : "bg-primary text-primary-foreground",
-            className
-        )}>
-            {children}
-        </div>
     );
 }
 
@@ -277,13 +256,14 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent className="space-y-6 py-10">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="space-y-2"><FileText className="mx-auto h-10 w-10 text-accent" /><h3 className="font-semibold">Reports</h3></div>
-                      <div className="space-y-2"><Wrench className="mx-auto h-10 w-10 text-accent" /><h3 className="font-semibold">Real-time</h3></div>
-                      <div className="space-y-2"><Shield className="mx-auto h-10 w-10 text-accent" /><h3 className="font-semibold">Secure</h3></div>
+                      <div className="space-y-2"><FileText className="mx-auto h-10 w-10 text-primary/50" /><h3 className="font-semibold">Reports</h3></div>
+                      <div className="space-y-2"><Wrench className="mx-auto h-10 w-10 text-primary/50" /><h3 className="font-semibold">Real-time</h3></div>
+                      <div className="space-y-2"><Shield className="mx-auto h-10 w-10 text-primary/50" /><h3 className="font-semibold">Secure</h3></div>
                   </div>
               </CardContent>
           </Card>
         </main>
+        <Footer />
       </div>
     );
   }
@@ -388,9 +368,9 @@ export default function LandingPage() {
                         </h2>
                         <p className="text-sm text-muted-foreground">Showing the latest synchronized records from all users.</p>
                     </div>
-                    <Badge className="bg-primary/20 text-primary border-primary/30">
+                    <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-primary/20 text-primary border-primary/30">
                         Live Stream Active
-                    </Badge>
+                    </div>
                 </div>
                 
                 {isLoadingReports ? (
@@ -425,6 +405,7 @@ export default function LandingPage() {
             </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }
