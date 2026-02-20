@@ -78,6 +78,15 @@ export const ReportPage = ({
       );
     }
 
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      let val = e.target.value;
+      // Force uppercase for filtering sensitive fields
+      if (['engineNumber', 'chassisNumber', 'reportNumber', 'regNumber'].includes(field.fieldId)) {
+        val = val.toUpperCase();
+      }
+      onValueChange?.(field.fieldId, val);
+    };
+
     return (
       <div key={field.id} style={style} className="z-20 group">
         {field.inputType === 'dropdown' ? (
@@ -100,7 +109,7 @@ export const ReportPage = ({
           <Input
             type={field.fieldId.toLowerCase().includes('date') ? 'date' : 'text'}
             value={field.value}
-            onChange={(e) => onValueChange?.(field.fieldId, e.target.value)}
+            onChange={handleInputChange}
             className="h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-0"
             style={{ fontSize: style.fontSize }}
             disabled={field.fieldId === 'regNumber'}
@@ -117,6 +126,7 @@ export const ReportPage = ({
       width: `${field.width}mm`,
       height: `${field.height}mm`,
       position: 'absolute',
+      zIndex: 5, // Images are behind text
     };
 
     const imageWrapperStyle: React.CSSProperties = {
@@ -150,8 +160,8 @@ export const ReportPage = ({
         </div>
         
         {isEditable && (
-          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none overflow-visible">
-            <div className="pointer-events-auto opacity-40 group-hover:opacity-100 transition-opacity">
+          <div className="absolute inset-0 flex items-center justify-center z-[10] pointer-events-none overflow-visible">
+            <div className="pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity">
               <ImageAdjustmentControl
                 value={field.value}
                 onChange={(val) => onValueChange?.(field.fieldId, val)}
@@ -166,7 +176,7 @@ export const ReportPage = ({
   };
 
   return (
-    <div className="report-page shadow-2xl overflow-visible relative">
+    <div className="report-page shadow-2xl overflow-visible relative bg-white">
       {imageValues.map(renderImageField)}
       {staticLabels.map(f => renderTextField(f, true))}
       {dynamicValues.map(f => renderTextField(f, false))}

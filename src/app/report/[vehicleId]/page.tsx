@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -12,7 +11,7 @@ import { Printer, Save, LockKeyhole, AlertTriangle, LayoutTemplate, RefreshCw } 
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, collection, query, where, getDocs, serverTimestamp, runTransaction, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, serverTimestamp, runTransaction, updateDoc, setDoc } from 'firebase/firestore';
 import type { ImageData, Report, FieldLayout } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -91,7 +90,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   useEffect(() => { if (isAdmin) setIsAuthorized(true); }, [isAdmin]);
 
-  // Client-side initialization to avoid hydration mismatch
+  // Client-side initialization for new reports
   useEffect(() => {
     if (isAuthorized && !reportId) {
       setReportData(prev => {
@@ -161,32 +160,53 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   // Real-time Debounced Sync for Identifiers
   useEffect(() => {
-    if (!reportId || !firestore || !isAuthorized) return;
+    if (!firestore || !isAuthorized || !user) return;
+
+    // Only sync if at least one identifier has been touched or we have a reportId
+    const hasIdentifiers = reportData.engineNumber || reportData.chassisNumber || reportData.reportNumber;
+    if (!reportId && !hasIdentifiers) return;
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
     syncTimeoutRef.current = setTimeout(async () => {
       setIsSyncing(true);
       try {
-        const reportRef = doc(firestore, 'reports', reportId);
-        await updateDoc(reportRef, {
-          engineNumber: String(reportData.engineNumber || '').toUpperCase(),
-          chassisNumber: String(reportData.chassisNumber || '').toUpperCase(),
-          reportNumber: String(reportData.reportNumber || '').toUpperCase(),
+        const dataToSync = {
+          vehicleId: vehicleId.toUpperCase(),
+          engineNumber: String(reportData.engineNumber || '').toUpperCase().trim(),
+          chassisNumber: String(reportData.chassisNumber || '').toUpperCase().trim(),
+          reportNumber: String(reportData.reportNumber || '').toUpperCase().trim(),
           reportDate: String(reportData.date || ''),
           updatedAt: serverTimestamp(),
-        });
+          userId: user.uid,
+          userName: user.displayName || user.email,
+        };
+
+        if (reportId) {
+          const reportRef = doc(firestore, 'reports', reportId);
+          await updateDoc(reportRef, dataToSync);
+        } else {
+          // Attempt to pre-create the document to make it searchable immediately
+          const newReportRef = doc(collection(firestore, 'reports'));
+          await setDoc(newReportRef, {
+            ...dataToSync,
+            id: newReportRef.id,
+            createdAt: serverTimestamp(),
+            reportData: { ...reportData, regNumber: vehicleId }
+          }, { merge: true });
+          setReportId(newReportRef.id);
+        }
       } catch (err) {
         console.error("Indexing sync failed:", err);
       } finally {
         setIsSyncing(false);
       }
-    }, 2000); // 2 second debounce
+    }, 1500); // 1.5 second debounce for filtering sensitivity
 
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     };
-  }, [reportData.engineNumber, reportData.chassisNumber, reportData.reportNumber, reportData.date, reportId, firestore, isAuthorized]);
+  }, [reportData.engineNumber, reportData.chassisNumber, reportData.reportNumber, reportData.date, reportId, firestore, isAuthorized, user, vehicleId, reportData]);
 
   const handleDataChange = (fieldId: string, value: string | ImageData) => {
     setReportData(prev => ({ ...prev, [fieldId]: value }));
@@ -204,9 +224,9 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
         const reportHeaderData = {
           vehicleId: vehicleId.toUpperCase(),
-          engineNumber: String(reportData.engineNumber || '').toUpperCase(),
-          chassisNumber: String(reportData.chassisNumber || '').toUpperCase(),
-          reportNumber: String(reportData.reportNumber || '').toUpperCase(),
+          engineNumber: String(reportData.engineNumber || '').toUpperCase().trim(),
+          chassisNumber: String(reportData.chassisNumber || '').toUpperCase().trim(),
+          reportNumber: String(reportData.reportNumber || '').toUpperCase().trim(),
           reportDate: String(reportData.date || ''),
           userId: user.uid,
           userName: user.displayName || user.email,
