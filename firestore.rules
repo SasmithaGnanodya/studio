@@ -37,18 +37,11 @@ service cloud.firestore {
      * @description Rules for the main 'reports' collection.
      */
     match /reports/{reportId} {
-      // Admins have full access to all reports
-      allow read, write: if isAdmin();
-      
-      // Authenticated users can read, create, and update their own reports
-      // We check both the top-level userId and the one inside reportData
-      allow get: if isSignedIn();
-      allow list: if isSignedIn(); 
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow delete: if isAdmin();
 
-      /** @description History subcollection for audit trails. */
       match /history/{historyId} {
         allow read: if isSignedIn() && (get(/databases/$(database)/documents/reports/$(reportId)).data.userId == request.auth.uid || isAdmin());
         allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
@@ -56,30 +49,20 @@ service cloud.firestore {
       }
     }
 
-    /**
-     * @description Rules for application configuration (e.g., private data password).
-     */
     match /config/settings {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    /**
-     * @description Rules for layout templates.
-     */
     match /layouts/{layoutId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    /**
-     * @description Legacy user-centric paths (from backend.json).
-     */
     match /users/{userId}/{allPaths=**} {
       allow read, write: if isOwner(userId);
     }
 
-    // --- Catch-all / Default Deny ---
     match /{path=**} {
       allow read, write: if false;
     }
