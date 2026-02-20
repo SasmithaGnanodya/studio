@@ -7,7 +7,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,13 +21,42 @@ import { cn } from '@/lib/utils';
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const INITIAL_VISIBLE_REPORTS = 12;
 
+/**
+ * Robust utility to extract identifiers from a report even if field names vary.
+ * Matches logic used on the landing page for perfect consistency.
+ */
 function getIdentifiers(report: Report) {
   const data = report.reportData || {};
+  
+  const engine = report.engineNumber || 
+                 data.engineNumber || 
+                 Object.entries(data).find(([k]) => 
+                   k.toLowerCase().includes('engine') || 
+                   k.toLowerCase().includes('engno')
+                 )?.[1] || 
+                 'N/A';
+                 
+  const chassis = report.chassisNumber || 
+                  data.chassisNumber || 
+                  Object.entries(data).find(([k]) => 
+                    k.toLowerCase().includes('chassis') || 
+                    k.toLowerCase().includes('serial')
+                  )?.[1] || 
+                  'N/A';
+
+  const reportNum = report.reportNumber || 
+                    data.reportNumber || 
+                    Object.entries(data).find(([k]) => 
+                      k.toLowerCase().includes('reportnum') ||
+                      k.toLowerCase().includes('reportno')
+                    )?.[1] || 
+                    'N/A';
+
   return {
-    engine: String(report.engineNumber || data.engineNumber || 'N/A').toUpperCase().trim(),
-    chassis: String(report.chassisNumber || data.chassisNumber || 'N/A').toUpperCase().trim(),
-    reportNum: String(report.reportNumber || data.reportNumber || 'N/A').toUpperCase().trim(),
-    date: report.reportDate || data.reportDate || 'N/A'
+    engine: String(engine).toUpperCase().trim(),
+    chassis: String(chassis).toUpperCase().trim(),
+    reportNum: String(reportNum).toUpperCase().trim(),
+    date: report.reportDate || data.reportDate || data.date || 'N/A'
   };
 }
 
@@ -160,24 +189,30 @@ export default function AdminPage() {
                     <CardHeader className="pb-3 bg-muted/20 border-b">
                       <div className="flex justify-between items-center">
                         <CardTitle className="font-mono text-primary group-hover:underline text-lg">{report.vehicleId}</CardTitle>
-                        <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-mono">#{ids.reportNum}</span>
+                        <span className="text-[10px] bg-primary/5 text-primary border border-primary/20 px-2 py-0.5 rounded font-mono">#{ids.reportNum}</span>
                       </div>
-                      <p className="text-[10px] text-muted-foreground font-medium">Report Date: {ids.date}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1.5 pt-1">
+                        <CalendarIcon size={12} className="text-primary" /> {ids.date}
+                      </p>
                     </CardHeader>
                     <CardContent className="space-y-3 pt-4 flex-grow">
                       <div className="grid grid-cols-1 gap-2 text-[11px]">
                         <div className="flex flex-col bg-muted/10 p-2 rounded">
                           <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Engine Number</span>
-                          <span className="font-bold text-foreground">{ids.engine}</span>
+                          <span className="font-bold text-foreground flex items-center gap-1.5">
+                            <Fingerprint size={12} className="text-primary" /> {ids.engine}
+                          </span>
                         </div>
                         <div className="flex flex-col bg-muted/10 p-2 rounded">
                           <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Chassis Number</span>
-                          <span className="font-bold text-foreground">{ids.chassis}</span>
+                          <span className="font-bold text-foreground flex items-center gap-1.5">
+                            <Hash size={12} className="text-primary" /> {ids.chassis}
+                          </span>
                         </div>
                       </div>
                       <div className="pt-2 border-t text-[10px] flex justify-between items-center text-muted-foreground">
                         <span className="flex items-center gap-1 truncate max-w-[100px]"><Eye size={12} /> {report.userName?.split(' ')[0]}</span>
-                        <span>{report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
+                        <span className="flex items-center gap-1"><Clock size={12} /> {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
                       </div>
                     </CardContent>
                     <CardFooter className="flex justify-end gap-2 border-t py-2 bg-muted/5">

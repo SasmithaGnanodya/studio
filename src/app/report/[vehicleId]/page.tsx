@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -156,7 +155,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     fetchData();
   }, [user, firestore, vehicleId, isAuthorized]);
 
-  // Robust identifier detection across data and layout labels
+  /**
+   * Robust identifier detection across data and layout labels.
+   * Scans both technical IDs and visual labels to ensure critical 
+   * identifiers like Report Number are always correctly indexed.
+   */
   const findIdentifier = (patterns: string[]) => {
     // 1. Direct ID match
     const direct = patterns.map(p => reportData[p]).find(v => !!v);
@@ -173,7 +176,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       return reportData[layoutField.fieldId];
     }
 
-    // 3. Fallback: scan all reportData keys
+    // 3. Fallback: scan all reportData keys for partial matches
     const entry = Object.entries(reportData).find(([key]) => 
       patterns.some(p => key.toLowerCase().includes(p.toLowerCase()))
     );
@@ -241,12 +244,17 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const configSnap = await transaction.get(configRef);
         const activeLayoutId = configSnap.exists() ? configSnap.data().currentId : null;
 
+        const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor']);
+        const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'serial', 'chassis']);
+        const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum']);
+        const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate']);
+
         const reportHeaderData = {
           vehicleId: vehicleId,
-          engineNumber: String(findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor']) || '').toUpperCase().trim(),
-          chassisNumber: String(findIdentifier(['chassisNumber', 'chassisNo', 'serial', 'chassis']) || '').toUpperCase().trim(),
-          reportNumber: String(findIdentifier(['reportNumber', 'reportNo', 'reportnum']) || '').toUpperCase().trim(),
-          reportDate: String(findIdentifier(['date', 'reportDate', 'inspectionDate']) || ''),
+          engineNumber: String(engineVal || '').toUpperCase().trim(),
+          chassisNumber: String(chassisVal || '').toUpperCase().trim(),
+          reportNumber: String(reportNumVal || '').toUpperCase().trim(),
+          reportDate: String(dateVal || ''),
           userId: user.uid,
           userName: user.displayName || user.email,
           reportData: reportData,
