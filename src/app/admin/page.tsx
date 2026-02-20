@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -19,12 +18,16 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, subDays, startOfDay, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, ResponsiveContainer, Tooltip } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const INITIAL_VISIBLE_REPORTS = 12;
 
+/**
+ * Robust utility to extract identifiers from a report.
+ * Scans top-level fields and nested reportData for Engine, Chassis, and Report numbers.
+ */
 function getIdentifiers(report: Report) {
   const data = report.reportData || {};
   
@@ -57,6 +60,9 @@ function getIdentifiers(report: Report) {
   };
 }
 
+/**
+ * Utility to filter out duplicate vehicle reports, keeping only the most recent version.
+ */
 function getUniqueReports(reports: Report[]) {
   const seen = new Set<string>();
   return reports.filter(report => {
@@ -184,7 +190,7 @@ export default function AdminPage() {
         
         {/* TOP DASHBOARD: 4 STAT CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative">
+          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative min-h-[140px]">
             <div className="absolute top-0 right-0 p-3 opacity-10">
               <Car size={48} className="text-primary" />
             </div>
@@ -199,7 +205,7 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative">
+          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative min-h-[140px]">
             <div className="absolute top-0 right-0 p-3 opacity-10">
               <History size={48} className="text-primary" />
             </div>
@@ -214,7 +220,7 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative">
+          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative min-h-[140px]">
             <div className="absolute top-0 right-0 p-3 opacity-10">
               <Zap size={48} className="text-primary" />
             </div>
@@ -229,22 +235,19 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg">
+          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg relative min-h-[140px] overflow-visible">
             <CardHeader className="pb-0 pt-4 flex flex-row items-center justify-between">
-              <div>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-wider">7-Day Activity</CardDescription>
-              </div>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-wider">7-Day Activity</CardDescription>
               <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center">
                 <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
               </div>
             </CardHeader>
-            <CardContent className="h-[60px] pt-2">
+            <CardContent className="h-[80px] pt-4 overflow-visible">
               <ChartContainer config={{ reports: { label: "Reports", color: "hsl(var(--primary))" } }}>
-                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stats.chartData}>
                     <Bar dataKey="reports" fill="var(--color-reports)" radius={[2, 2, 0, 0]} />
+                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                   </BarChart>
-                </ResponsiveContainer>
               </ChartContainer>
             </CardContent>
           </Card>
@@ -267,10 +270,10 @@ export default function AdminPage() {
                 </Link>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t mt-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t mt-4 relative z-20">
                 <Select value={searchCategory} onValueChange={(val) => { setSearchCategory(val); setSearchTerm(''); }}>
                   <SelectTrigger className="w-full sm:w-48 bg-background/50"><Filter className="mr-2 h-4 w-4 text-primary" /><SelectValue placeholder="Category" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]">
                     <SelectItem value="all">All Identifiers</SelectItem>
                     <SelectItem value="vehicleId">Reg No</SelectItem>
                     <SelectItem value="engineNumber">Engine No</SelectItem>
@@ -288,7 +291,7 @@ export default function AdminPage() {
                           {searchTerm ? searchTerm : <span>Filter by Date</span>}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
+                      <PopoverContent className="w-auto p-0 z-[100]" align="start">
                         <Calendar mode="single" selected={searchTerm ? new Date(searchTerm) : undefined} onSelect={(date) => setSearchTerm(date ? format(date, "yyyy-MM-dd") : '')} />
                       </PopoverContent>
                     </Popover>
@@ -306,11 +309,11 @@ export default function AdminPage() {
                 {filteredReports.slice(0, visibleReportsCount).map(report => {
                   const ids = getIdentifiers(report);
                   return (
-                    <Card key={report.id} className="group border flex flex-col hover:border-primary transition-all bg-card/40 backdrop-blur-md shadow-md overflow-hidden">
+                    <Card key={report.id} className="group border flex flex-col hover:border-primary transition-all bg-card/40 backdrop-blur-md shadow-md overflow-hidden h-full">
                       <CardHeader className="pb-3 bg-muted/20 border-b">
                         <div className="flex justify-between items-center">
                           <CardTitle className="font-mono text-primary group-hover:underline text-lg">{report.vehicleId}</CardTitle>
-                          <span className="text-[10px] bg-primary/5 text-primary border border-primary/20 px-2 py-0.5 rounded font-mono">#{ids.reportNum}</span>
+                          <div className="text-[10px] bg-primary/5 text-primary border border-primary/20 px-2 py-0.5 rounded font-mono">#{ids.reportNum}</div>
                         </div>
                         <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1.5 pt-1">
                           <CalendarIcon size={12} className="text-primary" /> {ids.date}
@@ -320,19 +323,19 @@ export default function AdminPage() {
                         <div className="grid grid-cols-1 gap-2 text-[11px]">
                           <div className="flex flex-col bg-muted/10 p-2 rounded">
                             <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Engine Number</span>
-                            <span className="font-bold text-foreground flex items-center gap-1.5">
-                              <Fingerprint size={12} className="text-primary" /> {ids.engine}
+                            <span className="font-bold text-foreground flex items-center gap-1.5 truncate">
+                              <Fingerprint size={12} className="text-primary shrink-0" /> {ids.engine}
                             </span>
                           </div>
                           <div className="flex flex-col bg-muted/10 p-2 rounded">
                             <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Chassis Number</span>
-                            <span className="font-bold text-foreground flex items-center gap-1.5">
-                              <Hash size={12} className="text-primary" /> {ids.chassis}
+                            <span className="font-bold text-foreground flex items-center gap-1.5 truncate">
+                              <Hash size={12} className="text-primary shrink-0" /> {ids.chassis}
                             </span>
                           </div>
                         </div>
                       </CardContent>
-                      <CardFooter className="flex justify-end gap-2 border-t py-2 bg-muted/5">
+                      <CardFooter className="flex justify-end gap-2 border-t py-2 bg-muted/5 mt-auto">
                         <Link href={`/admin/history/${report.id}`} passHref>
                           <Button variant="ghost" size="sm" className="h-8 text-[10px] gap-1.5 text-muted-foreground hover:text-primary">
                             <History size={12} /> History
@@ -398,7 +401,7 @@ export default function AdminPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
+            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-md">
                 <CardHeader>
                     <CardTitle className="text-xs font-bold flex items-center gap-2">
                         <Users className="h-4 w-4 text-primary" /> Current Administrators
