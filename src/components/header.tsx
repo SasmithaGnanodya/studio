@@ -17,7 +17,7 @@ export function Header() {
             <div className="flex items-center gap-3 cursor-pointer">
               <FileText className="h-7 w-7 text-primary" />
               <h1 className="text-xl font-bold tracking-tight">
-                Valuation Report Generator
+                Drive Care Report Gen
               </h1>
             </div>
           </Link>

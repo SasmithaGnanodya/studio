@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -273,7 +272,7 @@ export default function LandingPage() {
         <main className="flex-1 flex flex-col items-center justify-center p-4">
           <Card className="w-full max-w-3xl text-center bg-card/50 backdrop-blur-sm border-primary/20 shadow-2xl">
               <CardHeader>
-                  <CardTitle className="text-3xl font-bold text-primary">Valuation Report Generator</CardTitle>
+                  <CardTitle className="text-3xl font-bold text-primary">Drive Care Report Gen</CardTitle>
                   <CardDescription className="text-lg">Sign in to manage vehicle records.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 py-10">
