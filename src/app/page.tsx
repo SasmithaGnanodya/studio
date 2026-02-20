@@ -66,7 +66,7 @@ export default function LandingPage() {
     setIsSearching(true);
     const debounceTimeout = setTimeout(async () => {
       const reportsRef = collection(firestore, `reports`);
-      const term = searchTerm.toUpperCase();
+      const term = searchTerm.toUpperCase().trim();
       
       let q;
       if (searchCategory === 'all') {
@@ -134,7 +134,7 @@ export default function LandingPage() {
 
   const handleCreateNew = () => {
     if (searchTerm) {
-      router.push(`/report/${searchTerm.toUpperCase()}`);
+      router.push(`/report/${searchTerm.toUpperCase().trim()}`);
     }
   };
   
@@ -143,7 +143,7 @@ export default function LandingPage() {
       if (searchResults.length > 0) {
         router.push(`/report/${searchResults[0].vehicleId}`);
       } else if (searchTerm && (searchCategory === 'all' || searchCategory === 'vehicleId')) {
-        router.push(`/report/${searchTerm.toUpperCase()}`);
+        router.push(`/report/${searchTerm.toUpperCase().trim()}`);
       }
     }
   }
@@ -226,7 +226,7 @@ export default function LandingPage() {
                     <CardHeader>
                     <CardTitle className="text-2xl">Vehicle Report Database</CardTitle>
                     <CardDescription>
-                        Search for existing reports by specific category.
+                        Search for existing reports by specific identifier category.
                     </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -259,7 +259,7 @@ export default function LandingPage() {
                             />
                           </div>
                         </div>
-                        {noResults && searchTerm && (
+                        {noResults && searchTerm && (searchCategory === 'all' || searchCategory === 'vehicleId') && (
                         <Button onClick={handleCreateNew} className="w-full">
                             <PlusCircle className="mr-2 h-5 w-5" />
                             Create New Report for "{searchTerm}"
@@ -280,11 +280,15 @@ export default function LandingPage() {
                                     <div className='flex-grow overflow-hidden'>
                                         <div className="flex items-center gap-2">
                                           <p className="font-semibold truncate">{report.vehicleId}</p>
-                                          {report.reportNumber && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono">{report.reportNumber}</span>}
+                                          {(report.reportNumber || report.reportData?.reportNumber) && (
+                                            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono">
+                                              {report.reportNumber || report.reportData?.reportNumber}
+                                            </span>
+                                          )}
                                         </div>
                                         <div className="flex gap-4 text-[10px] text-muted-foreground truncate">
-                                          <span>Eng: {report.engineNumber || 'N/A'}</span>
-                                          <span>Chassis: {report.chassisNumber || 'N/A'}</span>
+                                          <span>Eng: {report.engineNumber || report.reportData?.engineNumber || 'N/A'}</span>
+                                          <span>Chassis: {report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -334,12 +338,20 @@ export default function LandingPage() {
                                 <CardHeader className="pb-2">
                                     <CardTitle className="font-mono text-primary text-base flex justify-between items-center">
                                       {report.vehicleId}
-                                      {report.reportNumber && <span className="text-[10px] bg-primary/10 px-1.5 py-0.5 rounded-sm">{report.reportNumber}</span>}
+                                      {(report.reportNumber || report.reportData?.reportNumber) && (
+                                        <span className="text-[10px] bg-primary/10 px-1.5 py-0.5 rounded-sm">
+                                          {report.reportNumber || report.reportData?.reportNumber}
+                                        </span>
+                                      )}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-1">
-                                    <p className="text-[10px] text-muted-foreground truncate">Eng: {report.engineNumber || 'N/A'}</p>
-                                    <p className="text-[10px] text-muted-foreground truncate">Chassis: {report.chassisNumber || 'N/A'}</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">
+                                      Eng: {report.engineNumber || report.reportData?.engineNumber || 'N/A'}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground truncate">
+                                      Chassis: {report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}
+                                    </p>
                                     <p className="text-[9px] text-muted-foreground mt-2 border-t pt-1">
                                         Saved: {report.updatedAt ? new Date(report.updatedAt.seconds * 1000).toLocaleDateString() : 'N/A'}
                                     </p>

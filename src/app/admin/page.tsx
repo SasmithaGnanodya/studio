@@ -165,18 +165,18 @@ export default function AdminPage() {
 
   const filteredReports = useMemo(() => {
     if (!searchTerm) return reports;
-    const term = searchTerm.toUpperCase();
+    const term = searchTerm.toUpperCase().trim();
     
     return reports.filter(report => {
       if (searchCategory === 'all') {
         return (
           report.vehicleId.toUpperCase().includes(term) ||
-          (report.engineNumber && report.engineNumber.toUpperCase().includes(term)) ||
-          (report.chassisNumber && report.chassisNumber.toUpperCase().includes(term)) ||
-          (report.reportNumber && report.reportNumber.toUpperCase().includes(term))
+          (report.engineNumber || report.reportData?.engineNumber || '').toUpperCase().includes(term) ||
+          (report.chassisNumber || report.reportData?.chassisNumber || '').toUpperCase().includes(term) ||
+          (report.reportNumber || report.reportData?.reportNumber || '').toUpperCase().includes(term)
         );
       } else {
-        const value = report[searchCategory as keyof Report];
+        const value = report[searchCategory as keyof Report] || report.reportData?.[searchCategory];
         return typeof value === 'string' && value.toUpperCase().includes(term);
       }
     });
@@ -263,7 +263,7 @@ export default function AdminPage() {
             <CardHeader>
                 <CardTitle>All Reports ({reports.length})</CardTitle>
                 <CardDescription>
-                  Search database with specific filters.
+                  Filter the database by specific identifier.
                 </CardDescription>
                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
                     <div className="w-full sm:w-48">
@@ -285,7 +285,7 @@ export default function AdminPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
                             type="text"
-                            placeholder="Search reports..."
+                            placeholder="Filter reports..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10 w-full"
@@ -301,13 +301,21 @@ export default function AdminPage() {
                              <CardHeader>
                                 <CardTitle className="font-mono text-primary flex justify-between items-center text-lg">
                                   {report.vehicleId}
-                                  {report.reportNumber && <span className="text-[10px] bg-primary/10 px-1.5 py-0.5 rounded font-mono">{report.reportNumber}</span>}
+                                  {(report.reportNumber || report.reportData?.reportNumber) && (
+                                    <span className="text-[10px] bg-primary/10 px-1.5 py-0.5 rounded font-mono">
+                                      {report.reportNumber || report.reportData?.reportNumber}
+                                    </span>
+                                  )}
                                 </CardTitle>
                                 <CardDescription className="text-xs">{report.reportDate || 'No Date'}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-1">
-                                <p className="text-xs text-muted-foreground truncate">Eng: {report.engineNumber || 'N/A'}</p>
-                                <p className="text-xs text-muted-foreground truncate">Chassis: {report.chassisNumber || 'N/A'}</p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  Eng: {report.engineNumber || report.reportData?.engineNumber || 'N/A'}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  Chassis: {report.chassisNumber || report.reportData?.chassisNumber || 'N/A'}
+                                </p>
                                 <p className="text-xs text-muted-foreground mt-2 border-t pt-2">
                                     Last Saved By: {report.userName || 'Unknown'}
                                 </p>
