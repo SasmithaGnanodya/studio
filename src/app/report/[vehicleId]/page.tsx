@@ -1,525 +1,220 @@
+'use client';
 
-"use client";
-
-import { useState, useEffect, useMemo, use } from 'react';
+import React, { useState, useEffect, useMemo, use } from 'react';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Printer, Eye, Wrench, Save, User as UserIcon, RefreshCw, LockKeyhole, AlertTriangle } from 'lucide-react';
+import { Printer, Eye, Save, LockKeyhole, AlertTriangle } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
-import { initialReportState } from '@/lib/initialReportState';
+import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp, runTransaction } from 'firebase/firestore';
-import type { FieldLayout, FieldPart, ImageData, Report, LayoutDocument } from '@/lib/types';
-import { DataForm } from '@/components/DataForm';
+import { doc, getDoc, collection, query, where, getDocs, serverTimestamp, runTransaction } from 'firebase/firestore';
+import type { FieldLayout, ImageData, Report } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
-const validateAndCleanFieldPart = (part: any): FieldPart => {
-  const defaults: FieldPart = {
-    text: '',
-    x: 0,
-    y: 0,
-    width: 50,
-    height: 5,
-    isBold: false,
-    color: '#000000',
-    fontSize: 12,
-    inputType: 'text',
-    options: [],
-    objectFit: 'cover'
-  };
-
-  if (typeof part !== 'object' || part === null) {
-    return { ...defaults, text: String(part || '') };
-  }
-
-  return {
-    text: part.text || '',
-    x: part.x || 0,
-    y: part.y || 0,
-    width: part.width || 50,
-    height: part.height || 5,
-    isBold: part.isBold || false,
-    color: part.color || '#000000',
-    fontSize: part.fontSize || 12,
-    inputType: part.inputType || 'text',
-    options: part.options || [],
-    objectFit: part.objectFit || 'cover'
-  };
-};
-
 function PasswordGate({ onPasswordCorrect }: { onPasswordCorrect: () => void }) {
-    const { firestore } = useFirebase();
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+  const { firestore } = useFirebase();
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-    const handlePasswordSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setError('');
-        const settingsRef = doc(firestore, 'config', 'settings');
-        try {
-            const docSnap = await getDoc(settingsRef);
-            if (docSnap.exists() && docSnap.data().privateDataPassword === password) {
-                onPasswordCorrect();
-            } else {
-                setError('Incorrect password. Please try again.');
-            }
-        } catch (err) {
-            setError('Failed to verify password.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    return (
-        <div className="flex-1 flex items-center justify-center">
-            <Card className="w-full max-w-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><LockKeyhole /> Secure Access</CardTitle>
-                    <CardDescription>Please enter the password to view this report's details.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                             <Label htmlFor="password">Password</Label>
-                             <Input 
-                                id="password"
-                                type="password" 
-                                value={password} 
-                                onChange={(e) => setPassword(e.target.value)} 
-                                required
-                             />
-                        </div>
-                        {error && (
-                            <p className="text-sm text-destructive flex items-center gap-2">
-                                <AlertTriangle size={14} /> {error}
-                            </p>
-                        )}
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? 'Verifying...' : 'Unlock Report'}
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
-    );
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    const settingsRef = doc(firestore, 'config', 'settings');
+    try {
+      const docSnap = await getDoc(settingsRef);
+      if (docSnap.exists() && docSnap.data().privateDataPassword === password) {
+        onPasswordCorrect();
+      } else {
+        setError('Incorrect password.');
+      }
+    } catch (err) {
+      setError('Failed to verify password.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex-1 flex items-center justify-center p-4">
+      <Card className="w-full max-w-sm border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><LockKeyhole className="text-primary" /> Secure Access</CardTitle>
+          <CardDescription>Enter password to unlock this report.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <Input 
+              type="password" 
+              placeholder="Password"
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              required
+            />
+            {error && <p className="text-sm text-destructive flex items-center gap-2"><AlertTriangle size={14} /> {error}</p>}
+            <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? 'Verifying...' : 'Unlock'}</Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 export default function ReportBuilderPage({ params }: { params: { vehicleId: string } }) {
   const resolvedParams = use(params);
-  
-  const [reportId, setReportId] = useState<string | null>(null);
-  const [reportCreator, setReportCreator] = useState<string | null>(null);
-  const [reportData, setReportData] = useState(initialReportState);
-  const [layout, setLayout] = useState<FieldLayout[]>([]);
-  const [layoutVersion, setLayoutVersion] = useState<number | null>(null);
-  const [currentReportLayoutId, setCurrentReportLayoutId] = useState<string | null>(null);
-  const [latestLayoutId, setLatestLayoutId] = useState<string | null>(null);
-  const [isLatestLayout, setIsLatestLayout] = useState(true);
-  const [isPreview, setIsPreview] = useState(true);
-  const [isCalibrating, setIsCalibrating] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState(false); // New state for password access
-  
-  const { firestore, user } = useFirebase();
-  const { toast } = useToast();
-  
   const vehicleId = decodeURIComponent(resolvedParams.vehicleId);
 
-  const isAdmin = useMemo(() => {
-    return user?.email && ADMIN_EMAILS.includes(user.email);
-  }, [user]);
+  const [reportId, setReportId] = useState<string | null>(null);
+  const [reportData, setReportData] = useState(initialReportState);
+  const [isFilling, setIsFilling] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Immediately authorize admins
+  const { firestore, user } = useFirebase();
+  const { toast } = useToast();
+
+  const isAdmin = useMemo(() => user?.email && ADMIN_EMAILS.includes(user.email), [user]);
+
+  useEffect(() => { if (isAdmin) setIsAuthorized(true); }, [isAdmin]);
+
   useEffect(() => {
-      if (isAdmin) {
-          setIsAuthorized(true);
-      }
-  }, [isAdmin]);
+    if (!user || !firestore || !isAuthorized) return;
 
-  // Set document title for printing
-  useEffect(() => {
-    if (vehicleId) {
-      document.title = vehicleId;
-    }
-    return () => {
-      document.title = 'FormFlow PDF Filler';
-    };
-  }, [vehicleId]);
-
-  const applyLayout = (layoutData: LayoutDocument | null) => {
-    if (layoutData && layoutData.fields && Array.isArray(layoutData.fields)) {
-        const validatedFields = layoutData.fields.map((f: any) => ({
-            ...f,
-            fieldType: f.fieldType || 'text',
-            label: f.fieldType === 'image' ? ({} as FieldPart) : validateAndCleanFieldPart(f.label),
-            value: f.fieldType === 'text' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
-            placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
-        }));
-        setLayout(validatedFields as FieldLayout[]);
-        setLayoutVersion(layoutData.version);
-    }
-  };
-  
-  const fetchLayoutById = async (layoutId: string): Promise<LayoutDocument | null> => {
-      if (!firestore || !layoutId) return null;
-      const layoutDocRef = doc(firestore, 'layouts', layoutId);
-      const layoutDoc = await getDoc(layoutDocRef);
-      if (layoutDoc.exists()) {
-        return layoutDoc.data() as LayoutDocument;
-      }
-      return null;
-  }
-
-  // Combined fetch logic for layout and report
-  useEffect(() => {
-    if (!user || !firestore || !isAuthorized) return; // Wait for authorization
-
-    const fetchReportAndLayout = async () => {
-      // 1. Get the latest layout configuration first
-      const configRef = doc(firestore, 'layouts', 'config');
-      const configSnap = await getDoc(configRef);
-      const latestId = configSnap.exists() ? configSnap.data().currentId : null;
-      setLatestLayoutId(latestId);
-
-      // 2. Check for an existing report
-      const reportsRef = collection(firestore, `reports`);
+    const fetchReport = async () => {
+      setIsLoading(true);
+      const reportsRef = collection(firestore, 'reports');
       const q = query(reportsRef, where('vehicleId', '==', vehicleId));
       const querySnapshot = await getDocs(q);
 
-      if (!querySnapshot.empty) { // Existing report found
-        const reportDoc = querySnapshot.docs[0];
-        const report = reportDoc.data() as Report;
-        
-        setReportId(reportDoc.id);
+      if (!querySnapshot.empty) {
+        const report = querySnapshot.docs[0].data() as Report;
+        setReportId(querySnapshot.docs[0].id);
         setReportData({ ...initialReportState, ...report.reportData, regNumber: vehicleId });
-        setReportCreator(report.userName || null);
-
-        const reportLayoutId = report.layoutId;
-        setCurrentReportLayoutId(reportLayoutId);
-        setIsLatestLayout(reportLayoutId === latestId);
-        
-        const layoutToLoad = reportLayoutId || latestId;
-        if (layoutToLoad) {
-            const layoutData = await fetchLayoutById(layoutToLoad);
-            applyLayout(layoutData);
-        }
-        
-        toast({
-          title: "Report Loaded",
-          description: `Loaded existing report for ${vehicleId}.`,
-        });
-      } else { // This is a new report
-        setReportId(null);
-        setReportCreator(user.displayName);
+      } else {
         setReportData({ ...initialReportState, regNumber: vehicleId });
-        setIsLatestLayout(true);
-        setCurrentReportLayoutId(latestId);
-        
-        if (latestId) {
-            const layoutData = await fetchLayoutById(latestId); // Use the LATEST layout for new reports
-            applyLayout(layoutData);
-        }
-        
-        toast({
-          title: "New Report",
-          description: `Creating a new report for ${vehicleId}.`,
-        });
       }
+      setIsLoading(false);
     };
 
-    fetchReportAndLayout();
+    fetchReport();
+  }, [user, firestore, vehicleId, isAuthorized]);
 
-  }, [user, firestore, vehicleId, toast, isAuthorized]);
-
-
-  const handleDataChange = (name: string, value: string | ImageData) => {
-    setReportData(prev => ({ ...prev, [name]: value }));
+  const handleDataChange = (fieldId: string, value: string | ImageData) => {
+    setReportData(prev => ({ ...prev, [fieldId]: value }));
   };
 
-  const handleSaveReport = async () => {
-    if (!user || !firestore) {
-        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to save.' });
-        return;
-    }
-
-    if (!currentReportLayoutId) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not determine layout version for saving.' });
-        return;
-    }
-
-    const reportToSave = { ...reportData };
+  const handleSave = async () => {
+    if (!user || !firestore) return;
 
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const newTimestamp = serverTimestamp();
-            
-            if (reportId) { // Existing report
-                const reportRef = doc(firestore, 'reports', reportId);
-                const historyColRef = collection(reportRef, 'history');
-                const historyDocRef = doc(historyColRef);
-
-                // Create a history entry with the current state before updating
-                const currentReportSnap = await transaction.get(reportRef);
-                if (currentReportSnap.exists()) {
-                    const currentReportData = currentReportSnap.data();
-                    transaction.set(historyDocRef, {
-                        id: historyDocRef.id,
-                        reportId: reportId,
-                        vehicleId: vehicleId,
-                        userId: currentReportData.userId,
-                        userName: currentReportData.userName,
-                        reportData: currentReportData.reportData,
-                        savedAt: currentReportData.updatedAt, // Timestamp of the previous save
-                    });
-                }
-
-                // Update the main report document
-                transaction.update(reportRef, {
-                    reportData: reportToSave,
-                    updatedAt: newTimestamp,
-                    layoutId: currentReportLayoutId,
-                    userId: user.uid,
-                    userName: user.displayName,
-                });
-
-                setReportCreator(user.displayName);
-                toast({ title: 'Report Updated', description: 'Your changes have been saved.' });
-
-            } else { // New report
-                const newReportRef = doc(collection(firestore, 'reports'));
-                
-                transaction.set(newReportRef, {
-                    id: newReportRef.id,
-                    vehicleId,
-                    userId: user.uid,
-                    userName: user.displayName,
-                    reportData: reportToSave,
-                    createdAt: newTimestamp,
-                    updatedAt: newTimestamp,
-                    layoutId: currentReportLayoutId,
-                });
-                
-                // Also create the first history entry for the new report
-                const historyDocRef = doc(collection(newReportRef, 'history'));
-                transaction.set(historyDocRef, {
-                    id: historyDocRef.id,
-                    reportId: newReportRef.id,
-                    vehicleId: vehicleId,
-                    userId: user.uid,
-                    userName: user.displayName,
-                    reportData: reportToSave,
-                    savedAt: newTimestamp,
-                });
-                
-                setReportId(newReportRef.id);
-                setReportCreator(user.displayName);
-                toast({ title: 'Report Saved', description: 'New report has been saved successfully.' });
-            }
-        });
-    } catch (error) {
-        console.error("Error saving report: ", error);
-        toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save the report.' });
+      await runTransaction(firestore, async (transaction) => {
+        const now = serverTimestamp();
+        if (reportId) {
+          const reportRef = doc(firestore, 'reports', reportId);
+          transaction.update(reportRef, {
+            reportData: reportData,
+            updatedAt: now,
+            userId: user.uid,
+            userName: user.displayName,
+          });
+        } else {
+          const newReportRef = doc(collection(firestore, 'reports'));
+          transaction.set(newReportRef, {
+            id: newReportRef.id,
+            vehicleId,
+            userId: user.uid,
+            userName: user.displayName,
+            reportData: reportData,
+            createdAt: now,
+            updatedAt: now,
+          });
+          setReportId(newReportRef.id);
+        }
+      });
+      toast({ title: "Success", description: "Report saved successfully." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to save report." });
     }
-  };
-
-
-  const handleUpgradeLayout = async () => {
-    if (latestLayoutId) {
-        const layoutData = await fetchLayoutById(latestLayoutId);
-        applyLayout(layoutData);
-        setCurrentReportLayoutId(latestLayoutId);
-        setIsLatestLayout(true);
-        toast({
-            title: "Layout Upgraded",
-            description: "Now using the latest layout. Don't forget to save the report to persist this change."
-        });
-    }
-  };
-
-  const handlePrint = () => {
-    window.print();
   };
 
   const { staticLabels, dynamicValues, imageValues } = useMemo(() => {
-    const staticLabels = layout.filter(f => f.fieldType === 'text' || f.fieldType === 'staticText').map(field => ({
-      id: `label-${field.id}`,
-      value: field.label.text,
-      x: field.label.x,
-      y: field.label.y,
-      width: field.label.width,
-      height: field.label.height,
-      isBold: field.label.isBold,
-      color: field.label.color,
-      fontSize: field.label.fontSize,
+    const labels = fixedLayout.map(f => ({
+      ...f.label,
+      id: `l-${f.id}`,
+      fieldId: f.fieldId,
+      value: f.label.text
     }));
 
-    const dynamicValues = layout.filter(f => f.fieldType === 'text').map(field => {
-      const value = reportData[field.fieldId as keyof typeof reportData] || '';
-      return {
-        id: `value-${field.id}`,
-        value: String(value), // Ensure value is a string
-        x: field.value.x,
-        y: field.value.y,
-        width: field.value.width,
-        height: field.value.height,
-        isBold: field.value.isBold,
-        color: field.value.color,
-        fontSize: field.value.fontSize,
-      };
-    });
+    const values = fixedLayout.filter(f => f.fieldType === 'text').map(f => ({
+      ...f.value,
+      id: `v-${f.id}`,
+      fieldId: f.fieldId,
+      value: String(reportData[f.fieldId] || '')
+    }));
 
-    const imageValues = layout.filter(f => f.fieldType === 'image' && f.placeholder).map(field => {
-        const imageData = reportData[field.fieldId] || { url: '', scale: 1, x: 0, y: 0 };
-        return {
-            id: `image-${field.id}`,
-            value: imageData,
-            x: field.placeholder!.x,
-            y: field.placeholder!.y,
-            width: field.placeholder!.width,
-            height: field.placeholder!.height,
-            objectFit: field.placeholder!.objectFit
-        };
-    });
+    const images = fixedLayout.filter(f => f.fieldType === 'image').map(f => ({
+      ...f.placeholder!,
+      id: `i-${f.id}`,
+      fieldId: f.fieldId,
+      value: reportData[f.fieldId] || { url: '', scale: 1, x: 0, y: 0 }
+    }));
 
-    return { staticLabels, dynamicValues, imageValues };
-  }, [layout, reportData]);
+    return { staticLabels: labels, dynamicValues: values, imageValues: images };
+  }, [reportData]);
 
+  if (!isAuthorized) return <PasswordGate onPasswordCorrect={() => setIsAuthorized(true)} />;
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+    <div className="flex min-h-screen flex-col bg-muted/10">
       <Header />
-       <main className="flex flex-1 flex-col lg:flex-row gap-4 p-4 lg:gap-6 lg:p-6 no-print">
-         {!isAuthorized ? (
-            <PasswordGate onPasswordCorrect={() => setIsAuthorized(true)} />
-         ) : (
-            <>
-                <div className="w-full lg:w-1/3 xl:w-1/4 lg:h-[calc(100vh-6rem)] lg:sticky lg:top-20">
-                    <Card className="hidden lg:block h-full">
-                        <CardHeader>
-                            <CardTitle>Report Data</CardTitle>
-                            <CardDescription>
-                                Vehicle No: <span className='font-semibold text-primary'>{vehicleId}</span>
-                            </CardDescription>
-                             {reportCreator && (
-                                <CardDescription className="flex items-center gap-2 pt-2">
-                                   <UserIcon size={14} className="text-muted-foreground" />
-                                   Last saved by: <span className='font-semibold'>{reportCreator}</span>
-                                </CardDescription>
-                            )}
-                             {layoutVersion !== null && (
-                                <CardDescription className="flex items-center gap-2 pt-2">
-                                   Layout Version: <span className={`font-semibold ${isLatestLayout ? 'text-green-600' : 'text-amber-600'}`}>{layoutVersion}</span>
-                                </CardDescription>
-                            )}
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <DataForm layout={layout} data={reportData} onDataChange={handleDataChange} />
-                        </CardContent>
-                    </Card>
-                    <div className="block lg:hidden">
-                        <Accordion type="single" collapsible>
-                            <AccordionItem value="item-1">
-                                <AccordionTrigger className='bg-card px-4 rounded-t-lg'>
-                                     <CardHeader className="p-0 text-left">
-                                        <CardTitle>Report Data</CardTitle>
-                                        <CardDescription>
-                                            Vehicle No: <span className='font-semibold text-primary'>{vehicleId}</span>
-                                        </CardDescription>
-                                        {reportCreator && (
-                                            <CardDescription className="flex items-center gap-2 pt-2">
-                                               <UserIcon size={14} className="text-muted-foreground" />
-                                               Last saved by: <span className='font-semibold'>{reportCreator}</span>
-                                            </CardDescription>
-                                        )}
-                                        {layoutVersion !== null && (
-                                            <CardDescription className="flex items-center gap-2 pt-2">
-                                            Layout Version: <span className={`font-semibold ${isLatestLayout ? 'text-green-600' : 'text-amber-600'}`}>{layoutVersion}</span>
-                                            </CardDescription>
-                                        )}
-                                    </CardHeader>
-                                </AccordionTrigger>
-                                <AccordionContent className='bg-card p-4 rounded-b-lg'>
-                                    <DataForm layout={layout} data={reportData} onDataChange={handleDataChange} />
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
-                    </div>
-                </div>
-                
-                <div className="flex-1 flex flex-col gap-4">
-                  <Card>
-                    <CardContent className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                      <div className="flex items-center space-x-4 self-start">
-                        <div className="flex items-center space-x-2">
-                          <Switch id="preview-mode" checked={isPreview} onCheckedChange={setIsPreview} />
-                          <Label htmlFor="preview-mode" className="flex items-center gap-2"><Eye size={16}/> Preview</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="calibration-mode" checked={isCalibrating} onCheckedChange={setIsCalibrating} />
-                          <Label htmlFor="calibration-mode" className="flex items-center gap-2"><Wrench size={16}/> Calibrate</Label>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                         {!isLatestLayout && (
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                   <Button variant="outline"><RefreshCw className="mr-2 h-4 w-4" /> Upgrade Layout</Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure you want to upgrade?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This will apply the latest layout to this report. Fields may shift, and new fields may be added. You should review the report carefully after upgrading. This action cannot be undone until you save the report.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleUpgradeLayout}>Upgrade</AlertDialogAction>
-                                </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                         )}
-                        <Button onClick={handleSaveReport}><Save className="mr-2 h-4 w-4" /> Save Report</Button>
-                        <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Print to PDF</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <div className="flex-1 rounded-lg bg-white shadow-sm overflow-auto p-4">
-                    <div className={`relative mx-auto w-fit ${isPreview ? "preview-mode" : ""}`}>
-                       <ReportPage 
-                          staticLabels={staticLabels} 
-                          dynamicValues={dynamicValues}
-                          imageValues={imageValues}
-                          isCalibrating={isCalibrating} 
-                        />
-                    </div>
-                  </div>
-                </div>
-            </>
-         )}
-      </main>
-      
-      {/* Print-only view */}
-      {isAuthorized && (
-          <div className="hidden print-view">
-             <ReportPage 
-                staticLabels={staticLabels} 
+      <main className="flex-1 flex flex-col p-4 no-print">
+        <Card className="mb-6 border-primary/10">
+          <CardContent className="pt-6 flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center space-x-2">
+                <Switch id="fill-mode" checked={isFilling} onCheckedChange={setIsFilling} />
+                <Label htmlFor="fill-mode">Filling Mode</Label>
+              </div>
+              <div className="text-sm font-medium">Vehicle: <span className="text-primary">{vehicleId}</span></div>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleSave} className="bg-primary hover:bg-primary/90"><Save className="mr-2 h-4 w-4" /> Save</Button>
+              <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" /> Print</Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex-1 flex justify-center pb-20 overflow-visible">
+          {isLoading ? (
+            <div className="animate-pulse bg-white w-[210mm] h-[297mm] shadow-2xl rounded-lg" />
+          ) : (
+            <div className={isFilling ? "preview-mode" : ""}>
+              <ReportPage 
+                staticLabels={staticLabels}
                 dynamicValues={dynamicValues}
                 imageValues={imageValues}
-                isCalibrating={false} 
+                isEditable={isFilling}
+                onValueChange={handleDataChange}
               />
-          </div>
-      )}
+            </div>
+          )}
+        </div>
+      </main>
+
+      <div className="hidden print-view">
+        <ReportPage 
+          staticLabels={staticLabels}
+          dynamicValues={dynamicValues}
+          imageValues={imageValues}
+        />
+      </div>
     </div>
   );
 }

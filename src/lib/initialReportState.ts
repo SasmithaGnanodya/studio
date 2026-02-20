@@ -1,36 +1,31 @@
-
 import type { FieldLayout, ImageData } from './types';
 
-// src/lib/initialReportState.ts
-
 export const initialReportState: { [key: string]: any } = {
-  // --- Header ---
+  // Header
   reportNumber: "V1234",
-  date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format
+  date: new Date().toLocaleDateString('en-CA'),
   inspectionLocation: "Colombo",
   inspectionTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
   
-  // --- Row 1: Identification ---
+  // Identification
   regNumber: "ABC-1234",
   manufacturer: "Toyota",
   model: "Vitz",
   fuelType: "Petrol",
   manufactureYear: "2019",
-  
-  // --- Row 2: Identification Cont. ---
   origin: "Japan",
   engineNumber: "1KR-FE-123456",
   chassisNumber: "KSP130-1234567",
   vehicleClass: "Motor Car",
   firstRegDate: "2020-01-15",
 
-  // --- Conversions & Drive Train ---
+  // Drive Train
   conversions: "No",
   driveWheels: "FWD",
   gearBox: "Automatic",
   gearSelection: "Floor",
   
-  // --- Body Features ---
+  // Body
   bodyShape: "Just Low",
   numberOfDoors: "5",
   roofType: "Std",
@@ -39,7 +34,7 @@ export const initialReportState: { [key: string]: any } = {
   weight: "650kg",
   color: "White",
 
-  // --- Engine Specs ---
+  // Engine
   displacement: "1000",
   fuelSystem: "EFI",
   engineType: "3 Cylinder",
@@ -47,10 +42,9 @@ export const initialReportState: { [key: string]: any } = {
   engineCondition: "Serviceable",
   engineReplaced: "No",
 
-  // --- Odometer & Electrical ---
+  // Condition
   odometer: "50000",
   internalTrim: "Cloth",
-  voltage: "12V",
   battery: "Functioning",
   starter: "Functioning",
   alternator: "Functioning",
@@ -58,73 +52,118 @@ export const initialReportState: { [key: string]: any } = {
   wipers: "Functioning",
   lights: "Functioning",
 
-  // --- Tyres (Front/Rear) ---
-  tyreSizeFront: "165/70R14",
-  tyreWasteFront: "60%",
-  tyreSizeRear: "165/70R14",
-  tyreWasteRear: "60%",
-
-  // --- Suspension / Brakes / Steering ---
-  suspensionFront: "Coil/Serviceable",
-  suspensionRear: "Coil/Serviceable",
-  brakesService: "ABS/Serviceable",
-  brakesParking: "Hand/Serviceable",
-  steering: "EPS/Serviceable",
-
-  // --- General Condition ---
-  chassisCondition: "Serviceable",
-  bodyCondition: "Serviceable",
-  paintCondition: "Serviceable",
-  mechanicalCondition: "Serviceable",
-  
-  // --- Footer / Valuation ---
-  writeOff: "No",
-  roadTest: "Done",
-  fuelConsumption: "Average",
-  importDate: "2019-12-01",
-  bodyPartsAvail: "Fair",
-  enginePartsAvail: "Fair",
-  accessoriesAvail: "Fair",
-  extras: "A/C, Power Steering, Airbags",
+  // Valuation
   marketValueNum: "3,500,000",
   marketValueText: "Three Million Five Hundred Thousand Rupees",
   
-  // --- Images (URLs from Firebase Storage) ---
+  // Images
   image1: { url: 'https://picsum.photos/seed/1/600/400', scale: 1, x: 0, y: 0 } as ImageData,
-  imgFront: { url: '', scale: 1, x: 0, y: 0 } as ImageData,
-  imgRear: { url: '', scale: 1, x: 0, y: 0 } as ImageData,
 };
 
+export const fixedLayout: FieldLayout[] = [
+  // --- ROW 1: Header Info ---
+  {
+    id: 'reportNum-L',
+    fieldId: 'reportNumber',
+    fieldType: 'text',
+    label: { text: 'Report Num:', x: 10, y: 10, width: 30, height: 5, fontSize: 10 },
+    value: { text: 'reportNumber', x: 40, y: 10, width: 40, height: 6, fontSize: 11, isBold: true }
+  },
+  {
+    id: 'date-L',
+    fieldId: 'date',
+    fieldType: 'text',
+    label: { text: 'Date:', x: 100, y: 10, width: 20, height: 5, fontSize: 10 },
+    value: { text: 'date', x: 120, y: 10, width: 40, height: 6, fontSize: 11 }
+  },
 
-export const initialLayout: FieldLayout[] = [
-    {
-      id: 'regNumber-layout',
-      fieldId: 'regNumber',
-      fieldType: 'text',
-      label: { text: 'Reg No.', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 },
-      value: { text: 'regNumber', x: 65, y: 10, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 }
-    },
-    {
-      id: 'manufacturer-layout',
-      fieldId: 'manufacturer',
-      fieldType: 'text',
-      label: { text: 'Manufacturer', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 },
-      value: { text: 'manufacturer', x: 65, y: 20, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 }
-    },
-    {
-      id: 'model-layout',
-      fieldId: 'model',
-      fieldType: 'text',
-      label: { text: 'Model', x: 10, y: 30, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 },
-      value: { text: 'model', x: 65, y: 30, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 }
-    },
-    {
-      id: 'image1-layout',
-      fieldId: 'image1',
-      fieldType: 'image',
-      placeholder: { text: 'image1', x: 10, y: 150, width: 90, height: 60, color: '#0000FF', objectFit: 'cover' },
-      // label and value are not used for images, but need to be present to satisfy the type
-      label: {} as any,
-      value: {} as any,
-    }
+  // --- ROW 2: Identification ---
+  {
+    id: 'reg-L',
+    fieldId: 'regNumber',
+    fieldType: 'text',
+    label: { text: 'Reg. Number:', x: 10, y: 25, width: 30, height: 5, fontSize: 10 },
+    value: { text: 'regNumber', x: 40, y: 25, width: 40, height: 6, fontSize: 12, isBold: true }
+  },
+  {
+    id: 'manuf-L',
+    fieldId: 'manufacturer',
+    fieldType: 'text',
+    label: { text: 'Manufacturer:', x: 100, y: 25, width: 30, height: 5, fontSize: 10 },
+    value: { text: 'manufacturer', x: 130, y: 25, width: 40, height: 6, fontSize: 11 }
+  },
+
+  // --- ROW 3: More Identification ---
+  {
+    id: 'model-L',
+    fieldId: 'model',
+    fieldType: 'text',
+    label: { text: 'Model / Type:', x: 10, y: 35, width: 30, height: 5, fontSize: 10 },
+    value: { text: 'model', x: 40, y: 35, width: 40, height: 6, fontSize: 11 }
+  },
+  {
+    id: 'fuel-L',
+    fieldId: 'fuelType',
+    fieldType: 'text',
+    label: { text: 'Type of Fuel:', x: 100, y: 35, width: 30, height: 5, fontSize: 10 },
+    value: { text: 'fuelType', x: 130, y: 35, width: 40, height: 6, fontSize: 11, inputType: 'dropdown', options: ['Petrol', 'Diesel', 'Hybrid', 'Electric'] }
+  },
+
+  // --- ROW 4: Engine / Chassis ---
+  {
+    id: 'engineNum-L',
+    fieldId: 'engineNumber',
+    fieldType: 'text',
+    label: { text: 'Engine Number:', x: 10, y: 45, width: 30, height: 5, fontSize: 10 },
+    value: { text: 'engineNumber', x: 40, y: 45, width: 50, height: 6, fontSize: 11 }
+  },
+  {
+    id: 'chassisNum-L',
+    fieldId: 'chassisNumber',
+    fieldType: 'text',
+    label: { text: 'Chassis Number:', x: 100, y: 45, width: 30, height: 5, fontSize: 10 },
+    value: { text: 'chassisNumber', x: 130, y: 45, width: 50, height: 6, fontSize: 11 }
+  },
+
+  // --- ROW 5: Condition ---
+  {
+    id: 'odo-L',
+    fieldId: 'odometer',
+    fieldType: 'text',
+    label: { text: 'Odometer:', x: 10, y: 60, width: 30, height: 5, fontSize: 10 },
+    value: { text: 'odometer', x: 40, y: 60, width: 30, height: 6, fontSize: 11 }
+  },
+  {
+    id: 'color-L',
+    fieldId: 'color',
+    fieldType: 'text',
+    label: { text: 'Color:', x: 100, y: 60, width: 30, height: 5, fontSize: 10 },
+    value: { text: 'color', x: 130, y: 60, width: 40, height: 6, fontSize: 11 }
+  },
+
+  // --- Valuation ---
+  {
+    id: 'marketVal-L',
+    fieldId: 'marketValueNum',
+    fieldType: 'text',
+    label: { text: 'Market Value Rs:', x: 10, y: 240, width: 40, height: 5, isBold: true, fontSize: 12 },
+    value: { text: 'marketValueNum', x: 55, y: 240, width: 50, height: 8, fontSize: 14, isBold: true, color: '#FF0000' }
+  },
+  {
+    id: 'marketValWords-L',
+    fieldId: 'marketValueText',
+    fieldType: 'text',
+    label: { text: 'In Words:', x: 10, y: 250, width: 30, height: 5, fontSize: 10 },
+    value: { text: 'marketValueText', x: 45, y: 250, width: 140, height: 6, fontSize: 11 }
+  },
+
+  // --- Main Image ---
+  {
+    id: 'mainImg-L',
+    fieldId: 'image1',
+    fieldType: 'image',
+    placeholder: { text: 'Main Photo', x: 10, y: 100, width: 190, height: 120, objectFit: 'cover' },
+    label: {} as any,
+    value: {} as any,
+  }
 ];
