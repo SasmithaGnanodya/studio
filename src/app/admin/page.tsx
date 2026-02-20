@@ -8,7 +8,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,10 +16,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, subDays } from 'date-fns';
+import { format, subDays, startOfDay, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
@@ -110,23 +110,24 @@ export default function AdminPage() {
 
   const uniqueReports = useMemo(() => getUniqueReports(reports), [reports]);
 
-  const chartData = useMemo(() => {
-    const last7Days = [...Array(7)].map((_, i) => {
-      const d = subDays(new Date(), 6 - i);
-      return format(d, 'MMM dd');
+  const stats = useMemo(() => {
+    const today = new Date();
+    const reportsToday = reports.filter(r => {
+      if (!r.updatedAt?.seconds) return false;
+      return isSameDay(new Date(r.updatedAt.seconds * 1000), today);
+    }).length;
+
+    const chartData = [...Array(7)].map((_, i) => {
+      const d = subDays(today, 6 - i);
+      const dayStr = format(d, 'MMM dd');
+      const count = reports.filter(r => {
+        if (!r.updatedAt?.seconds) return false;
+        return isSameDay(new Date(r.updatedAt.seconds * 1000), d);
+      }).length;
+      return { day: dayStr, reports: count };
     });
 
-    const counts: Record<string, number> = {};
-    last7Days.forEach(day => counts[day] = 0);
-
-    reports.forEach(r => {
-      if (r.updatedAt) {
-        const day = format(new Date(r.updatedAt.seconds * 1000), 'MMM dd');
-        if (counts[day] !== undefined) counts[day]++;
-      }
-    });
-
-    return last7Days.map(day => ({ day, reports: counts[day] }));
+    return { reportsToday, chartData };
   }, [reports]);
 
   const handleUpdatePassword = async () => {
@@ -181,66 +182,67 @@ export default function AdminPage() {
       <Header />
       <main className="flex-1 p-6 space-y-6">
         
-        {/* TOP DASHBOARD: QUICK STATS & CHART */}
+        {/* TOP DASHBOARD: 4 STAT CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative">
             <div className="absolute top-0 right-0 p-3 opacity-10">
-              <Car size={64} className="text-primary" />
+              <Car size={48} className="text-primary" />
             </div>
             <CardHeader className="pb-2">
               <CardDescription className="text-[10px] font-bold uppercase tracking-wider">Unique Vehicles</CardDescription>
-              <CardTitle className="text-4xl font-black text-primary">{uniqueReports.length}</CardTitle>
+              <CardTitle className="text-3xl font-black text-primary">{uniqueReports.length}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <TrendingUp size={12} className="text-green-500" /> Active vehicle database
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <TrendingUp size={10} className="text-green-500" /> Active Database
               </p>
             </CardContent>
           </Card>
 
           <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative">
             <div className="absolute top-0 right-0 p-3 opacity-10">
-              <History size={64} className="text-primary" />
+              <History size={48} className="text-primary" />
             </div>
             <CardHeader className="pb-2">
-              <CardDescription className="text-[10px] font-bold uppercase tracking-wider">Total Save Logs</CardDescription>
-              <CardTitle className="text-4xl font-black text-primary">{reports.length}</CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-wider">Total Syncs</CardDescription>
+              <CardTitle className="text-3xl font-black text-primary">{reports.length}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock size={12} className="text-primary" /> Comprehensive audit trail
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <Clock size={10} className="text-primary" /> Audit Logs
               </p>
             </CardContent>
           </Card>
 
-          <Card className="md:col-span-2 border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg lg:col-span-2">
-            <CardHeader className="pb-0 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <BarChart3 size={16} className="text-primary" /> 7-Day Activity
-                </CardTitle>
-                <CardDescription className="text-[10px]">Reports generated per day</CardDescription>
-              </div>
-              <Badge variant="outline" className="text-[10px] border-primary/20 text-primary">Live</Badge>
+          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <Zap size={48} className="text-primary" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-[10px] font-bold uppercase tracking-wider">Today's Activity</CardDescription>
+              <CardTitle className="text-3xl font-black text-primary">{stats.reportsToday}</CardTitle>
             </CardHeader>
-            <CardContent className="h-[120px] pt-4">
+            <CardContent>
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <TrendingUp size={10} className="text-primary" /> New Updates
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg">
+            <CardHeader className="pb-0 pt-4 flex flex-row items-center justify-between">
+              <div>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-wider">7-Day Activity</CardDescription>
+              </div>
+              <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center">
+                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+              </div>
+            </CardHeader>
+            <CardContent className="h-[60px] pt-2">
               <ChartContainer config={{ reports: { label: "Reports", color: "hsl(var(--primary))" } }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.1} />
-                    <XAxis 
-                      dataKey="day" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} 
-                    />
-                    <YAxis hide />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar 
-                      dataKey="reports" 
-                      fill="var(--color-reports)" 
-                      radius={[4, 4, 0, 0]} 
-                    />
+                  <BarChart data={stats.chartData}>
+                    <Bar dataKey="reports" fill="var(--color-reports)" radius={[2, 2, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -419,16 +421,4 @@ export default function AdminPage() {
       </main>
     </div>
   );
-}
-
-function Badge({ children, variant = "default", className }: { children: React.ReactNode, variant?: string, className?: string }) {
-    return (
-        <div className={cn(
-            "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-            variant === "outline" ? "text-foreground" : "bg-primary text-primary-foreground",
-            className
-        )}>
-            {children}
-        </div>
-    );
 }
