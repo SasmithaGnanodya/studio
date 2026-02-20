@@ -99,6 +99,7 @@ export const ReportPage = ({
           </Select>
         ) : (
           <Input
+            type={field.fieldId === 'date' ? 'date' : 'text'}
             value={field.value}
             onChange={(e) => onValueChange?.(field.fieldId, e.target.value)}
             className="h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-0"
