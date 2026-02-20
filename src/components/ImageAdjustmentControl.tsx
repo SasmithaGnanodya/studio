@@ -104,7 +104,7 @@ export const ImageAdjustmentControl = ({ value, onChange, compact = false }: Ima
 
   if (showSettings || !value.url) {
     return (
-      <div className="space-y-4 rounded-lg border bg-card p-4 shadow-xl">
+      <div className="space-y-4 rounded-lg border bg-card/95 backdrop-blur-sm p-4 shadow-xl w-64">
         <div className="flex items-center justify-between">
             <Label className="text-sm font-bold">Image Settings</Label>
             {value.url && (
@@ -138,13 +138,12 @@ export const ImageAdjustmentControl = ({ value, onChange, compact = false }: Ima
                 {isUploading ? (
                   <>
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="text-xs">Uploading to Storage...</span>
+                    <span className="text-xs">Uploading...</span>
                   </>
                 ) : (
                   <>
                     <Upload className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-xs font-semibold">Click to Upload Photo</span>
-                    <span className="text-[10px] text-muted-foreground">Supported: JPG, PNG, WEBP</span>
+                    <span className="text-xs font-semibold">Click to Upload</span>
                   </>
                 )}
               </Button>
@@ -160,7 +159,7 @@ export const ImageAdjustmentControl = ({ value, onChange, compact = false }: Ima
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="imageUrl" className="text-[10px] uppercase text-muted-foreground font-bold">Or External URL</Label>
+          <Label htmlFor="imageUrl" className="text-[10px] uppercase text-muted-foreground font-bold">External URL</Label>
           <Input
             id="imageUrl"
             placeholder="https://..."
@@ -179,9 +178,9 @@ export const ImageAdjustmentControl = ({ value, onChange, compact = false }: Ima
     );
   }
 
-  // Position Adjuster Mode
+  // Position Adjuster Mode (Background Centered)
   return (
-    <div className="flex flex-col gap-3 p-3 bg-card/95 backdrop-blur-sm rounded-xl border shadow-2xl ring-1 ring-black/5 w-60">
+    <div className="flex flex-col gap-3 p-3 bg-card/60 hover:bg-card/95 backdrop-blur-md rounded-xl border shadow-2xl ring-1 ring-black/5 w-56 transition-all">
       <div className="flex items-center justify-between border-b pb-2">
         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Adjust Image</span>
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowSettings(true)}>
@@ -202,30 +201,23 @@ export const ImageAdjustmentControl = ({ value, onChange, compact = false }: Ima
             />
             <ZoomIn size={14} className="text-muted-foreground" />
         </div>
-        <div className="text-center text-[10px] font-mono text-muted-foreground">
-            Zoom: {Math.round(value.scale * 100)}%
-        </div>
       </div>
 
       <div className="flex flex-col items-center gap-1">
-        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => handlePan(0, -PAN_STEP)}>
+        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background/50" onClick={() => handlePan(0, -PAN_STEP)}>
             <ArrowUp size={16} />
         </Button>
         <div className="flex gap-4">
-            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => handlePan(-PAN_STEP, 0)}>
+            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background/50" onClick={() => handlePan(-PAN_STEP, 0)}>
                 <ArrowLeft size={16} />
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => handlePan(PAN_STEP, 0)}>
+            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background/50" onClick={() => handlePan(PAN_STEP, 0)}>
                 <ArrowRight size={16} />
             </Button>
         </div>
-        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => handlePan(0, PAN_STEP)}>
+        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background/50" onClick={() => handlePan(0, PAN_STEP)}>
             <ArrowDown size={16} />
         </Button>
-      </div>
-
-      <div className="text-center text-[9px] text-muted-foreground border-t pt-1">
-          Pos: {value.x}px, {value.y}px
       </div>
     </div>
   );

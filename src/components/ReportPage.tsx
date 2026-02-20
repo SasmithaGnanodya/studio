@@ -64,7 +64,7 @@ export const ReportPage = ({
 
     if (isStatic) {
       return (
-        <div key={field.id} className="field z-0 pointer-events-none" style={style}>
+        <div key={field.id} className="field z-10 pointer-events-none" style={style}>
           {field.value}
         </div>
       );
@@ -72,14 +72,14 @@ export const ReportPage = ({
 
     if (!isEditable) {
       return (
-        <div key={field.id} className="field font-mono" style={style}>
+        <div key={field.id} className="field font-mono z-10" style={style}>
           {field.value}
         </div>
       );
     }
 
     return (
-      <div key={field.id} style={style} className="z-10 group">
+      <div key={field.id} style={style} className="z-20 group">
         {field.inputType === 'dropdown' ? (
           <Select
             value={field.value}
@@ -119,7 +119,8 @@ export const ReportPage = ({
       position: 'absolute',
       overflow: 'hidden',
       border: isEditable ? '1px dashed rgba(6, 182, 212, 0.5)' : 'none',
-      backgroundColor: field.value.url ? 'transparent' : 'rgba(0,0,0,0.03)'
+      backgroundColor: field.value.url ? 'transparent' : 'rgba(0,0,0,0.03)',
+      zIndex: 0
     };
 
     const imageStyle: React.CSSProperties = {
@@ -143,8 +144,8 @@ export const ReportPage = ({
         )}
         
         {isEditable && (
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 flex items-center justify-center z-20 pointer-events-none overflow-visible">
-            <div className="pointer-events-auto">
+          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none overflow-visible">
+            <div className="pointer-events-auto opacity-40 group-hover:opacity-100 transition-opacity">
               <ImageAdjustmentControl
                 value={field.value}
                 onChange={(val) => onValueChange?.(field.fieldId, val)}
@@ -158,9 +159,10 @@ export const ReportPage = ({
 
   return (
     <div className="report-page shadow-2xl overflow-visible relative">
+      {/* Render images first to keep them in the background layer */}
+      {imageValues.map(renderImageField)}
       {staticLabels.map(f => renderTextField(f, true))}
       {dynamicValues.map(f => renderTextField(f, false))}
-      {imageValues.map(renderImageField)}
     </div>
   );
 };
