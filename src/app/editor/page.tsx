@@ -3,22 +3,19 @@
 import React, { useState, useEffect, useCallback, useMemo, use } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Save, Home, PlusCircle, Image as ImageIcon, ShieldOff, Type } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Save, Home, PlusCircle, Image as ImageIcon, Type } from 'lucide-react';
 import Link from 'next/link';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { doc, getDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { fixedLayout as initialLayout, initialReportState } from '@/lib/initialReportState';
 import type { FieldLayout, FieldPart, LayoutDocument } from '@/lib/types';
 import { EditorSidebar } from '@/components/EditorSidebar';
 import { ReportPage } from '@/components/ReportPage';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useRouter } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
 
-// Standard DPI for screen, used for mm to px conversion
 const DPI = 96;
 const INCH_PER_MM = 0.0393701;
 const MM_TO_PX = (mm: number) => mm * INCH_PER_MM * DPI;
@@ -69,7 +66,6 @@ export default function EditorPage({ params }: { params: Promise<any> }) {
   const { toast } = useToast();
   const router = useRouter();
 
-  // Admin check
   useEffect(() => {
     if (isUserLoading) return;
     if (!user || !user.email || !ADMIN_EMAILS.includes(user.email)) {
@@ -78,7 +74,6 @@ export default function EditorPage({ params }: { params: Promise<any> }) {
   }, [user, isUserLoading, router]);
 
 
-  // Fetch the LATEST layout from Firestore on component mount
   useEffect(() => {
     if (user && firestore && user.email && ADMIN_EMAILS.includes(user.email)) {
       const fetchLatestLayout = async () => {
@@ -95,7 +90,7 @@ export default function EditorPage({ params }: { params: Promise<any> }) {
                      if (data.fields && Array.isArray(data.fields)) {
                         const validatedFields = data.fields.map((f: any) => ({
                           ...f,
-                          fieldType: f.fieldType || 'text', // Default to text for old data
+                          fieldType: f.fieldType || 'text',
                           label: f.fieldType === 'image' ? ({} as FieldPart) : validateAndCleanFieldPart(f.label),
                           value: f.fieldType === 'text' ? validateAndCleanFieldPart(f.value) : ({} as FieldPart),
                           placeholder: f.fieldType === 'image' ? validateAndCleanFieldPart(f.placeholder) : undefined,
@@ -174,17 +169,17 @@ export default function EditorPage({ params }: { params: Promise<any> }) {
         fieldId: 'newImage',
         fieldType: 'image',
         placeholder: { text: 'newImage', x: 10, y: 150, width: 90, height: 60, color: '#0000FF', objectFit: 'cover' },
-        label: {} as any, // Not used
-        value: {} as any, // Not used
+        label: {} as any,
+        value: {} as any,
       };
       setFields(prev => [...prev, newImageField]);
     } else if (type === 'staticText') {
       const newStaticField: FieldLayout = {
         id: newId,
-        fieldId: `static_${newId}`, // Unique ID, not tied to data
+        fieldId: `static_${newId}`,
         fieldType: 'staticText',
         label: { text: 'Static Text', x: 10, y: 50, width: 80, height: 10, isBold: true, color: '#000000', fontSize: 16 },
-        value: {} as any, // Not used
+        value: {} as any,
       };
       setFields(prev => [...prev, newStaticField]);
     }
@@ -300,7 +295,7 @@ export default function EditorPage({ params }: { params: Promise<any> }) {
       return {
         id: `image-${field.id}`,
         fieldId: field.fieldId,
-        value: imageUrl, // URL
+        value: imageUrl,
         x: field.placeholder!.x,
         y: field.placeholder!.y,
         width: field.placeholder!.width,

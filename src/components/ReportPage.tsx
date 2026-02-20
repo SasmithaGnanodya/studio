@@ -90,9 +90,11 @@ export const ReportPage = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(field.options || []).map(opt => (
-                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-              ))}
+              {(field.options || [])
+                .filter((opt) => typeof opt === 'string' && opt.trim() !== "")
+                .map(opt => (
+                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
         ) : (
