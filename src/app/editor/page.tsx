@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useMemo, use } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Save, Home, PlusCircle, Image as ImageIcon, Type } from 'lucide-react';
+import { Save, Home, PlusCircle, Image as ImageIcon, Type, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
@@ -23,6 +23,7 @@ const MM_TO_PX = (mm: number) => mm * INCH_PER_MM * DPI;
 const PX_TO_MM = (px: number) => px / (INCH_PER_MM * DPI);
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
+const PROTECTED_FIELDS = ['regNumber', 'engineNumber', 'chassisNumber', 'reportNumber', 'date'];
 
 const validateAndCleanFieldPart = (part: any): FieldPart => {
     const defaults: FieldPart = {
@@ -191,6 +192,16 @@ export default function EditorPage() {
   }, []);
   
   const handleDeleteField = (id: string) => {
+    const fieldToDelete = fields.find(f => f.id === id);
+    if (fieldToDelete && PROTECTED_FIELDS.includes(fieldToDelete.fieldId)) {
+        toast({
+            variant: "destructive",
+            title: "Cannot Delete Field",
+            description: `The field '${fieldToDelete.fieldId}' is used for report filtering and cannot be removed.`,
+        });
+        return;
+    }
+
     setFields(prev => prev.filter(f => f.id !== id));
     if (selectedFieldId === id) {
       setSelectedFieldId(null);

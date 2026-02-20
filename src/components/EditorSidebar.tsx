@@ -6,12 +6,13 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, ChevronDown } from 'lucide-react';
+import { Trash, X, ChevronDown, Lock } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Textarea } from './ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -20,7 +21,11 @@ type EditorSidebarProps = {
   onClose: () => void;
 };
 
+const PROTECTED_FIELDS = ['regNumber', 'engineNumber', 'chassisNumber', 'reportNumber', 'date'];
+
 export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSidebarProps) => {
+
+  const isProtected = PROTECTED_FIELDS.includes(field.fieldId);
 
   const handlePartChange = (part: 'label' | 'value' | 'placeholder', property: keyof FieldPart, value: any) => {
       const currentPart = field[part];
@@ -216,20 +221,27 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
     <Card className="w-full md:border-0 md:shadow-none">
        <div className='p-4 border-b hidden md:block'>
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Editing Field: <span className="font-mono bg-muted px-2 py-1 rounded-md">{field.fieldId}</span></h2>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  Editing Field: <span className="font-mono bg-muted px-2 py-1 rounded-md">{field.fieldId}</span>
+                  {isProtected && <Lock className="h-4 w-4 text-primary" />}
+                </h2>
                 <Button variant="ghost" size='icon' className='h-8 w-8' onClick={onClose}>
                     <X className="h-4 w-4" />
                 </Button>
             </div>
              <div className='mt-4'>
-                 <Label htmlFor="fieldId">Field ID (for data linking)</Label>
+                 <div className="flex items-center gap-2">
+                    <Label htmlFor="fieldId">Field ID (for data linking)</Label>
+                    {isProtected && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Protected</span>}
+                 </div>
                  <Input 
                    id="fieldId"
                    value={field.fieldId}
                    onChange={handleFieldIdChange}
                    className="font-mono mt-1"
-                   disabled={field.fieldType === 'staticText'}
+                   disabled={field.fieldType === 'staticText' || isProtected}
                  />
+                 {isProtected && <p className="text-[10px] text-muted-foreground mt-1 italic">This ID is required for search filtering and cannot be changed.</p>}
              </div>
         </div>
 
@@ -241,7 +253,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
               value={field.fieldId}
               onChange={handleFieldIdChange}
               className="font-mono mt-1"
-              disabled={field.fieldType === 'staticText'}
+              disabled={field.fieldType === 'staticText' || isProtected}
             />
         </div>
 
@@ -262,12 +274,27 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
             <Button variant="outline" onClick={onClose}>
                 <X className="mr-2 h-4 w-4" /> Unselect
             </Button>
-            <Button variant="destructive" onClick={() => onDelete(field.id)}>
-                <Trash className="mr-2 h-4 w-4" /> Delete
-            </Button>
+            {isProtected ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-not-allowed">
+                      <Button variant="destructive" disabled className="opacity-50">
+                          <Trash className="mr-2 h-4 w-4" /> Delete
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Protected fields used for filtering cannot be deleted.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <Button variant="destructive" onClick={() => onDelete(field.id)}>
+                  <Trash className="mr-2 h-4 w-4" /> Delete
+              </Button>
+            )}
         </div>
     </Card>
   );
 };
-
-    
