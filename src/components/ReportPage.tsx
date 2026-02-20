@@ -1,7 +1,6 @@
-
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { ImageData } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -48,6 +47,8 @@ export const ReportPage = ({
   isEditable = false,
   onValueChange 
 }: ReportPageProps) => {
+
+  const [adjustingFieldId, setAdjustingFieldId] = useState<string | null>(null);
 
   const renderTextField = (field: PrintField, isStatic: boolean) => {
     const style: React.CSSProperties = {
@@ -165,12 +166,13 @@ export const ReportPage = ({
         
         {isEditable && (
           <div className="absolute inset-0 flex items-center justify-center z-[10] pointer-events-none overflow-visible">
-            <div className="pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="pointer-events-auto">
               <ImageAdjustmentControl
                 value={field.value}
                 onChange={(val) => onValueChange?.(field.fieldId, val)}
                 width={field.width}
                 height={field.height}
+                onClose={() => setAdjustingFieldId(null)}
               />
             </div>
           </div>
@@ -179,11 +181,28 @@ export const ReportPage = ({
     );
   };
 
+  // Find the field currently being adjusted for root-level rendering
+  const activeAdjustingField = adjustingFieldId ? imageValues.find(f => f.fieldId === adjustingFieldId) : null;
+
   return (
     <div className="report-page shadow-2xl overflow-visible relative bg-white">
       {imageValues.map(renderImageField)}
       {staticLabels.map(f => renderTextField(f, true))}
       {dynamicValues.map(f => renderTextField(f, false))}
+
+      {/* Global Adjustment Modal Overlay to prevent trapped stacking contexts */}
+      {isEditable && activeAdjustingField && (
+        <div className="fixed inset-0 z-[999999] pointer-events-none">
+           <ImageAdjustmentControl
+              forceOpen={true}
+              value={activeAdjustingField.value}
+              onChange={(val) => onValueChange?.(activeAdjustingField.fieldId, val)}
+              width={activeAdjustingField.width}
+              height={activeAdjustingField.height}
+              onClose={() => setAdjustingFieldId(null)}
+            />
+        </div>
+      )}
     </div>
   );
 };

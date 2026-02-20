@@ -12,23 +12,37 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 import { ScrollArea } from './ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 type ImageAdjustmentControlProps = {
   value: ImageData;
   onChange: (value: ImageData) => void;
   width?: number; // width in mm
   height?: number; // height in mm
+  isInline?: boolean; // If true, only shows the button
+  forceOpen?: boolean;
+  onClose?: () => void;
 };
 
 const PAN_STEP = 10; // pixels per click
 
-export const ImageAdjustmentControl = ({ value, onChange, width = 180, height = 100 }: ImageAdjustmentControlProps) => {
+export const ImageAdjustmentControl = ({ 
+  value, 
+  onChange, 
+  width = 180, 
+  height = 100,
+  isInline = false,
+  forceOpen = false,
+  onClose
+}: ImageAdjustmentControlProps) => {
   const { storage } = useFirebase();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(!value.url);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isOpen = forceOpen || internalOpen;
 
   const handleScaleChange = (newScale: number[]) => {
     onChange({ ...value, scale: newScale[0] });
@@ -107,13 +121,21 @@ export const ImageAdjustmentControl = ({ value, onChange, width = 180, height = 
     setShowSettings(true);
   };
 
+  const closeControl = () => {
+    setInternalOpen(false);
+    onClose?.();
+  };
+
   if (!isOpen) {
     return (
       <Button 
         variant="secondary" 
         size="sm" 
-        className="shadow-xl ring-2 ring-primary/30 hover:ring-primary/60 transition-all font-bold gap-2 pointer-events-auto bg-background/80 backdrop-blur-md"
-        onClick={() => setIsOpen(true)}
+        className={cn(
+          "shadow-xl ring-2 ring-primary/30 hover:ring-primary/60 transition-all font-bold gap-2 pointer-events-auto",
+          !isInline && "bg-background/90 backdrop-blur-md opacity-0 group-hover:opacity-100"
+        )}
+        onClick={() => setInternalOpen(true)}
       >
         <Move size={14} /> Adjust Image
       </Button>
@@ -121,19 +143,19 @@ export const ImageAdjustmentControl = ({ value, onChange, width = 180, height = 
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[100000] pointer-events-auto p-2 sm:p-4 overflow-hidden">
+    <div className="fixed inset-0 flex items-center justify-center z-[999999] pointer-events-auto p-4 overflow-hidden">
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity" 
-        onClick={() => setIsOpen(false)} 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 
+        onClick={closeControl} 
       />
       
-      <Card className="relative w-full max-w-lg max-h-[95vh] bg-card border shadow-2xl ring-2 ring-primary/20 animate-in zoom-in-95 duration-200 flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-4 border-b shrink-0">
-          <CardTitle className="text-xs sm:text-sm font-bold flex items-center gap-2">
+      <Card className="relative w-full max-w-lg max-h-[90vh] bg-card border-2 shadow-2xl ring-4 ring-primary/10 animate-in zoom-in-95 duration-200 flex flex-col overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-muted/30 shrink-0">
+          <CardTitle className="text-sm font-bold flex items-center gap-2">
             <ImageIcon className="h-4 w-4 text-primary" />
-            {showSettings ? 'Image Upload' : 'Position Adjuster'}
+            {showSettings ? 'Upload Photo' : 'Image Adjuster'}
           </CardTitle>
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             <Button 
               variant="ghost" 
               size="icon" 
@@ -147,22 +169,22 @@ export const ImageAdjustmentControl = ({ value, onChange, width = 180, height = 
               variant="ghost" 
               size="icon" 
               className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" 
-              onClick={() => setIsOpen(false)}
+              onClick={closeControl}
             >
                 <X size={18} />
             </Button>
           </div>
         </CardHeader>
 
-        <ScrollArea className="flex-1 overflow-y-auto">
-          <CardContent className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <ScrollArea className="flex-1 overflow-y-auto bg-background/50">
+          <CardContent className="p-6 space-y-6">
             <div className="space-y-2">
               <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Live Frame Preview</Label>
               <div 
-                className="relative w-full overflow-hidden bg-muted border-2 border-primary/20 rounded-lg shadow-inner flex items-center justify-center mx-auto"
+                className="relative w-full overflow-hidden bg-black/5 border-2 border-primary/20 rounded-lg shadow-inner flex items-center justify-center mx-auto"
                 style={{ 
                   aspectRatio: `${width} / ${height}`,
-                  maxHeight: '25vh'
+                  maxHeight: '30vh'
                 }}
               >
                 {value.url ? (
@@ -177,8 +199,8 @@ export const ImageAdjustmentControl = ({ value, onChange, width = 180, height = 
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground/40">
-                    <ImageIcon size={32} />
-                    <span className="text-xs">No image to preview</span>
+                    <ImageIcon size={48} />
+                    <span className="text-xs font-bold uppercase tracking-widest">No Image Selected</span>
                   </div>
                 )}
               </div>
@@ -186,70 +208,64 @@ export const ImageAdjustmentControl = ({ value, onChange, width = 180, height = 
 
             {showSettings ? (
               <div className="space-y-4">
-                <div className="flex flex-col gap-3">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-32 flex flex-col items-center justify-center border-dashed border-2 gap-3 hover:bg-primary/5 hover:border-primary/50 transition-all bg-muted/20"
+                  onClick={handleUploadClick}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                      <span className="text-xs font-bold uppercase tracking-widest">Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-3 rounded-full bg-primary/10">
+                        <Upload className="h-6 w-6 text-primary" />
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-widest">{value.url ? 'Change Photo' : 'Upload Vehicle Photo'}</span>
+                    </>
+                  )}
+                </Button>
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange}
+                  accept="image/*"
+                />
+
+                {value.url && !isUploading && (
                   <Button 
                     variant="outline" 
-                    className="w-full min-h-[120px] sm:h-32 flex flex-col items-center justify-center border-dashed border-2 gap-3 hover:bg-muted/50 hover:border-primary/50 transition-all"
-                    onClick={handleUploadClick}
-                    disabled={isUploading}
+                    className="w-full text-destructive hover:bg-destructive hover:text-destructive-foreground font-bold transition-all" 
+                    onClick={clearImage}
                   >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <span className="text-xs font-medium">Uploading Photo...</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="p-2 rounded-full bg-primary/10">
-                          <Upload className="h-5 w-5 text-primary" />
-                        </div>
-                        <span className="text-xs font-semibold">{value.url ? 'Replace Vehicle Photo' : 'Upload Vehicle Photo'}</span>
-                      </>
-                    )}
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete Photo
                   </Button>
-                  <input 
-                    type="file" 
-                    className="hidden" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange}
-                    accept="image/*"
-                  />
-
-                  {value.url && !isUploading && (
-                    <Button 
-                      variant="outline" 
-                      className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive" 
-                      onClick={clearImage}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Remove Current Photo
-                    </Button>
-                  )}
-                </div>
+                )}
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-bold">Frame Fit Mode</Label>
+                    <Label className="text-[10px] uppercase text-muted-foreground font-bold">Fit Mode</Label>
                     <Tabs value={value.fit || 'cover'} onValueChange={handleFitChange} className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 h-9">
-                        <TabsTrigger value="cover" className="text-xs gap-1 px-1">
-                          <Maximize className="h-3 w-3" /> Fill
-                        </TabsTrigger>
-                        <TabsTrigger value="contain" className="text-xs gap-1 px-1">
-                          <Minimize className="h-3 w-3" /> Fit
-                        </TabsTrigger>
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="cover" className="text-[10px] font-bold">FILL</TabsTrigger>
+                        <TabsTrigger value="contain" className="text-[10px] font-bold">FIT</TabsTrigger>
                       </TabsList>
                     </Tabs>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label className="text-[10px] uppercase text-muted-foreground font-bold">Scale / Zoom</Label>
+                      <Label className="text-[10px] uppercase text-muted-foreground font-bold">Zoom</Label>
                       <span className="text-[10px] font-mono font-bold text-primary">{(value.scale * 100).toFixed(0)}%</span>
                     </div>
-                    <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-md border h-9">
-                        <ZoomOut size={14} className="text-muted-foreground shrink-0" />
+                    <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-md border h-10">
+                        <ZoomOut size={16} className="text-muted-foreground shrink-0" />
                         <Slider
                           min={0.5}
                           max={5}
@@ -258,34 +274,35 @@ export const ImageAdjustmentControl = ({ value, onChange, width = 180, height = 
                           onValueChange={handleScaleChange}
                           className="flex-1"
                         />
-                        <ZoomIn size={14} className="text-muted-foreground shrink-0" />
+                        <ZoomIn size={16} className="text-muted-foreground shrink-0" />
                     </div>
                   </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase text-muted-foreground font-bold">Manual Positioning</Label>
-                  <div className="flex flex-col items-center gap-2 p-3 bg-muted/20 rounded-lg border border-dashed">
-                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background shadow-sm hover:text-primary hover:border-primary shrink-0" onClick={() => handlePan(0, -PAN_STEP)}>
-                        <ArrowUp size={16} />
+                <div className="space-y-3">
+                  <Label className="text-[10px] uppercase text-muted-foreground font-bold">Position Controls</Label>
+                  <div className="flex flex-col items-center gap-2 p-4 bg-muted/10 rounded-xl border border-dashed">
+                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-full shadow-md bg-background hover:text-primary hover:border-primary" onClick={() => handlePan(0, -PAN_STEP)}>
+                        <ArrowUp size={20} />
                     </Button>
-                    <div className="flex gap-4">
-                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background shadow-sm hover:text-primary hover:border-primary shrink-0" onClick={() => handlePan(-PAN_STEP, 0)}>
-                            <ArrowLeft size={16} />
+                    <div className="flex gap-6">
+                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-full shadow-md bg-background hover:text-primary hover:border-primary" onClick={() => handlePan(-PAN_STEP, 0)}>
+                            <ArrowLeft size={20} />
                         </Button>
-                        <div className="h-8 w-8 flex items-center justify-center text-primary font-bold">
-                          <Move size={14} />
+                        <div className="h-10 w-10 flex items-center justify-center text-primary">
+                          <Move size={24} className="opacity-20" />
                         </div>
-                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background shadow-sm hover:text-primary hover:border-primary shrink-0" onClick={() => handlePan(PAN_STEP, 0)}>
-                            <ArrowRight size={16} />
+                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-full shadow-md bg-background hover:text-primary hover:border-primary" onClick={() => handlePan(PAN_STEP, 0)}>
+                            <ArrowRight size={20} />
                         </Button>
                     </div>
-                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-background shadow-sm hover:text-primary hover:border-primary shrink-0" onClick={() => handlePan(0, PAN_STEP)}>
-                        <ArrowDown size={16} />
+                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-full shadow-md bg-background hover:text-primary hover:border-primary" onClick={() => handlePan(0, PAN_STEP)}>
+                        <ArrowDown size={20} />
                     </Button>
                   </div>
-                  <div className="text-center text-[9px] font-mono text-muted-foreground mt-1">
-                    Pos: {value.x}px X, {value.y}px Y
+                  <div className="flex justify-between items-center text-[10px] font-mono font-bold text-muted-foreground px-2">
+                    <span>X: {value.x}px</span>
+                    <span>Y: {value.y}px</span>
                   </div>
                 </div>
               </div>
@@ -293,9 +310,9 @@ export const ImageAdjustmentControl = ({ value, onChange, width = 180, height = 
           </CardContent>
         </ScrollArea>
         
-        <CardFooter className="p-3 sm:p-4 border-t shrink-0">
-          <Button className="w-full shadow-lg" onClick={() => setIsOpen(false)}>
-              Done Adjusting
+        <CardFooter className="p-4 border-t bg-muted/10 shrink-0">
+          <Button className="w-full h-12 text-sm font-bold uppercase tracking-widest shadow-xl" onClick={closeControl}>
+              Finish Adjusting
           </Button>
         </CardFooter>
       </Card>
