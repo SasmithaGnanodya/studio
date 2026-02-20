@@ -117,10 +117,15 @@ export const ReportPage = ({
       width: `${field.width}mm`,
       height: `${field.height}mm`,
       position: 'absolute',
+      // Removed zIndex: 0 and overflow: hidden to allow modal breakout
+    };
+
+    const imageWrapperStyle: React.CSSProperties = {
+      position: 'absolute',
+      inset: 0,
       overflow: 'hidden',
       border: isEditable ? '1px dashed rgba(6, 182, 212, 0.5)' : 'none',
       backgroundColor: field.value.url ? 'transparent' : 'rgba(0,0,0,0.03)',
-      zIndex: 0
     };
 
     const imageStyle: React.CSSProperties = {
@@ -133,15 +138,17 @@ export const ReportPage = ({
 
     return (
       <div key={field.id} style={containerStyle} className="group overflow-visible">
-        {field.value.url ? (
-          <img src={field.value.url} alt="field" style={imageStyle} />
-        ) : (
-          isEditable && (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50">
-              <span className="text-[10px] font-bold uppercase tracking-widest">Image Area</span>
-            </div>
-          )
-        )}
+        <div style={imageWrapperStyle}>
+          {field.value.url ? (
+            <img src={field.value.url} alt="field" style={imageStyle} />
+          ) : (
+            isEditable && (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50">
+                <span className="text-[10px] font-bold uppercase tracking-widest">Image Area</span>
+              </div>
+            )
+          )}
+        </div>
         
         {isEditable && (
           <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none overflow-visible">

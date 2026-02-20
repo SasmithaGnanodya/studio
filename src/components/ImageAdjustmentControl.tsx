@@ -116,7 +116,7 @@ export const ImageAdjustmentControl = ({ value, onChange }: ImageAdjustmentContr
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[10000] pointer-events-auto p-4">
+    <div className="fixed inset-0 flex items-center justify-center z-[100000] pointer-events-auto p-4">
       {/* Background overlay with backdrop blur */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity" 
