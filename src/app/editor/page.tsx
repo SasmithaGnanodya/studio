@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -165,7 +164,6 @@ export default function EditorPage() {
       setFields(prev => [...prev, newField]);
       setSelectedFieldId(newId);
     } else if (type === 'wordConverter') {
-      // Create a pair: 1. Numeric Input, 2. Automatic Word Representation
       const numericId = `num_${timestamp}`;
       const wordId = `word_${timestamp + 1}`;
       const baseFieldId = `val_${Math.floor(Math.random() * 1000)}`;
@@ -222,7 +220,6 @@ export default function EditorPage() {
   const handleUpdateField = useCallback((id: string, updates: Partial<FieldLayout>) => {
     setFields(prev => prev.map(f => {
       if (f.id === id) {
-        // PROTECTION: Prevent renaming mandatory field IDs
         if (updates.fieldId && PROTECTED_FIELDS.includes(f.fieldId) && updates.fieldId !== f.fieldId) {
           return f;
         }
@@ -236,7 +233,6 @@ export default function EditorPage() {
     const fieldToDelete = fields.find(f => f.id === id);
     if (!fieldToDelete) return;
 
-    // PROTECTION: Prevent deleting locked or system mandatory fields
     const isSystemMandatory = PROTECTED_FIELDS.includes(fieldToDelete.fieldId);
     if (fieldToDelete.isLocked || isSystemMandatory) {
         toast({
@@ -396,7 +392,6 @@ export default function EditorPage() {
         </Card>
         
         <div className="flex-1 flex flex-col lg:flex-row gap-6 relative min-h-[600px]">
-          {/* Editor Sidebar */}
           <div className="w-full lg:w-96 shrink-0 h-fit lg:sticky lg:top-24">
             {selectedField ? (
                 <EditorSidebar 
@@ -413,7 +408,6 @@ export default function EditorPage() {
             )}
           </div>
 
-          {/* Canvas */}
           <div className="flex-1 rounded-lg bg-white shadow-2xl overflow-auto p-8 border border-muted ring-1 ring-black/5">
             <div className="relative mx-auto w-fit preview-mode">
                 <ReportPage 
@@ -478,7 +472,7 @@ export default function EditorPage() {
                     onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'placeholder', x, y)}
                     onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'placeholder', w, h)}
                     onClick={handleSelectField}
-                    isSelected={field.id === selectedFieldAgainstId}
+                    isSelected={field.id === selectedFieldId}
                     borderColor='purple'
                     isImage={true}
                   />
