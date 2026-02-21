@@ -5,14 +5,13 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, Lock, Unlock, Zap, Wand2, Palette, Type } from 'lucide-react';
+import { Trash, X, Lock, Unlock, Palette, Type } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { Badge } from './ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 
@@ -155,7 +154,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
       <div className="flex-1 px-4 py-4 space-y-6">
         <div>
           <h3 className="font-bold text-xs uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
-            {isValuePart ? <Zap size={14} /> : <Type size={14} />} 
+            {isValuePart ? <Type size={14} /> : <Type size={14} />} 
             {isValuePart ? 'Data Configuration' : 'Label Configuration'}
           </h3>
           
@@ -242,47 +241,6 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                   />
               </div>
             )}
-
-            <div className="pt-4 border-t space-y-3">
-              <Label className='text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2'>
-                <Wand2 size={12} /> Automation
-              </Label>
-              
-              <div className="space-y-2">
-                <Label className="text-[10px]">Logic Mode</Label>
-                <Select 
-                  value={field.autoFillType || 'none'} 
-                  onValueChange={(val) => onUpdate(field.id, { autoFillType: val as any })}
-                >
-                  <SelectTrigger className="h-8 text-[10px] bg-muted/20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none" className="text-xs">No Automation</SelectItem>
-                    <SelectItem value="numberToWords" className="text-xs">Convert Numbers to Words</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {field.autoFillType === 'numberToWords' && (
-                <div className="space-y-2 animate-in slide-in-from-top-2">
-                  <Label className="text-[10px]">Source Numeric Field</Label>
-                  <Select 
-                    value={field.autoFillSource || ''} 
-                    onValueChange={(val) => onUpdate(field.id, { autoFillSource: val })}
-                  >
-                    <SelectTrigger className="h-8 text-[10px] font-mono bg-muted/20">
-                      <SelectValue placeholder="Link Source" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableFieldIds.map(id => (
-                        <SelectItem key={id} value={id} className="text-xs font-mono">{id}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
           </div>
         )}
 
@@ -321,7 +279,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
       <div className="flex-1 px-4 py-4 space-y-6">
         <div>
           <h3 className="font-bold text-xs uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
-            <Zap size={14} /> Image Dimensions
+            <Type size={14} /> Image Dimensions
           </h3>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
             <div className="space-y-1.5">
