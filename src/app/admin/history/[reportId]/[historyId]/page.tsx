@@ -2,16 +2,17 @@
 
 import React, { useEffect, useState, use, useMemo } from 'react';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { ReportHistory, FieldLayout } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowLeft, History, ShieldAlert, Loader2, Calendar, User } from 'lucide-react';
+import { ArrowLeft, History, ShieldAlert, Loader2, Calendar, User, Edit3, RotateCcw } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { fixedLayout } from '@/lib/initialReportState';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
@@ -21,10 +22,12 @@ export default function HistoryViewerPage({ params }: { params: Promise<{ report
 
   const { user, firestore, isUserLoading } = useFirebase();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [historyEntry, setHistoryEntry] = useState<ReportHistory | null>(null);
   const [layout, setLayout] = useState<FieldLayout[]>(fixedLayout);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -63,6 +66,45 @@ export default function HistoryViewerPage({ params }: { params: Promise<{ report
 
     fetchData();
   }, [user, firestore, isUserLoading, router, reportId, historyId]);
+
+  const handleRestore = async () => {
+    if (!firestore || !historyEntry || !user) return;
+    
+    setIsRestoring(true);
+    try {
+      const reportRef = doc(firestore, 'reports', reportId);
+      
+      // Update the main report document with the history snapshot data
+      await setDoc(reportRef, {
+        reportData: historyEntry.reportData,
+        layoutId: historyEntry.layoutId,
+        updatedAt: serverTimestamp(),
+        userId: user.uid,
+        userName: user.displayName || user.email,
+        vehicleId: reportId,
+        engineNumber: historyEntry.engineNumber || '',
+        chassisNumber: historyEntry.chassisNumber || '',
+        reportNumber: historyEntry.reportNumber || '',
+        reportDate: historyEntry.reportDate || ''
+      }, { merge: true });
+
+      toast({
+        title: "Version Restored",
+        description: `Technical snapshot ${historyId.substring(0, 8)} has been loaded into the active editor.`,
+      });
+      
+      router.push(`/report/${reportId}`);
+    } catch (err) {
+      console.error("Restore failed:", err);
+      toast({
+        variant: "destructive",
+        title: "Restore Failed",
+        description: "Could not update the active report version.",
+      });
+    } finally {
+      setIsRestoring(false);
+    }
+  };
 
   const { staticLabels, dynamicValues, imageValues } = useMemo(() => {
     if (!historyEntry) return { staticLabels: [], dynamicValues: [], imageValues: [] };
@@ -151,9 +193,21 @@ export default function HistoryViewerPage({ params }: { params: Promise<{ report
             <div className="flex items-center gap-2">
                <Link href={`/admin/history/${reportId}`} passHref>
                   <Button variant="outline" className="border-primary/20 bg-background/50 hover:bg-primary/5">
-                    <ArrowLeft size={16} className="mr-2" /> Back to History List
+                    <ArrowLeft size={16} className="mr-2" /> History List
                   </Button>
                </Link>
+               <Button 
+                onClick={handleRestore} 
+                variant="secondary" 
+                className="gap-2 font-bold shadow-md"
+                disabled={isRestoring}
+               >
+                 {isRestoring ? (
+                   <><Loader2 className="h-4 w-4 animate-spin" /> Restoring...</>
+                 ) : (
+                   <><RotateCcw size={16} /> Restore & Edit</>
+                 )}
+               </Button>
                <Button onClick={() => window.print()} className="shadow-lg">
                  Print Snapshot
                </Button>
