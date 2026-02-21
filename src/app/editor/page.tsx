@@ -151,7 +151,9 @@ export default function EditorPage() {
   };
   
   const handleAddNewField = (type: 'text' | 'image' | 'staticText' | 'wordConverter') => {
-    const newId = `${type}_${Date.now()}`;
+    const timestamp = Date.now();
+    const newId = `${type}_${timestamp}`;
+    
     if (type === 'text') {
       const newField: FieldLayout = {
         id: newId,
@@ -161,17 +163,38 @@ export default function EditorPage() {
         value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
       };
       setFields(prev => [...prev, newField]);
+      setSelectedFieldId(newId);
     } else if (type === 'wordConverter') {
-      const newField: FieldLayout = {
-        id: newId,
-        fieldId: 'valueInWords',
+      // Create a pair: 1. Numeric Input, 2. Automatic Word Representation
+      const numericId = `num_${timestamp}`;
+      const wordId = `word_${timestamp + 1}`;
+      const baseFieldId = `val_${Math.floor(Math.random() * 1000)}`;
+
+      const numericField: FieldLayout = {
+        id: numericId,
+        fieldId: baseFieldId,
         fieldType: 'text',
-        label: { text: 'In Words:', x: 10, y: 30, width: 35, height: 5, isBold: false, color: '#000000', fontSize: 9 },
-        value: { text: 'valueInWords', x: 45, y: 30, width: 140, height: 10, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 10 },
-        autoFillType: 'numberToWords',
-        autoFillSource: 'marketValueNum'
+        label: { text: 'Amount Rs:', x: 10, y: 30, width: 35, height: 5, isBold: true, color: '#000000', fontSize: 9 },
+        value: { text: baseFieldId, x: 45, y: 30, width: 50, height: 8, isBold: true, color: '#DC2626', inputType: 'text', options: [], fontSize: 12 },
       };
-      setFields(prev => [...prev, newField]);
+
+      const wordField: FieldLayout = {
+        id: wordId,
+        fieldId: `${baseFieldId}_words`,
+        fieldType: 'text',
+        label: { text: 'In Words:', x: 10, y: 40, width: 35, height: 5, isBold: false, color: '#000000', fontSize: 9 },
+        value: { text: `${baseFieldId}_words`, x: 45, y: 40, width: 140, height: 10, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 10 },
+        autoFillType: 'numberToWords',
+        autoFillSource: baseFieldId
+      };
+
+      setFields(prev => [...prev, numericField, wordField]);
+      setSelectedFieldId(wordId);
+      
+      toast({
+        title: "Linked Pair Created",
+        description: `Generated a numeric field and an automatic word converter.`,
+      });
     } else if (type === 'image') {
        const newImageField: FieldLayout = {
         id: newId,
@@ -182,6 +205,7 @@ export default function EditorPage() {
         value: {} as any,
       };
       setFields(prev => [...prev, newImageField]);
+      setSelectedFieldId(newId);
     } else if (type === 'staticText') {
       const newStaticField: FieldLayout = {
         id: newId,
@@ -191,8 +215,8 @@ export default function EditorPage() {
         value: {} as any,
       };
       setFields(prev => [...prev, newStaticField]);
+      setSelectedFieldId(newId);
     }
-    setSelectedFieldId(newId);
   }
 
   const handleUpdateField = useCallback((id: string, updates: Partial<FieldLayout>) => {
@@ -454,7 +478,7 @@ export default function EditorPage() {
                     onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'placeholder', x, y)}
                     onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'placeholder', w, h)}
                     onClick={handleSelectField}
-                    isSelected={field.id === selectedFieldId}
+                    isSelected={field.id === selectedFieldAgainstId}
                     borderColor='purple'
                     isImage={true}
                   />
