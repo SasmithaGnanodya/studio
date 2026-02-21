@@ -91,7 +91,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   useEffect(() => { if (isAdmin) setIsAuthorized(true); }, [isAdmin]);
 
-  // Initial Data Generation & Persistance Hook
   useEffect(() => {
     if (isAuthorized) {
       setReportData(prev => {

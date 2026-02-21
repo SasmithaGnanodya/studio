@@ -225,6 +225,13 @@ export const fixedLayout: FieldLayout[] = [
     value: { text: 'marketValueNum', x: 65, y: 255, width: 60, height: 8, fontSize: 14, isBold: true, color: '#DC2626' }
   },
   {
+    id: 'marketValText-L',
+    fieldId: 'marketValueText',
+    fieldType: 'text',
+    label: { text: 'In Words:', x: 15, y: 265, width: 35, height: 5, fontSize: 9 },
+    value: { text: 'marketValueText', x: 50, y: 265, width: 145, height: 6, fontSize: 10 }
+  },
+  {
     id: 'forcedVal-L',
     fieldId: 'forcedSaleValue',
     fieldType: 'text',
