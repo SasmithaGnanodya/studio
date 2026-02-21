@@ -232,11 +232,9 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       const updated = { ...prev, [fieldId]: value };
 
       // REAL-TIME AUTO-FILL: Convert Market Value Rs. to English words
-      // Handles both "marketValueNum" (standard ID) and any field containing "marketValue"
-      const isMarketValueField = fieldId === 'marketValueNum' || fieldId.toLowerCase().includes('marketvalue');
-      
-      if (isMarketValueField && typeof value === 'string') {
-        // Strip non-numeric characters for conversion (handles commas, currency symbols)
+      // Check if we are changing the numeric market value field
+      if (fieldId === 'marketValueNum' && typeof value === 'string') {
+        // Strip non-numeric characters for conversion
         const cleanVal = value.replace(/[^\d.]/g, ''); 
         const num = parseFloat(cleanVal);
         
