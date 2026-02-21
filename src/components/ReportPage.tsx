@@ -5,6 +5,7 @@ import type { ImageData } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageAdjustmentControl } from './ImageAdjustmentControl';
+import { cn } from '@/lib/utils';
 
 export type PrintField = {
   id: string;
@@ -83,7 +84,6 @@ export const ReportPage = ({
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       let val = e.target.value;
       
-      // Force uppercase for all primary identifiers to ensure perfect filtering
       const sensitivePatterns = ['engine', 'chassis', 'report', 'reg', 'ref', 'val', 'id'];
       if (sensitivePatterns.some(p => field.fieldId.toLowerCase().includes(p))) {
         val = val.toUpperCase();
@@ -99,7 +99,10 @@ export const ReportPage = ({
             value={field.value}
             onValueChange={(val) => onValueChange?.(field.fieldId, val)}
           >
-            <SelectTrigger className="h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 hover:border-primary transition-colors p-1">
+            <SelectTrigger 
+              className="h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 hover:border-primary transition-all p-1"
+              style={{ color: style.color, fontWeight: style.fontWeight }}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -115,8 +118,12 @@ export const ReportPage = ({
             type={field.fieldId.toLowerCase().includes('date') ? 'date' : 'text'}
             value={field.value}
             onChange={handleInputChange}
-            className="h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-0"
-            style={{ fontSize: style.fontSize }}
+            className="h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-0 transition-all"
+            style={{ 
+              fontSize: style.fontSize, 
+              color: style.color, 
+              fontWeight: style.fontWeight 
+            }}
             disabled={field.fieldId === 'regNumber'}
           />
         )}
@@ -131,7 +138,7 @@ export const ReportPage = ({
       width: `${field.width}mm`,
       height: `${field.height}mm`,
       position: 'absolute',
-      zIndex: 5, // Images are behind text
+      zIndex: 5,
     };
 
     const imageWrapperStyle: React.CSSProperties = {
@@ -181,7 +188,6 @@ export const ReportPage = ({
     );
   };
 
-  // Find the field currently being adjusted for root-level rendering
   const activeAdjustingField = adjustingFieldId ? imageValues.find(f => f.fieldId === adjustingFieldId) : null;
 
   return (
@@ -190,7 +196,6 @@ export const ReportPage = ({
       {staticLabels.map(f => renderTextField(f, true))}
       {dynamicValues.map(f => renderTextField(f, false))}
 
-      {/* Global Adjustment Modal Overlay to prevent trapped stacking contexts */}
       {isEditable && activeAdjustingField && (
         <div className="fixed inset-0 z-[999999] pointer-events-none">
            <ImageAdjustmentControl

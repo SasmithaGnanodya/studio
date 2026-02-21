@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -6,15 +5,16 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, Lock, Unlock, Zap, Wand2 } from 'lucide-react';
+import { Trash, X, Lock, Unlock, Zap, Wand2, Palette, Type } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { Badge } from './ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 import { ScrollArea } from './ui/scroll-area';
+import { Separator } from './ui/separator';
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -62,46 +62,84 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
     if (!data) return null;
 
     return (
-      <div className="flex-1 px-4 py-2">
-        <h3 className="font-semibold mb-2 text-sm uppercase tracking-wider text-muted-foreground">Appearance</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
-          <div className="space-y-1 sm:col-span-6">
-            <Label htmlFor={`${part}-text`} className="text-xs">Display Text</Label>
-            <Input 
-              id={`${part}-text`} 
-              name="text"
-              className="h-8"
-              value={data.text || ''} 
-              onChange={(e) => handlePartChange(part, 'text', e.target.value)}
-            />
+      <div className="flex-1 px-4 py-4 space-y-6">
+        <div>
+          <h3 className="font-bold text-xs uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
+            <Type size={14} /> Text Properties
+          </h3>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor={`${part}-text`} className="text-[10px] uppercase font-bold text-muted-foreground">Display Content</Label>
+              <Input 
+                id={`${part}-text`} 
+                value={data.text || ''} 
+                onChange={(e) => handlePartChange(part, 'text', e.target.value)}
+                className="h-9 bg-muted/20"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+                  <Palette size={10} /> Color
+                </Label>
+                <div className="flex gap-2">
+                  <Input 
+                    type="color" 
+                    value={data.color || '#000000'} 
+                    onChange={(e) => handlePartChange(part, 'color', e.target.value)}
+                    className="w-10 h-9 p-1 bg-muted/20 cursor-pointer"
+                  />
+                  <Input 
+                    value={data.color || '#000000'} 
+                    onChange={(e) => handlePartChange(part, 'color', e.target.value)}
+                    className="h-9 font-mono text-[10px] bg-muted/20"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Font Size (pt)</Label>
+                <Input 
+                  type="number" 
+                  value={data.fontSize || 12} 
+                  onChange={(e) => handlePartChange(part, 'fontSize', e.target.value)}
+                  className="h-9 bg-muted/20"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 pt-1">
+              <Checkbox 
+                id={`${part}-bold`} 
+                checked={data.isBold || false} 
+                onCheckedChange={(checked) => handlePartChange(part, 'isBold', checked as boolean)} 
+              />
+              <Label htmlFor={`${part}-bold`} className="text-xs font-bold cursor-pointer">Use Bold Styling</Label>
+            </div>
           </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${part}-x`} className="text-xs">X (mm)</Label>
-            <Input id={`${part}-x`} name="x" type="number" value={data.x || 0} onChange={(e) => handlePartChange(part, 'x', e.target.value)} className="h-8" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${part}-y`} className="text-xs">Y (mm)</Label>
-            <Input id={`${part}-y`} name="y" type="number" value={data.y || 0} onChange={(e) => handlePartChange(part, 'y', e.target.value)} className="h-8" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${part}-width`} className="text-xs">Width (mm)</Label>
-            <Input id={`${part}-width`} name="width" type="number" value={data.width || 0} onChange={(e) => handlePartChange(part, 'width', e.target.value)} className="h-8" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${part}-height`} className="text-xs">Height (mm)</Label>
-            <Input id={`${part}-height`} name="height" type="number" value={data.height || 0} onChange={(e) => handlePartChange(part, 'height', e.target.value)} className="h-8" />
-          </div>
-           <div className="space-y-1">
-            <Label htmlFor={`${part}-color`} className="text-xs">Color</Label>
-            <Input id={`${part}-color`} name="color" type="color" value={data.color || '#000000'} onChange={(e) => handlePartChange(part, 'color', e.target.value)} className="h-8 p-1" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${part}-fontSize`} className="text-xs">Size (pt)</Label>
-            <Input id={`${part}-fontSize`} name="fontSize" type="number" value={data.fontSize || 12} onChange={(e) => handlePartChange(part, 'fontSize', e.target.value)} className="h-8" />
-          </div>
-           <div className="flex items-center space-x-2 pt-5 sm:col-span-6">
-            <Checkbox id={`${part}-bold`} checked={data.isBold || false} onCheckedChange={(checked) => handlePartChange(part, 'isBold', checked as boolean)} />
-            <Label htmlFor={`${part}-bold`} className="text-xs font-normal">Bold</Label>
+        </div>
+
+        <Separator />
+
+        <div>
+          <h3 className="font-bold text-xs uppercase tracking-widest text-muted-foreground mb-4">Geometry (mm)</h3>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">X Position</Label>
+              <Input type="number" value={data.x || 0} onChange={(e) => handlePartChange(part, 'x', e.target.value)} className="h-8 bg-muted/20" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">Y Position</Label>
+              <Input type="number" value={data.y || 0} onChange={(e) => handlePartChange(part, 'y', e.target.value)} className="h-8 bg-muted/20" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">Width</Label>
+              <Input type="number" value={data.width || 0} onChange={(e) => handlePartChange(part, 'width', e.target.value)} className="h-8 bg-muted/20" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">Height</Label>
+              <Input type="number" value={data.height || 0} onChange={(e) => handlePartChange(part, 'height', e.target.value)} className="h-8 bg-muted/20" />
+            </div>
           </div>
         </div>
       </div>
@@ -111,135 +149,166 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
   const renderTextPartEditor = (part: 'label' | 'value') => {
     const data = field[part];
     if (!data) return null;
-    const title = part.charAt(0).toUpperCase() + part.slice(1);
     const isValuePart = part === 'value';
 
     return (
-      <div className="flex-1 px-4 py-2">
-        <h3 className="font-semibold mb-2 text-sm uppercase tracking-wider text-muted-foreground">{title} Styling</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
-          {part === 'label' && (
-            <div className="space-y-1 sm:col-span-6">
-              <Label htmlFor={`${part}-text`} className="text-xs">Label Text</Label>
+      <div className="flex-1 px-4 py-4 space-y-6">
+        <div>
+          <h3 className="font-bold text-xs uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
+            {isValuePart ? <Zap size={14} /> : <Type size={14} />} 
+            {isValuePart ? 'Data Configuration' : 'Label Configuration'}
+          </h3>
+          
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground">
+                {isValuePart ? 'Default Value' : 'Label Text'}
+              </Label>
               <Input 
-                id={`${part}-text`} 
-                name="text"
-                className="h-8"
                 value={data.text || ''} 
                 onChange={(e) => handlePartChange(part, 'text', e.target.value)}
+                className="h-9 bg-muted/20"
+                placeholder={isValuePart ? "Initial value..." : "Label..."}
               />
             </div>
-          )}
-          <div className="space-y-1">
-            <Label htmlFor={`${part}-x`} className="text-xs">X (mm)</Label>
-            <Input id={`${part}-x`} name="x" type="number" value={data.x || 0} onChange={(e) => handlePartChange(part, 'x', e.target.value)} className="h-8" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${part}-y`} className="text-xs">Y (mm)</Label>
-            <Input id={`${part}-y`} name="y" type="number" value={data.y || 0} onChange={(e) => handlePartChange(part, 'y', e.target.value)} className="h-8" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${part}-width`} className="text-xs">Width (mm)</Label>
-            <Input id={`${part}-width`} name="width" type="number" value={data.width || 0} onChange={(e) => handlePartChange(part, 'width', e.target.value)} className="h-8" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${part}-height Profil`} className="text-xs">Height (mm)</Label>
-            <Input id={`${part}-height`} name="height" type="number" value={data.height || 0} onChange={(e) => handlePartChange(part, 'height', e.target.value)} className="h-8" />
-          </div>
-           <div className="space-y-1">
-            <Label htmlFor={`${part}-color`} className="text-xs">Color</Label>
-            <Input id={`${part}-color`} name="color" type="color" value={data.color || '#000000'} onChange={(e) => handlePartChange(part, 'color', e.target.value)} className="h-8 p-1" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${part}-fontSize`} className="text-xs">Size (pt)</Label>
-            <Input id={`${part}-fontSize`} name="fontSize" type="number" value={data.fontSize || 12} onChange={(e) => handlePartChange(part, 'fontSize', e.target.value)} className="h-8" />
-          </div>
-           <div className="flex items-center space-x-2 pt-5 sm:col-span-6">
-            <Checkbox id={`${part}-bold`} checked={data.isBold || false} onCheckedChange={(checked) => handlePartChange(part, 'isBold', checked as boolean)} />
-            <Label htmlFor={`${part}-bold`} className="text-xs font-normal">Bold</Label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Font Size (pt)</Label>
+                <Input 
+                  type="number" 
+                  value={data.fontSize || 12} 
+                  onChange={(e) => handlePartChange(part, 'fontSize', e.target.value)}
+                  className="h-9 bg-muted/20"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Color</Label>
+                <div className="flex gap-1.5">
+                  <Input 
+                    type="color" 
+                    value={data.color || '#000000'} 
+                    onChange={(e) => handlePartChange(part, 'color', e.target.value)}
+                    className="w-10 h-9 p-1 bg-muted/20 cursor-pointer shrink-0"
+                  />
+                  <Input 
+                    value={data.color || '#000000'} 
+                    onChange={(e) => handlePartChange(part, 'color', e.target.value)}
+                    className="h-9 font-mono text-[9px] bg-muted/20"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 pt-1">
+              <Checkbox 
+                id={`${part}-bold`} 
+                checked={data.isBold || false} 
+                onCheckedChange={(checked) => handlePartChange(part, 'isBold', checked as boolean)} 
+              />
+              <Label htmlFor={`${part}-bold`} className="text-xs font-bold cursor-pointer">Bold Style</Label>
+            </div>
           </div>
         </div>
-        
+
         {isValuePart && (
-            <div className='mt-6 border-t pt-4 space-y-4'>
-                <div className="space-y-2">
-                  <Label className='text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
-                    <Zap size={14} className="text-primary" /> Input Configuration
-                  </Label>
-                  <RadioGroup 
-                      value={data.inputType || 'text'} 
-                      onValueChange={(value) => handlePartChange(part, 'inputType', value)}
-                      className='flex items-center gap-4 mt-2'
-                  >
-                      <div className='flex items-center space-x-2'>
-                          <RadioGroupItem value='text' id='type-text' />
-                          <Label htmlFor='type-text' className='font-normal text-xs'>Text Input</Label>
-                      </div>
-                       <div className='flex items-center space-x-2'>
-                          <RadioGroupItem value='dropdown' id='type-dropdown' />
-                          <Label htmlFor='type-dropdown' className='font-normal text-xs'>Dropdown</Label>
-                      </div>
-                  </RadioGroup>
-                </div>
-
-                {data.inputType === 'dropdown' && (
-                    <div className='space-y-2'>
-                        <Label htmlFor='dropdown-options' className='text-xs'>Dropdown Options (one per line)</Label>
-                        <Textarea
-                            id='dropdown-options'
-                            value={(data.options || []).join('\n')}
-                            onChange={(e) => handlePartChange(part, 'options', e.target.value)}
-                            placeholder={'Option 1\nOption 2\nOption 3'}
-                            className='text-xs min-h-[100px]'
-                        />
-                    </div>
-                )}
-
-                <div className="pt-4 border-t space-y-3">
-                  <Label className='text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
-                    <Wand2 size={14} className="text-primary" /> Auto-Fill Automation
-                  </Label>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-[10px]">Automation Mode</Label>
-                    <Select 
-                      value={field.autoFillType || 'none'} 
-                      onValueChange={(val) => onUpdate(field.id, { autoFillType: val as any })}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Manual Entry</SelectItem>
-                        <SelectItem value="numberToWords">Number to Words</SelectItem>
-                      </SelectContent>
-                    </Select>
+          <div className="pt-4 border-t space-y-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Input Mechanics</Label>
+              <RadioGroup 
+                  value={data.inputType || 'text'} 
+                  onValueChange={(value) => handlePartChange(part, 'inputType', value)}
+                  className='flex items-center gap-4 mt-1'
+              >
+                  <div className='flex items-center space-x-2'>
+                      <RadioGroupItem value='text' id='type-text' />
+                      <Label htmlFor='type-text' className='font-bold text-xs cursor-pointer'>Text</Label>
                   </div>
-
-                  {field.autoFillType === 'numberToWords' && (
-                    <div className="space-y-2 animate-in slide-in-from-top-2">
-                      <Label className="text-[10px]">Source Numeric Field</Label>
-                      <Select 
-                        value={field.autoFillSource || ''} 
-                        onValueChange={(val) => onUpdate(field.id, { autoFillSource: val })}
-                      >
-                        <SelectTrigger className="h-8 text-xs font-mono">
-                          <SelectValue placeholder="Select Source" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableFieldIds.map(id => (
-                            <SelectItem key={id} value={id} className="text-xs font-mono">{id}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[10px] text-muted-foreground italic">
-                        Values from the selected field will be automatically converted to professional currency text.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                   <div className='flex items-center space-x-2'>
+                      <RadioGroupItem value='dropdown' id='type-dropdown' />
+                      <Label htmlFor='type-dropdown' className='font-bold text-xs cursor-pointer'>Options</Label>
+                  </div>
+              </RadioGroup>
             </div>
+
+            {data.inputType === 'dropdown' && (
+              <div className='space-y-2 animate-in slide-in-from-top-1'>
+                  <Label className='text-[10px] font-bold'>Menu Items (Line by Line)</Label>
+                  <Textarea
+                      value={(data.options || []).join('\n')}
+                      onChange={(e) => handlePartChange(part, 'options', e.target.value)}
+                      placeholder={'Option 1\nOption 2...'}
+                      className='text-xs min-h-[100px] bg-muted/20 font-mono'
+                  />
+              </div>
+            )}
+
+            <div className="pt-4 border-t space-y-3">
+              <Label className='text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2'>
+                <Wand2 size={12} /> Automation
+              </Label>
+              
+              <div className="space-y-2">
+                <Label className="text-[10px]">Logic Mode</Label>
+                <Select 
+                  value={field.autoFillType || 'none'} 
+                  onValueChange={(val) => onUpdate(field.id, { autoFillType: val as any })}
+                >
+                  <SelectTrigger className="h-8 text-[10px] bg-muted/20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none" className="text-xs">No Automation</SelectItem>
+                    <SelectItem value="numberToWords" className="text-xs">Convert Numbers to Words</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {field.autoFillType === 'numberToWords' && (
+                <div className="space-y-2 animate-in slide-in-from-top-2">
+                  <Label className="text-[10px]">Source Numeric Field</Label>
+                  <Select 
+                    value={field.autoFillSource || ''} 
+                    onValueChange={(val) => onUpdate(field.id, { autoFillSource: val })}
+                  >
+                    <SelectTrigger className="h-8 text-[10px] font-mono bg-muted/20">
+                      <SelectValue placeholder="Link Source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableFieldIds.map(id => (
+                        <SelectItem key={id} value={id} className="text-xs font-mono">{id}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
         )}
+
+        <Separator />
+
+        <div>
+          <h3 className="font-bold text-xs uppercase tracking-widest text-muted-foreground mb-4">Coordinates (mm)</h3>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">X Pos</Label>
+              <Input type="number" value={data.x || 0} onChange={(e) => handlePartChange(part, 'x', e.target.value)} className="h-8 bg-muted/20" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">Y Pos</Label>
+              <Input type="number" value={data.y || 0} onChange={(e) => handlePartChange(part, 'y', e.target.value)} className="h-8 bg-muted/20" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">Width</Label>
+              <Input type="number" value={data.width || 0} onChange={(e) => handlePartChange(part, 'width', e.target.value)} className="h-8 bg-muted/20" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">Height</Label>
+              <Input type="number" value={data.height || 0} onChange={(e) => handlePartChange(part, 'height', e.target.value)} className="h-8 bg-muted/20" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -249,51 +318,53 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
     if (!data) return null;
 
     return (
-      <div className="flex-1 px-4 py-2">
-        <h3 className="font-semibold mb-2">Image Placeholder</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-            <div className="grid grid-cols-2 gap-2 sm:col-span-2">
-                <div className="space-y-1">
-                    <Label htmlFor="image-x" className="text-xs">X (mm)</Label>
-                    <Input id="image-x" name="x" type="number" value={data.x || 0} onChange={(e) => handlePartChange('placeholder', 'x', e.target.value)} className="h-8" />
-                </div>
-                <div className="space-y-1">
-                    <Label htmlFor="image-y" className="text-xs">Y (mm)</Label>
-                    <Input id="image-y" name="y" type="number" value={data.y || 0} onChange={(e) => handlePartChange('placeholder', 'y', e.target.value)} className="h-8" />
-                </div>
-                <div className="space-y-1">
-                    <Label htmlFor="image-width" className="text-xs">Width (mm)</Label>
-                    <Input id="image-width" name="width" type="number" value={data.width || 0} onChange={(e) => handlePartChange('placeholder', 'width', e.target.value)} className="h-8" />
-                </div>
-                <div className="space-y-1">
-                    <Label htmlFor="image-height" className="text-xs">Height (mm)</Label>
-                    <Input id="image-height" name="height" type="number" value={data.height || 0} onChange={(e) => handlePartChange('placeholder', 'height', e.target.value)} className="h-8" />
-                </div>
+      <div className="flex-1 px-4 py-4 space-y-6">
+        <div>
+          <h3 className="font-bold text-xs uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
+            <Zap size={14} /> Image Dimensions
+          </h3>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">X Position</Label>
+              <Input type="number" value={data.x || 0} onChange={(e) => handlePartChange('placeholder', 'x', e.target.value)} className="h-8 bg-muted/20" />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">Y Position</Label>
+              <Input type="number" value={data.y || 0} onChange={(e) => handlePartChange('placeholder', 'y', e.target.value)} className="h-8 bg-muted/20" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">Frame Width</Label>
+              <Input type="number" value={data.width || 0} onChange={(e) => handlePartChange('placeholder', 'width', e.target.value)} className="h-8 bg-muted/20" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px]">Frame Height</Label>
+              <Input type="number" value={data.height || 0} onChange={(e) => handlePartChange('placeholder', 'height', e.target.value)} className="h-8 bg-muted/20" />
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <Card className="w-full md:border-0 md:shadow-none overflow-hidden bg-background">
-       <div className='p-4 border-b'>
+    <Card className="w-full md:border-0 md:shadow-none overflow-hidden bg-background h-full flex flex-col border-l border-primary/10">
+       <div className='p-4 border-b bg-muted/30'>
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
-                  <span className="font-mono bg-primary/10 text-primary px-2 py-1 rounded-md text-sm">{field.fieldId}</span>
+                <h2 className="text-lg font-black tracking-tighter flex items-center gap-2">
+                  <span className="font-mono bg-primary text-primary-foreground px-2 py-1 rounded-md text-xs">{field.fieldId}</span>
                   {isLocked && <Lock className="h-4 w-4 text-primary" />}
                 </h2>
-                <Button variant="ghost" size='icon' className='h-8 w-8' onClick={onClose}>
+                <Button variant="ghost" size='icon' className='h-8 w-8 hover:bg-destructive/10' onClick={onClose}>
                     <X className="h-4 w-4" />
                 </Button>
             </div>
              <div className='mt-4 space-y-4'>
                  <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <Label htmlFor="fieldId" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Unique Field ID</Label>
+                        <Label htmlFor="fieldId" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Internal Identifier</Label>
                         {isSystemMandatory && (
-                          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 text-[9px] h-4">
-                            <Zap size={8} className="fill-primary" /> Mandatory
+                          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 text-[8px] h-4 uppercase font-bold">
+                            Core Field
                           </Badge>
                         )}
                     </div>
@@ -301,13 +372,13 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                         id="fieldId"
                         value={field.fieldId}
                         onChange={handleFieldIdChange}
-                        className="font-mono mt-1 h-9 bg-muted/20"
+                        className="font-mono h-9 bg-background shadow-inner"
                         disabled={field.fieldType === 'staticText' || isLocked}
-                        placeholder="e.g. chassisNumber"
+                        placeholder="e.g. marketValue"
                     />
                  </div>
 
-                 <div className="flex items-center space-x-2 bg-muted/30 p-2 rounded-md border">
+                 <div className="flex items-center space-x-2 bg-primary/5 p-2.5 rounded-md border border-primary/10">
                     <Checkbox 
                         id="lock-field" 
                         checked={field.isLocked || false} 
@@ -315,20 +386,21 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                         disabled={isSystemMandatory}
                     />
                     <div className="grid gap-1.5 leading-none">
-                        <Label htmlFor="lock-field" className="text-xs font-bold leading-none flex items-center gap-1.5 cursor-pointer">
+                        <Label htmlFor="lock-field" className="text-[11px] font-bold leading-none flex items-center gap-1.5 cursor-pointer">
                             {field.isLocked ? <Lock size={12} className="text-primary" /> : <Unlock size={12} />}
-                            Lock Field Configuration
+                            Prevent Accidental Changes
                         </Label>
                     </div>
                  </div>
              </div>
         </div>
 
-        <ScrollArea className="flex-1 max-h-[calc(100vh-400px)]">
-            <div className="flex flex-col lg:divide-y">
+        <ScrollArea className="flex-1">
+            <div className="flex flex-col">
                 {field.fieldType === 'text' ? (
                 <>
                     {renderTextPartEditor('label')}
+                    <Separator />
                     {renderTextPartEditor('value')}
                 </>
                 ) : field.fieldType === 'staticText' ? (
@@ -339,13 +411,13 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
             </div>
         </ScrollArea>
 
-        <div className="flex justify-end gap-2 p-4 border-t bg-muted/10">
-            <Button variant="outline" size="sm" onClick={onClose} className="text-xs font-bold uppercase tracking-widest">
-                Cancel
+        <div className="flex justify-end gap-2 p-4 border-t bg-muted/50 mt-auto">
+            <Button variant="outline" size="sm" onClick={onClose} className="text-[10px] font-black uppercase tracking-widest h-9 px-4">
+                Close
             </Button>
             {!isLocked && (
-                <Button variant="destructive" size="sm" onClick={() => onDelete(field.id)} className="text-xs font-bold uppercase tracking-widest">
-                    <Trash className="mr-2 h-3 w-3" /> Delete
+                <Button variant="destructive" size="sm" onClick={() => onDelete(field.id)} className="text-[10px] font-black uppercase tracking-widest h-9 px-4">
+                    <Trash className="mr-2 h-3.5 w-3.5" /> Delete
                 </Button>
             )}
             {isLocked && (
@@ -353,13 +425,13 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <div className="cursor-not-allowed">
-                                <Button variant="destructive" size="sm" disabled className="opacity-50 text-xs font-bold uppercase tracking-widest">
-                                    <Lock className="mr-2 h-3 w-3" /> System Locked
+                                <Button variant="destructive" size="sm" disabled className="opacity-50 text-[10px] font-black uppercase tracking-widest h-9 px-4">
+                                    <Lock className="mr-2 h-3.5 w-3.5" /> System Locked
                                 </Button>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p className="text-[10px]">{isSystemMandatory ? "Core system identifiers cannot be removed." : "Unlock in options to delete."}</p>
+                            <p className="text-[10px] font-bold">{isSystemMandatory ? "Essential for technical indexing." : "Unlock to enable deletion."}</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

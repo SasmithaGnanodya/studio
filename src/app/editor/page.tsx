@@ -329,7 +329,8 @@ export default function EditorPage() {
     }));
 
     const valuePlaceholders = fields.filter(f => f.fieldType === 'text').map(field => {
-      const value = initialReportState[field.fieldId as keyof typeof initialReportState] || `[${field.fieldId}]`;
+      // Use the field's explicit default text if set, otherwise fallback to system default
+      const value = field.value.text || initialReportState[field.fieldId as keyof typeof initialReportState] || `[${field.fieldId}]`;
       return {
         id: `value-${field.id}`,
         fieldId: field.fieldId,
@@ -392,7 +393,7 @@ export default function EditorPage() {
         </Card>
         
         <div className="flex-1 flex flex-col lg:flex-row gap-6 relative min-h-[600px]">
-          <div className="w-full lg:w-96 shrink-0 h-fit lg:sticky lg:top-24">
+          <div className="w-full lg:w-96 shrink-0 h-full lg:sticky lg:top-24">
             {selectedField ? (
                 <EditorSidebar 
                   field={selectedField}
@@ -402,8 +403,8 @@ export default function EditorPage() {
                   availableFieldIds={availableFieldIds}
                 />
             ) : (
-                <Card className="p-6 text-center border-dashed">
-                  <p className="text-sm text-muted-foreground">Select a field on the canvas to edit its properties.</p>
+                <Card className="p-6 text-center border-dashed bg-muted/20">
+                  <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest opacity-50">Select canvas element to edit</p>
                 </Card>
             )}
           </div>
