@@ -7,11 +7,12 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Converts a number to its English word representation.
- * Optimized for currency values (Rupees).
+ * Optimized for professional currency values (Rupees) using the International Numbering System (Millions).
  */
 export function numberToWords(num: number): string {
-  if (num === 0) return "ZERO";
-  if (isNaN(num)) return "";
+  const integerPart = Math.floor(Math.abs(num));
+  if (integerPart === 0) return "ZERO RUPEES ONLY";
+  if (isNaN(integerPart)) return "";
 
   const units = ["", "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE"];
   const teens = ["TEN", "ELEVEN", "TWELVE", "THIRTEEN", "FOURTEEN", "FIFTEEN", "SIXTEEN", "SEVENTEEN", "EIGHTEEN", "NINETEEN"];
@@ -40,17 +41,15 @@ export function numberToWords(num: number): string {
 
   let words = "";
   let scaleIndex = 0;
-  let integerPart = Math.floor(Math.abs(num));
+  let remaining = integerPart;
 
-  if (integerPart === 0) return "ZERO RUPEES ONLY";
-
-  while (integerPart > 0) {
-    let chunk = integerPart % 1000;
+  while (remaining > 0) {
+    const chunk = remaining % 1000;
     if (chunk > 0) {
       const chunkStr = convertChunk(chunk);
       words = chunkStr + (scales[scaleIndex] ? " " + scales[scaleIndex] : "") + " " + words;
     }
-    integerPart = Math.floor(integerPart / 1000);
+    remaining = Math.floor(remaining / 1000);
     scaleIndex++;
   }
 

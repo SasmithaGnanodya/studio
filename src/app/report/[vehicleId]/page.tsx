@@ -231,10 +231,15 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     setReportData(prev => {
       const updated = { ...prev, [fieldId]: value };
 
-      // Auto-fill words for market value REAL-TIME
-      if ((fieldId === 'marketValueNum' || fieldId === 'marketValue') && typeof value === 'string') {
-        const cleanVal = value.replace(/[^\d.]/g, ''); // Robust cleaner for commas and currency symbols
+      // REAL-TIME AUTO-FILL: Convert Market Value Rs. to English words
+      // Handles both "marketValueNum" (standard ID) and any field containing "marketValue"
+      const isMarketValueField = fieldId === 'marketValueNum' || fieldId.toLowerCase().includes('marketvalue');
+      
+      if (isMarketValueField && typeof value === 'string') {
+        // Strip non-numeric characters for conversion (handles commas, currency symbols)
+        const cleanVal = value.replace(/[^\d.]/g, ''); 
         const num = parseFloat(cleanVal);
+        
         if (!isNaN(num)) {
           updated.marketValueText = numberToWords(num);
         } else if (cleanVal === '') {
