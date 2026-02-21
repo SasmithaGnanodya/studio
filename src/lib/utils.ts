@@ -10,18 +10,18 @@ export function cn(...inputs: ClassValue[]) {
  * Optimized for currency values (Rupees).
  */
 export function numberToWords(num: number): string {
-  if (num === 0) return "Zero";
+  if (num === 0) return "ZERO";
   if (isNaN(num)) return "";
 
-  const units = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
-  const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
-  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-  const scales = ["", "Thousand", "Million", "Billion"];
+  const units = ["", "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE"];
+  const teens = ["TEN", "ELEVEN", "TWELVE", "THIRTEEN", "FOURTEEN", "FIFTEEN", "SIXTEEN", "SEVENTEEN", "EIGHTEEN", "NINETEEN"];
+  const tens = ["", "", "TWENTY", "THIRTY", "FORTY", "FIFTY", "SIXTY", "SEVENTY", "EIGHTY", "NINETY"];
+  const scales = ["", "THOUSAND", "MILLION", "BILLION"];
 
   function convertChunk(n: number): string {
     let chunk = "";
     if (n >= 100) {
-      chunk += units[Math.floor(n / 100)] + " Hundred ";
+      chunk += units[Math.floor(n / 100)] + " HUNDRED ";
       n %= 100;
     }
     if (n >= 10 && n <= 19) {
@@ -42,7 +42,7 @@ export function numberToWords(num: number): string {
   let scaleIndex = 0;
   let integerPart = Math.floor(Math.abs(num));
 
-  if (integerPart === 0) return "Zero Rupees Only";
+  if (integerPart === 0) return "ZERO RUPEES ONLY";
 
   while (integerPart > 0) {
     let chunk = integerPart % 1000;
