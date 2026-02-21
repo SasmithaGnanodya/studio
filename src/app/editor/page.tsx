@@ -170,7 +170,7 @@ export default function EditorPage() {
         fieldId: 'newInput',
         fieldType: 'text',
         label: { text: '', x: 10, y: 10, width: 20, height: 5, isBold: false, color: '#000000', fontSize: 10 },
-        value: { text: 'newInput', x: 10, y: 18, width: 60, height: 8, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
+        value: { text: 'newInput', x: 10, y: 10, width: 60, height: 8, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
       };
       setFields(prev => [...prev, newField]);
       setSelectedFieldId(newId);
@@ -326,7 +326,7 @@ export default function EditorPage() {
   };
   
   const { staticLabels, valuePlaceholders, imagePlaceholders } = useMemo(() => {
-    const staticLabels = fields.filter(f => f.fieldType === 'text' || f.fieldType === 'staticText').map(field => ({
+    const staticLabels = fields.filter(f => (f.fieldType === 'text' || f.fieldType === 'staticText') && f.label.text).map(field => ({
       id: `label-${field.id}`,
       fieldId: field.fieldId,
       value: field.label.text,
@@ -429,34 +429,42 @@ export default function EditorPage() {
                   imageValues={imagePlaceholders} 
                 />
                 
-                {fields.filter(f => f.fieldType === 'text').flatMap(field => [
-                  <DraggableField
-                    key={`label-drag-${field.id}`}
-                    id={`${field.id}-label`}
-                    x={MM_TO_PX(field.label.x)}
-                    y={MM_TO_PX(field.label.y)}
-                    width={MM_TO_PX(field.label.width)}
-                    height={MM_TO_PX(field.label.height)}
-                    onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'label', x, y)}
-                    onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'label', w, h)}
-                    onClick={handleSelectField}
-                    isSelected={field.id === selectedFieldId}
-                    borderColor='blue'
-                  />,
-                  <DraggableField
-                    key={`value-drag-${field.id}`}
-                    id={`${field.id}-value`}
-                    x={MM_TO_PX(field.value.x)}
-                    y={MM_TO_PX(field.value.y)}
-                    width={MM_TO_PX(field.value.width)}
-                    height={MM_TO_PX(field.value.height)}
-                    onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'value', x, y)}
-                    onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'value', w, h)}
-                    onClick={handleSelectField}
-                    isSelected={field.id === selectedFieldId}
-                    borderColor='green'
-                  />
-                ])}
+                {fields.filter(f => f.fieldType === 'text').flatMap(field => {
+                  const handles = [];
+                  if (field.label.text) {
+                    handles.push(
+                      <DraggableField
+                        key={`label-drag-${field.id}`}
+                        id={`${field.id}-label`}
+                        x={MM_TO_PX(field.label.x)}
+                        y={MM_TO_PX(field.label.y)}
+                        width={MM_TO_PX(field.label.width)}
+                        height={MM_TO_PX(field.label.height)}
+                        onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'label', x, y)}
+                        onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'label', w, h)}
+                        onClick={handleSelectField}
+                        isSelected={field.id === selectedFieldId}
+                        borderColor='blue'
+                      />
+                    );
+                  }
+                  handles.push(
+                    <DraggableField
+                      key={`value-drag-${field.id}`}
+                      id={`${field.id}-value`}
+                      x={MM_TO_PX(field.value.x)}
+                      y={MM_TO_PX(field.value.y)}
+                      width={MM_TO_PX(field.value.width)}
+                      height={MM_TO_PX(field.value.height)}
+                      onDragStop={(id, x, y) => updateFieldPartPosition(field.id, 'value', x, y)}
+                      onResizeStop={(id, w, h) => updateFieldPartSize(field.id, 'value', w, h)}
+                      onClick={handleSelectField}
+                      isSelected={field.id === selectedFieldId}
+                      borderColor='green'
+                    />
+                  );
+                  return handles;
+                })}
 
                 {fields.filter(f => f.fieldType === 'staticText').map(field => (
                   <DraggableField

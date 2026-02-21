@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -190,10 +191,13 @@ export const ReportPage = ({
 
   const activeAdjustingField = adjustingFieldId ? imageValues.find(f => f.fieldId === adjustingFieldId) : null;
 
+  // Filter out labels with empty text for cleaner rendering
+  const filteredStaticLabels = staticLabels.filter(f => f.value && f.value.trim() !== '');
+
   return (
     <div className="report-page shadow-2xl overflow-visible relative bg-white">
       {imageValues.map(renderImageField)}
-      {staticLabels.map(f => renderTextField(f, true))}
+      {filteredStaticLabels.map(f => renderTextField(f, true))}
       {dynamicValues.map(f => renderTextField(f, false))}
 
       {isEditable && activeAdjustingField && (

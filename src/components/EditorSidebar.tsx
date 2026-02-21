@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -357,8 +358,9 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
             <div className="flex flex-col">
                 {field.fieldType === 'text' ? (
                 <>
-                    {renderTextPartEditor('label')}
-                    <Separator />
+                    {/* Only show label configuration if the label has text */}
+                    {field.label.text && renderTextPartEditor('label')}
+                    {field.label.text && <Separator />}
                     {renderTextPartEditor('value')}
                 </>
                 ) : field.fieldType === 'staticText' ? (
