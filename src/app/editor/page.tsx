@@ -1,10 +1,11 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Save, PlusCircle, Image as ImageIcon, Type, LayoutTemplate, Wand2 } from 'lucide-react';
+import { Save, PlusCircle, Image as ImageIcon, Type, LayoutTemplate, Wand2, Hash } from 'lucide-react';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
@@ -149,7 +150,7 @@ export default function EditorPage() {
     setSelectedFieldId(baseId);
   };
   
-  const handleAddNewField = (type: 'text' | 'image' | 'staticText' | 'wordConverter') => {
+  const handleAddNewField = (type: 'text' | 'image' | 'staticText' | 'wordConverter' | 'inputOnly') => {
     const timestamp = Date.now();
     const newId = `${type}_${timestamp}`;
     
@@ -160,6 +161,16 @@ export default function EditorPage() {
         fieldType: 'text',
         label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 },
         value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
+      };
+      setFields(prev => [...prev, newField]);
+      setSelectedFieldId(newId);
+    } else if (type === 'inputOnly') {
+      const newField: FieldLayout = {
+        id: newId,
+        fieldId: 'newInput',
+        fieldType: 'text',
+        label: { text: '', x: 10, y: 10, width: 20, height: 5, isBold: false, color: '#000000', fontSize: 10 },
+        value: { text: 'newInput', x: 10, y: 18, width: 60, height: 8, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
       };
       setFields(prev => [...prev, newField]);
       setSelectedFieldId(newId);
@@ -381,6 +392,7 @@ export default function EditorPage() {
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('text')}><PlusCircle className="mr-2 h-4 w-4" /> Add Field</Button>
+                <Button variant="outline" size="sm" onClick={() => handleAddNewField('inputOnly')}><Hash className="mr-2 h-4 w-4" /> Add Input</Button>
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('staticText')}><Type className="mr-2 h-4 w-4" /> Add Text</Button>
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('image')}><ImageIcon className="mr-2 h-4 w-4" /> Add Photo</Button>
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('wordConverter')} className="text-primary border-primary/20 hover:bg-primary/5">
