@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, use } from 'react';
@@ -9,14 +8,14 @@ import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ShieldOff } from 'lucide-react';
+import { ArrowLeft, ShieldOff, Eye, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
-export default function ReportHistoryPage({ params }: { params: { reportId: string } }) {
+export default function ReportHistoryPage({ params }: { params: Promise<{ reportId: string }> }) {
   const resolvedParams = use(params);
   const { reportId } = resolvedParams;
 
@@ -53,7 +52,7 @@ export default function ReportHistoryPage({ params }: { params: { reportId: stri
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const fetchedHistory: ReportHistory[] = [];
         querySnapshot.forEach((doc) => {
-          fetchedHistory.push({ id: doc.id, ...(doc.data() as Omit<ReportHistory, 'id'>) });
+          fetchedHistory.push({ id: doc.id, ...(doc.data() as Omit<ReportHistory, 'id'>) } as ReportHistory);
         });
         setHistory(fetchedHistory);
         setIsLoading(false);
@@ -82,6 +81,7 @@ export default function ReportHistoryPage({ params }: { params: { reportId: stri
                     <TableHead><Skeleton className="h-5 w-32" /></TableHead>
                     <TableHead><Skeleton className="h-5 w-24" /></TableHead>
                     <TableHead><Skeleton className="h-5 w-48" /></TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -90,6 +90,7 @@ export default function ReportHistoryPage({ params }: { params: { reportId: stri
                       <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -115,40 +116,57 @@ export default function ReportHistoryPage({ params }: { params: { reportId: stri
     }
 
     return (
-      <Card>
+      <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-xl">
         <CardHeader>
-          <CardTitle>History for Report: <span className="font-mono text-primary">{report?.vehicleId || 'Loading...'}</span></CardTitle>
-          <CardDescription>Showing all saved versions of this report, from newest to oldest.</CardDescription>
-            <div className="pt-4">
-                <Link href="/admin" passHref>
-                    <Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Admin Panel</Button>
-                </Link>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-2xl font-black">History for Report: <span className="font-mono text-primary">{report?.vehicleId || 'Loading...'}</span></CardTitle>
+              <CardDescription className="flex items-center gap-2">
+                <Clock size={14} className="text-primary" /> Audit log of all saved snapshots.
+              </CardDescription>
             </div>
+            <Link href="/admin" passHref>
+                <Button variant="outline" className="border-primary/20"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Panel</Button>
+            </Link>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-md">
+          <div className="border rounded-xl overflow-hidden bg-background/50">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Saved At</TableHead>
-                  <TableHead>Saved By</TableHead>
-                  <TableHead>History ID</TableHead>
+                  <TableHead className="font-bold uppercase text-[10px] tracking-widest">Saved At</TableHead>
+                  <TableHead className="font-bold uppercase text-[10px] tracking-widest">Saved By</TableHead>
+                  <TableHead className="font-bold uppercase text-[10px] tracking-widest">History ID</TableHead>
+                  <TableHead className="text-right font-bold uppercase text-[10px] tracking-widest">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {history.length > 0 ? (
                   history.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell>
+                    <TableRow key={entry.id} className="group transition-colors hover:bg-primary/5">
+                      <TableCell className="font-medium">
                         {entry.savedAt ? new Date(entry.savedAt.seconds * 1000).toLocaleString() : 'N/A'}
                       </TableCell>
-                      <TableCell>{entry.userName}</TableCell>
-                      <TableCell className="font-mono">{entry.id}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-sm">{entry.userName}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono">{entry.userId}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{entry.id}</TableCell>
+                      <TableCell className="text-right">
+                        <Link href={`/admin/history/${reportId}/${entry.id}`} passHref>
+                          <Button size="sm" variant="ghost" className="h-8 gap-2 text-primary hover:text-primary-foreground hover:bg-primary transition-all">
+                            <Eye size={14} /> View Version
+                          </Button>
+                        </Link>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center h-24">
+                    <TableCell colSpan={4} className="text-center h-48 text-muted-foreground font-medium italic">
                       No save history found for this report.
                     </TableCell>
                   </TableRow>
@@ -165,7 +183,9 @@ export default function ReportHistoryPage({ params }: { params: { reportId: stri
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
       <main className="flex-1 p-4 lg:p-6">
-        {renderContent()}
+        <div className="container mx-auto max-w-6xl">
+          {renderContent()}
+        </div>
       </main>
     </div>
   );

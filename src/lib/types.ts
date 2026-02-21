@@ -51,3 +51,8 @@ export type Report = {
   updatedAt: { seconds: number, nanoseconds: number };
   layoutId?: string | null;
 };
+
+export type ReportHistory = Report & {
+  reportId: string;
+  savedAt: { seconds: number, nanoseconds: number };
+};
