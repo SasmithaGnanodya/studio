@@ -13,6 +13,7 @@ import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { ScrollArea } from './ui/scroll-area';
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -141,7 +142,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
             <Input id={`${part}-width`} name="width" type="number" value={data.width || 0} onChange={(e) => handlePartChange(part, 'width', e.target.value)} className="h-8" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor={`${part}-height`} className="text-xs">Height (mm)</Label>
+            <Label htmlFor={`${part}-height日間`} className="text-xs">Height (mm)</Label>
             <Input id={`${part}-height`} name="height" type="number" value={data.height || 0} onChange={(e) => handlePartChange(part, 'height', e.target.value)} className="h-8" />
           </div>
            <div className="space-y-1">
