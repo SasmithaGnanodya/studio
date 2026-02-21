@@ -20,6 +20,8 @@ export type FieldLayout = {
   value: FieldPart;
   placeholder?: FieldPart;
   isLocked?: boolean;
+  autoFillType?: 'numberToWords' | 'none';
+  autoFillSource?: string; // fieldId of the numeric source
 };
 
 export type LayoutDocument = {

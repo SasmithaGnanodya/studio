@@ -231,19 +231,20 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     setReportData(prev => {
       const updated = { ...prev, [fieldId]: value };
 
-      // REAL-TIME AUTO-FILL: Convert Market Value Rs. to English words
-      // Check if we are changing the numeric market value field
-      if (fieldId === 'marketValueNum' && typeof value === 'string') {
-        // Strip non-numeric characters for conversion
-        const cleanVal = value.replace(/[^\d.]/g, ''); 
-        const num = parseFloat(cleanVal);
-        
-        if (!isNaN(num)) {
-          updated.marketValueText = numberToWords(num);
-        } else if (cleanVal === '') {
-          updated.marketValueText = '';
+      // PROFESSIONAL AUTO-FILL: Dynamically check layout for linked automation fields
+      currentLayout.forEach(layoutField => {
+        if (layoutField.autoFillSource === fieldId && layoutField.autoFillType === 'numberToWords' && typeof value === 'string') {
+          // Strip non-numeric characters for conversion
+          const cleanVal = value.replace(/[^\d.]/g, ''); 
+          const num = parseFloat(cleanVal);
+          
+          if (!isNaN(num)) {
+            updated[layoutField.fieldId] = numberToWords(num);
+          } else if (cleanVal === '') {
+            updated[layoutField.fieldId] = '';
+          }
         }
-      }
+      });
 
       return updated;
     });

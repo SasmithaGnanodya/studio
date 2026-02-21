@@ -229,7 +229,9 @@ export const fixedLayout: FieldLayout[] = [
     fieldId: 'marketValueText',
     fieldType: 'text',
     label: { text: 'In Words:', x: 15, y: 265, width: 35, height: 5, fontSize: 9 },
-    value: { text: 'marketValueText', x: 50, y: 265, width: 145, height: 6, fontSize: 10 }
+    value: { text: 'marketValueText', x: 50, y: 265, width: 145, height: 6, fontSize: 10 },
+    autoFillType: 'numberToWords',
+    autoFillSource: 'marketValueNum'
   },
   {
     id: 'forcedVal-L',

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -6,25 +5,26 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, Lock, Unlock, Zap, Info } from 'lucide-react';
+import { Trash, X, Lock, Unlock, Zap, Info, Wand2 } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { Badge } from './ui/badge';
-import { Alert, AlertDescription } from './ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 type EditorSidebarProps = {
   field: FieldLayout;
   onUpdate: (id: string, updates: Partial<FieldLayout>) => void;
   onDelete: (id: string) => void;
   onClose: () => void;
+  availableFieldIds?: string[];
 };
 
 const PROTECTED_FIELDS = ['regNumber', 'engineNumber', 'chassisNumber', 'reportNumber', 'date'];
 
-export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSidebarProps) => {
+export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFieldIds = [] }: EditorSidebarProps) => {
 
   const isSystemMandatory = PROTECTED_FIELDS.includes(field.fieldId) || 
                             PROTECTED_FIELDS.some(id => id.toLowerCase() === field.fieldId.toLowerCase().trim());
@@ -61,10 +61,10 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
 
     return (
       <div className="flex-1 px-4 py-2">
-        <h3 className="font-semibold mb-2">Static Text</h3>
+        <h3 className="font-semibold mb-2 text-sm uppercase tracking-wider text-muted-foreground">Appearance</h3>
         <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
           <div className="space-y-1 sm:col-span-6">
-            <Label htmlFor={`${part}-text`} className="text-xs">Text</Label>
+            <Label htmlFor={`${part}-text`} className="text-xs">Display Text</Label>
             <Input 
               id={`${part}-text`} 
               name="text"
@@ -114,18 +114,20 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
 
     return (
       <div className="flex-1 px-4 py-2">
-        <h3 className="font-semibold mb-2">{title}</h3>
+        <h3 className="font-semibold mb-2 text-sm uppercase tracking-wider text-muted-foreground">{title} Styling</h3>
         <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
-          <div className="space-y-1 sm:col-span-6">
-            <Label htmlFor={`${part}-text`} className="text-xs">Text</Label>
-            <Input 
-              id={`${part}-text`} 
-              name="text"
-              className="h-8"
-              value={data.text || ''} 
-              onChange={(e) => handlePartChange(part, 'text', e.target.value)}
-            />
-          </div>
+          {part === 'label' && (
+            <div className="space-y-1 sm:col-span-6">
+              <Label htmlFor={`${part}-text`} className="text-xs">Label Text</Label>
+              <Input 
+                id={`${part}-text`} 
+                name="text"
+                className="h-8"
+                value={data.text || ''} 
+                onChange={(e) => handlePartChange(part, 'text', e.target.value)}
+              />
+            </div>
+          )}
           <div className="space-y-1">
             <Label htmlFor={`${part}-x`} className="text-xs">X (mm)</Label>
             <Input id={`${part}-x`} name="x" type="number" value={data.x || 0} onChange={(e) => handlePartChange(part, 'x', e.target.value)} className="h-8" />
@@ -155,36 +157,78 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
             <Label htmlFor={`${part}-bold`} className="text-xs font-normal">Bold</Label>
           </div>
         </div>
+        
         {isValuePart && (
-            <div className='mt-4 border-t pt-4'>
-                <Label className='text-xs font-medium'>Input Type</Label>
-                <RadioGroup 
-                    value={data.inputType || 'text'} 
-                    onValueChange={(value) => handlePartChange(part, 'inputType', value)}
-                    className='flex items-center gap-4 mt-2'
-                >
-                    <div className='flex items-center space-x-2'>
-                        <RadioGroupItem value='text' id='type-text' />
-                        <Label htmlFor='type-text' className='font-normal'>Text Input</Label>
-                    </div>
-                     <div className='flex items-center space-x-2'>
-                        <RadioGroupItem value='dropdown' id='type-dropdown' />
-                        <Label htmlFor='type-dropdown' className='font-normal'>Dropdown</Label>
-                    </div>
-                </RadioGroup>
+            <div className='mt-6 border-t pt-4 space-y-4'>
+                <div className="space-y-2">
+                  <Label className='text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+                    <Zap size={14} className="text-primary" /> Input Configuration
+                  </Label>
+                  <RadioGroup 
+                      value={data.inputType || 'text'} 
+                      onValueChange={(value) => handlePartChange(part, 'inputType', value)}
+                      className='flex items-center gap-4 mt-2'
+                  >
+                      <div className='flex items-center space-x-2'>
+                          <RadioGroupItem value='text' id='type-text' />
+                          <Label htmlFor='type-text' className='font-normal text-xs'>Text Input</Label>
+                      </div>
+                       <div className='flex items-center space-x-2'>
+                          <RadioGroupItem value='dropdown' id='type-dropdown' />
+                          <Label htmlFor='type-dropdown' className='font-normal text-xs'>Dropdown</Label>
+                      </div>
+                  </RadioGroup>
+                </div>
 
                 {data.inputType === 'dropdown' && (
-                    <div className='mt-4 space-y-2'>
+                    <div className='space-y-2'>
                         <Label htmlFor='dropdown-options' className='text-xs'>Dropdown Options (one per line)</Label>
                         <Textarea
                             id='dropdown-options'
                             value={(data.options || []).join('\n')}
                             onChange={(e) => handlePartChange(part, 'options', e.target.value)}
                             placeholder={'Option 1\nOption 2\nOption 3'}
-                            className='text-sm'
+                            className='text-xs min-h-[100px]'
                         />
                     </div>
                 )}
+
+                <div className="pt-4 border-t space-y-3">
+                  <Label className='text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+                    <Wand2 size={14} className="text-primary" /> Auto-Fill Automation
+                  </Label>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-[10px]">Automation Mode</Label>
+                    <Select 
+                      value={field.autoFillType || 'none'} 
+                      onValueChange={(val) => onUpdate(field.id, { autoFillType: val as any })}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Manual Entry</SelectItem>
+                        <SelectItem value="numberToWords">Number to Words</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {field.autoFillType === 'numberToWords' && (
+                    <div className="space-y-2 animate-in slide-in-from-top-2">
+                      <Label className="text-[10px]">Source Field ID (Numeric)</Label>
+                      <Input 
+                        placeholder="e.g. marketValueNum"
+                        value={field.autoFillSource || ''}
+                        onChange={(e) => onUpdate(field.id, { autoFillSource: e.target.value })}
+                        className="h-8 text-xs font-mono"
+                      />
+                      <p className="text-[10px] text-muted-foreground italic">
+                        Values from the source field will be automatically converted to professional currency text.
+                      </p>
+                    </div>
+                  )}
+                </div>
             </div>
         )}
       </div>
@@ -223,11 +267,11 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
   }
 
   return (
-    <Card className="w-full md:border-0 md:shadow-none overflow-hidden">
+    <Card className="w-full md:border-0 md:shadow-none overflow-hidden bg-background">
        <div className='p-4 border-b'>
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  Editing Field: <span className="font-mono bg-muted px-2 py-1 rounded-md">{field.fieldId}</span>
+                <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
+                  <span className="font-mono bg-primary/10 text-primary px-2 py-1 rounded-md text-sm">{field.fieldId}</span>
                   {isLocked && <Lock className="h-4 w-4 text-primary" />}
                 </h2>
                 <Button variant="ghost" size='icon' className='h-8 w-8' onClick={onClose}>
@@ -237,10 +281,10 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
              <div className='mt-4 space-y-4'>
                  <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <Label htmlFor="fieldId" className="text-sm font-medium">Field ID (for data linking)</Label>
+                        <Label htmlFor="fieldId" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Unique Field ID</Label>
                         {isSystemMandatory && (
-                          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 text-[10px] h-5">
-                            <Zap size={10} className="fill-primary" /> Indexing Identifier
+                          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 text-[9px] h-4">
+                            <Zap size={8} className="fill-primary" /> Mandatory
                           </Badge>
                         )}
                     </div>
@@ -248,20 +292,10 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                         id="fieldId"
                         value={field.fieldId}
                         onChange={handleFieldIdChange}
-                        className="font-mono mt-1 h-9"
+                        className="font-mono mt-1 h-9 bg-muted/20"
                         disabled={field.fieldType === 'staticText' || isLocked}
                         placeholder="e.g. chassisNumber"
                     />
-                    {isSystemMandatory ? (
-                      <div className="mt-2 text-[10px] text-primary/70 bg-primary/5 p-2 rounded border border-primary/10 flex items-start gap-2">
-                        <Info size={12} className="shrink-0 mt-0.5" />
-                        <span>This field is linked to the <strong>Real-time Search Index</strong>. Any data entered here will be searchable immediately on the dashboard.</span>
-                      </div>
-                    ) : (
-                      <p className="text-[10px] text-muted-foreground mt-1 px-1">
-                        Use <strong>engineNumber</strong> or <strong>chassisNumber</strong> to enable global report filtering.
-                      </p>
-                    )}
                  </div>
 
                  <div className="flex items-center space-x-2 bg-muted/30 p-2 rounded-md border">
@@ -272,38 +306,37 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                         disabled={isSystemMandatory}
                     />
                     <div className="grid gap-1.5 leading-none">
-                        <Label htmlFor="lock-field" className="text-sm font-medium leading-none flex items-center gap-1.5">
-                            {field.isLocked ? <Lock size={12} /> : <Unlock size={12} />}
-                            Lock Field
+                        <Label htmlFor="lock-field" className="text-xs font-bold leading-none flex items-center gap-1.5 cursor-pointer">
+                            {field.isLocked ? <Lock size={12} className="text-primary" /> : <Unlock size={12} />}
+                            Lock Field Configuration
                         </Label>
-                        <p className="text-[10px] text-muted-foreground">
-                            {isSystemMandatory ? "System fields are permanently locked." : "Prevent accidental deletion or renaming."}
-                        </p>
                     </div>
                  </div>
              </div>
         </div>
 
-        <div className="flex flex-col lg:divide-y">
-            {field.fieldType === 'text' ? (
-            <>
-                {renderTextPartEditor('label')}
-                {renderTextPartEditor('value')}
-            </>
-            ) : field.fieldType === 'staticText' ? (
-              renderStaticTextEditor('label')
-            ) : (
-            renderImagePartEditor()
-            )}
-        </div>
+        <ScrollArea className="flex-1 max-h-[calc(100vh-400px)]">
+            <div className="flex flex-col lg:divide-y">
+                {field.fieldType === 'text' ? (
+                <>
+                    {renderTextPartEditor('label')}
+                    {renderTextPartEditor('value')}
+                </>
+                ) : field.fieldType === 'staticText' ? (
+                  renderStaticTextEditor('label')
+                ) : (
+                renderImagePartEditor()
+                )}
+            </div>
+        </ScrollArea>
 
-        <div className="flex justify-end gap-2 p-4 border-t mt-auto">
-            <Button variant="outline" size="sm" onClick={onClose}>
-                <X className="mr-2 h-4 w-4" /> Close
+        <div className="flex justify-end gap-2 p-4 border-t bg-muted/10">
+            <Button variant="outline" size="sm" onClick={onClose} className="text-xs font-bold uppercase tracking-widest">
+                Cancel
             </Button>
             {!isLocked && (
-                <Button variant="destructive" size="sm" onClick={() => onDelete(field.id)}>
-                    <Trash className="mr-2 h-4 w-4" /> Delete Field
+                <Button variant="destructive" size="sm" onClick={() => onDelete(field.id)} className="text-xs font-bold uppercase tracking-widest">
+                    <Trash className="mr-2 h-3 w-3" /> Delete
                 </Button>
             )}
             {isLocked && (
@@ -311,13 +344,13 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose }: EditorSide
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <div className="cursor-not-allowed">
-                                <Button variant="destructive" size="sm" disabled className="opacity-50">
-                                    <Lock className="mr-2 h-4 w-4" /> Locked
+                                <Button variant="destructive" size="sm" disabled className="opacity-50 text-xs font-bold uppercase tracking-widest">
+                                    <Lock className="mr-2 h-3 w-3" /> System Locked
                                 </Button>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>{isSystemMandatory ? "System mandatory fields cannot be deleted." : "Unlock the field to delete it."}</p>
+                            <p className="text-[10px]">{isSystemMandatory ? "Core system identifiers cannot be removed." : "Unlock in options to delete."}</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
