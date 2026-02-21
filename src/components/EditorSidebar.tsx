@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, Lock, Unlock, Zap, Info, Wand2 } from 'lucide-react';
+import { Trash, X, Lock, Unlock, Zap, Wand2 } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
@@ -142,7 +142,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
             <Input id={`${part}-width`} name="width" type="number" value={data.width || 0} onChange={(e) => handlePartChange(part, 'width', e.target.value)} className="h-8" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor={`${part}-height日間`} className="text-xs">Height (mm)</Label>
+            <Label htmlFor={`${part}-height`} className="text-xs">Height (mm)</Label>
             <Input id={`${part}-height`} name="height" type="number" value={data.height || 0} onChange={(e) => handlePartChange(part, 'height', e.target.value)} className="h-8" />
           </div>
            <div className="space-y-1">
