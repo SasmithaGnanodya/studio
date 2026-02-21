@@ -14,6 +14,7 @@ import { useFirebase } from '@/firebase';
 import { doc, getDoc, collection, serverTimestamp, runTransaction, setDoc } from 'firebase/firestore';
 import type { ImageData, Report, FieldLayout } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { numberToWords } from '@/lib/utils';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
@@ -131,12 +132,10 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
       if (docSnap.exists()) {
         const report = docSnap.data() as Report;
-        // Merge fetched data with current regNumber
         setReportData(prev => ({ 
           ...prev, 
           ...report.reportData, 
           regNumber: vehicleId,
-          // If we just generated a report number in the previous effect, don't let the fetched data (if empty) overwrite it
           reportNumber: (report.reportData?.reportNumber || prev.reportNumber)
         }));
         
@@ -164,16 +163,10 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     fetchData();
   }, [user, firestore, vehicleId, isAuthorized]);
 
-  /**
-   * Triple-Layer Greedy Identifier Detection
-   * Scans document structure, layout labels, and raw data keys.
-   */
   const findIdentifier = (patterns: string[]) => {
-    // 1. Direct ID exact match
     const direct = patterns.map(p => reportData[p]).find(v => !!v);
     if (direct) return direct;
     
-    // 2. Scan layout labels for any visual pattern match
     const layoutField = currentLayout.find(f => 
       f.fieldType === 'text' && 
       f.label && 
@@ -184,14 +177,12 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       return reportData[layoutField.fieldId];
     }
 
-    // 3. Greedy fallback: partial match on any reportData key
     const entry = Object.entries(reportData).find(([key, val]) => 
       val && patterns.some(p => key.toLowerCase().includes(p.toLowerCase()))
     );
     return entry ? entry[1] : '';
   };
 
-  // Real-time Debounced Sync for Search Identifiers
   useEffect(() => {
     if (!firestore || !isAuthorized || !user || isLoading) return;
 
@@ -200,7 +191,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum', 'ref', 'val', 'v-', 'valuation', 'id']);
     const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate', 'inspectedOn']);
 
-    // Don't sync if everything is truly empty or pending
     if (!engineVal && !chassisVal && (!reportNumVal || reportNumVal === 'V-PENDING') && !dateVal) return;
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
@@ -239,7 +229,22 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   }, [reportData, firestore, isAuthorized, user, vehicleId, isLoading, currentLayout]);
 
   const handleDataChange = (fieldId: string, value: string | ImageData) => {
-    setReportData(prev => ({ ...prev, [fieldId]: value }));
+    setReportData(prev => {
+      const updated = { ...prev, [fieldId]: value };
+
+      // Auto-fill words for market value
+      if (fieldId === 'marketValueNum' && typeof value === 'string') {
+        const cleanVal = value.replace(/,/g, '');
+        const num = parseFloat(cleanVal);
+        if (!isNaN(num)) {
+          updated.marketValueText = numberToWords(num);
+        } else if (cleanVal === '') {
+          updated.marketValueText = '';
+        }
+      }
+
+      return updated;
+    });
   };
 
   const handleSave = async () => {
