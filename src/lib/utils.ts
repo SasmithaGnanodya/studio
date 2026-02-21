@@ -40,7 +40,9 @@ export function numberToWords(num: number): string {
 
   let words = "";
   let scaleIndex = 0;
-  let integerPart = Math.floor(num);
+  let integerPart = Math.floor(Math.abs(num));
+
+  if (integerPart === 0) return "Zero Rupees Only";
 
   while (integerPart > 0) {
     let chunk = integerPart % 1000;
@@ -52,5 +54,5 @@ export function numberToWords(num: number): string {
     scaleIndex++;
   }
 
-  return words.trim() + " Rupees Only";
+  return words.trim().toUpperCase() + " RUPEES ONLY";
 }

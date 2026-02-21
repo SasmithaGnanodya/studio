@@ -231,9 +231,9 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     setReportData(prev => {
       const updated = { ...prev, [fieldId]: value };
 
-      // Auto-fill words for market value
-      if (fieldId === 'marketValueNum' && typeof value === 'string') {
-        const cleanVal = value.replace(/,/g, '');
+      // Auto-fill words for market value REAL-TIME
+      if ((fieldId === 'marketValueNum' || fieldId === 'marketValue') && typeof value === 'string') {
+        const cleanVal = value.replace(/[^\d.]/g, ''); // Robust cleaner for commas and currency symbols
         const num = parseFloat(cleanVal);
         if (!isNaN(num)) {
           updated.marketValueText = numberToWords(num);
