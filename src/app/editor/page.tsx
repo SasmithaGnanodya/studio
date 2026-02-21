@@ -1,10 +1,11 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Save, PlusCircle, Image as ImageIcon, Type, LayoutTemplate } from 'lucide-react';
+import { Save, PlusCircle, Image as ImageIcon, Type, LayoutTemplate, Wand2 } from 'lucide-react';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
@@ -149,7 +150,7 @@ export default function EditorPage() {
     setSelectedFieldId(baseId);
   };
   
-  const handleAddNewField = (type: 'text' | 'image' | 'staticText') => {
+  const handleAddNewField = (type: 'text' | 'image' | 'staticText' | 'wordConverter') => {
     const newId = `${type}_${Date.now()}`;
     if (type === 'text') {
       const newField: FieldLayout = {
@@ -158,6 +159,17 @@ export default function EditorPage() {
         fieldType: 'text',
         label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 },
         value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
+      };
+      setFields(prev => [...prev, newField]);
+    } else if (type === 'wordConverter') {
+      const newField: FieldLayout = {
+        id: newId,
+        fieldId: 'valueInWords',
+        fieldType: 'text',
+        label: { text: 'In Words:', x: 10, y: 30, width: 35, height: 5, isBold: false, color: '#000000', fontSize: 9 },
+        value: { text: 'valueInWords', x: 45, y: 30, width: 140, height: 10, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 10 },
+        autoFillType: 'numberToWords',
+        autoFillSource: 'marketValueNum'
       };
       setFields(prev => [...prev, newField]);
     } else if (type === 'image') {
@@ -330,6 +342,10 @@ export default function EditorPage() {
 
   const selectedField = fields.find(f => f.id === selectedFieldId) || null;
 
+  const availableFieldIds = useMemo(() => {
+    return Array.from(new Set(fields.filter(f => f.fieldType === 'text').map(f => f.fieldId)));
+  }, [fields]);
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
@@ -346,6 +362,9 @@ export default function EditorPage() {
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('text')}><PlusCircle className="mr-2 h-4 w-4" /> Add Field</Button>
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('staticText')}><Type className="mr-2 h-4 w-4" /> Add Text</Button>
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('image')}><ImageIcon className="mr-2 h-4 w-4" /> Add Photo</Button>
+                <Button variant="outline" size="sm" onClick={() => handleAddNewField('wordConverter')} className="text-primary border-primary/20 hover:bg-primary/5">
+                  <Wand2 className="mr-2 h-4 w-4" /> Add Word Converter
+                </Button>
                 <div className="w-px h-6 bg-border mx-1" />
                 <Button size="sm" onClick={handleSaveLayout}><Save className="mr-2 h-4 w-4" /> Save Master Layout</Button>
             </div>
@@ -361,6 +380,7 @@ export default function EditorPage() {
                   onUpdate={handleUpdateField}
                   onDelete={handleDeleteField}
                   onClose={() => setSelectedFieldId(null)}
+                  availableFieldIds={availableFieldIds}
                 />
             ) : (
                 <Card className="p-6 text-center border-dashed">

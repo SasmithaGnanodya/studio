@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -142,7 +143,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
             <Input id={`${part}-width`} name="width" type="number" value={data.width || 0} onChange={(e) => handlePartChange(part, 'width', e.target.value)} className="h-8" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor={`${part}-height`} className="text-xs">Height (mm)</Label>
+            <Label htmlFor={`${part}-height Profil`} className="text-xs">Height (mm)</Label>
             <Input id={`${part}-height`} name="height" type="number" value={data.height || 0} onChange={(e) => handlePartChange(part, 'height', e.target.value)} className="h-8" />
           </div>
            <div className="space-y-1">
@@ -217,15 +218,22 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
 
                   {field.autoFillType === 'numberToWords' && (
                     <div className="space-y-2 animate-in slide-in-from-top-2">
-                      <Label className="text-[10px]">Source Field ID (Numeric)</Label>
-                      <Input 
-                        placeholder="e.g. marketValueNum"
-                        value={field.autoFillSource || ''}
-                        onChange={(e) => onUpdate(field.id, { autoFillSource: e.target.value })}
-                        className="h-8 text-xs font-mono"
-                      />
+                      <Label className="text-[10px]">Source Numeric Field</Label>
+                      <Select 
+                        value={field.autoFillSource || ''} 
+                        onValueChange={(val) => onUpdate(field.id, { autoFillSource: val })}
+                      >
+                        <SelectTrigger className="h-8 text-xs font-mono">
+                          <SelectValue placeholder="Select Source" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableFieldIds.map(id => (
+                            <SelectItem key={id} value={id} className="text-xs font-mono">{id}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <p className="text-[10px] text-muted-foreground italic">
-                        Values from the source field will be automatically converted to professional currency text.
+                        Values from the selected field will be automatically converted to professional currency text.
                       </p>
                     </div>
                   )}
