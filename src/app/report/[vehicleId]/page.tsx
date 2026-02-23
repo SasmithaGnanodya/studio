@@ -327,6 +327,34 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     });
   };
 
+  const handleBlur = (fieldId: string, value: string) => {
+    if (typeof value !== 'string') return;
+    
+    const fieldIdLower = fieldId.toLowerCase();
+    const isMoneyField = 
+      fieldIdLower.includes('value') || 
+      fieldIdLower.includes('amount') || 
+      fieldIdLower.includes('price') || 
+      fieldIdLower.includes('rs') ||
+      currentLayout.some(l => l.autoFillSource === fieldId);
+
+    if (isMoneyField && value.trim() !== '') {
+      const trimmed = value.trim().replace(/,/g, '');
+      // If it's a number and doesn't have decimals, or is a whole number, format it
+      if (/^\d+$/.test(trimmed)) {
+        handleDataChange(fieldId, `${trimmed}.00`);
+      } else {
+        const num = parseFloat(trimmed);
+        if (!isNaN(num)) {
+          const formatted = num.toFixed(2);
+          if (formatted !== trimmed) {
+            handleDataChange(fieldId, formatted);
+          }
+        }
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (!user || !firestore) return;
 
@@ -528,6 +556,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                 imageValues={imageValues}
                 isEditable={isFilling}
                 onValueChange={handleDataChange}
+                onBlur={handleBlur}
               />
             </div>
           )}

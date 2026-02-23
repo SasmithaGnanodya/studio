@@ -41,6 +41,7 @@ type ReportPageProps = {
   imageValues: PrintImageField[];
   isEditable?: boolean;
   onValueChange?: (fieldId: string, value: string | ImageData) => void;
+  onBlur?: (fieldId: string, value: string) => void;
 };
 
 export const ReportPage = ({ 
@@ -48,7 +49,8 @@ export const ReportPage = ({
   dynamicValues = [], 
   imageValues = [], 
   isEditable = false,
-  onValueChange 
+  onValueChange,
+  onBlur
 }: ReportPageProps) => {
 
   const [adjustingFieldId, setAdjustingFieldId] = useState<string | null>(null);
@@ -117,6 +119,10 @@ export const ReportPage = ({
       onValueChange?.(field.fieldId, val);
     };
 
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      onBlur?.(field.fieldId, e.target.value);
+    };
+
     const isDateField = field.fieldId.toLowerCase().includes('date');
     const alignmentClass = textAlign === 'left' ? 'text-left' : textAlign === 'right' ? 'text-right' : 'text-center';
 
@@ -147,6 +153,7 @@ export const ReportPage = ({
               list={`list-${field.id}`}
               value={field.value}
               onChange={handleInputChange}
+              onBlur={handleBlur}
               className={cn(
                 "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary p-1 transition-all shadow-none ring-0",
                 alignmentClass
@@ -168,6 +175,7 @@ export const ReportPage = ({
             type='date'
             value={field.value}
             onChange={handleInputChange}
+            onBlur={handleBlur}
             className={cn(
               "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary p-0 transition-all shadow-none ring-0",
               alignmentClass
@@ -182,6 +190,7 @@ export const ReportPage = ({
           <Textarea
             value={field.value}
             onChange={handleInputChange}
+            onBlur={handleBlur}
             className={cn(
               "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary p-1 transition-all shadow-none ring-0 resize-none overflow-hidden min-h-0",
               alignmentClass
