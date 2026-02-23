@@ -45,11 +45,9 @@ function getIdentifiers(report: Report) {
                   )?.[1] || 
                   'N/A';
 
+  // Strictly use reportNumber field, avoid falling back to legacy keys like 'V'
   const reportNum = report.reportNumber || 
                     data.reportNumber || 
-                    Object.entries(data).find(([k]) => 
-                      ['reportnumber', 'reportno', 'ref', 'val', 'v-', 'valuation', 'id'].some(p => k.toLowerCase().includes(p))
-                    )?.[1] || 
                     'DRAFT';
 
   return {

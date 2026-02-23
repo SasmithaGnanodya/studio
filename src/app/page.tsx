@@ -36,11 +36,9 @@ function getIdentifiers(report: Report) {
                   )?.[1] || 
                   'N/A';
 
+  // Strictly use generated valuation ID format (CDH/CDK prefixes), avoid legacy 'V' keys
   const reportNum = report.reportNumber || 
                     data.reportNumber || 
-                    Object.entries(data).find(([k]) => 
-                      ['reportnumber', 'reportno', 'ref', 'val', 'v-', 'valuation', 'id'].some(p => k.toLowerCase().includes(p))
-                    )?.[1] || 
                     'N/A';
 
   return {

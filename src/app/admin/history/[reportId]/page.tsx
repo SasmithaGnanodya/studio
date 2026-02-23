@@ -18,11 +18,9 @@ const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 
 function getIdentifiers(entry: ReportHistory) {
   const data = entry.reportData || {};
   
+  // Prioritize the branch-specific generated code, avoid legacy prefixes
   const reportNum = entry.reportNumber || 
                     data.reportNumber || 
-                    Object.entries(data).find(([k]) => 
-                      ['reportnumber', 'reportno', 'ref', 'val', 'v-', 'valuation', 'id'].some(p => k.toLowerCase().includes(p))
-                    )?.[1] || 
                     'DRAFT';
 
   return {
@@ -152,7 +150,7 @@ export default function ReportHistoryPage({ params }: { params: Promise<{ report
                 <TableRow>
                   <TableHead className="font-bold uppercase text-[10px] tracking-widest">Saved At</TableHead>
                   <TableHead className="font-bold uppercase text-[10px] tracking-widest">Saved By</TableHead>
-                  <TableHead className="font-bold uppercase text-[10px] tracking-widest">Report Number (Issued)</TableHead>
+                  <TableHead className="font-bold uppercase text-[10px] tracking-widest">Report ID (Generated)</TableHead>
                   <TableHead className="text-right font-bold uppercase text-[10px] tracking-widest">Action</TableHead>
                 </TableRow>
               </TableHeader>
