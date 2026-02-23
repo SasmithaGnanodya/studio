@@ -2,12 +2,12 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, deleteField, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, deleteField, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck, Activity, Settings } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck, Activity, Settings, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +25,17 @@ import { useToast } from '@/hooks/use-toast';
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const INITIAL_VISIBLE_REPORTS = 12;
@@ -75,6 +86,7 @@ export default function AdminPage() {
   const [newBranch, setNewBranch] = useState('CDH');
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDeletingReportId, setIsDeletingReportId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -261,6 +273,27 @@ export default function AdminPage() {
       toast({ title: "Access Revoked", description: "User has been removed from the system." });
     } catch (err) {
       toast({ variant: "destructive", title: "Action Failed", description: "Could not remove user access." });
+    }
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    if (!firestore) return;
+    try {
+      const reportRef = doc(firestore, 'reports', reportId);
+      await deleteDoc(reportRef);
+      toast({
+        title: "Report Deleted",
+        description: `Vehicle record ${reportId} has been permanently removed.`,
+      });
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      toast({
+        variant: "destructive",
+        title: "Deletion Failed",
+        description: "You may not have permission to delete this record.",
+      });
+    } finally {
+      setIsDeletingReportId(null);
     }
   };
 
@@ -553,6 +586,44 @@ export default function AdminPage() {
                               <Eye size={12} /> View
                             </Button>
                           </Link>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 text-[10px] gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 size={12} /> Delete
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="border-2 border-destructive/20 shadow-2xl">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="text-destructive flex items-center gap-2">
+                                  <AlertTriangle className="h-5 w-5" /> Permanent Deletion Warning
+                                </AlertDialogTitle>
+                                <AlertDialogDescription className="space-y-4">
+                                  <p className="font-bold text-foreground">
+                                    Are you absolutely sure you want to delete report <span className="font-mono text-primary">{report.vehicleId}</span>?
+                                  </p>
+                                  <div className="p-4 bg-destructive/5 border border-destructive/10 rounded-lg">
+                                    <p className="text-xs text-destructive leading-relaxed font-medium">
+                                      This action cannot be undone. This will permanently delete the valuation report and remove all technical history from our servers.
+                                    </p>
+                                  </div>
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter className="mt-6">
+                                <AlertDialogCancel className="font-bold">Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-black"
+                                  onClick={() => handleDeleteReport(report.id)}
+                                >
+                                  Confirm Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </CardFooter>
                       </Card>
                     );
