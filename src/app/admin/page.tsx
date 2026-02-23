@@ -1,14 +1,13 @@
-
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useFirebase } from '@/firebase';
+import { useFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, MapPin } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,10 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { format, subDays, subMonths, startOfDay, isSameDay } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { format, subDays, subMonths, isSameDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { Bar, BarChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Bar, BarChart } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
@@ -93,24 +91,47 @@ export default function AdminPage() {
     }
     if (firestore) {
       setIsLoading(true);
-      const q = query(collection(firestore, 'reports'), orderBy('updatedAt', 'desc'));
+      
+      const reportsRef = collection(firestore, 'reports');
+      const q = query(reportsRef, orderBy('updatedAt', 'desc'));
+      
       const unsubscribeReports = onSnapshot(q, (querySnapshot) => {
         const fetched: Report[] = [];
         querySnapshot.forEach((doc) => fetched.push({ id: doc.id, ...(doc.data() as Omit<Report, 'id'>) }));
         setReports(fetched);
         setIsLoading(false);
+      }, async (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: 'reports',
+          operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
 
-      const unsubscribeBranches = onSnapshot(doc(firestore, 'config', 'userBranches'), (snap) => {
+      const branchesRef = doc(firestore, 'config', 'userBranches');
+      const unsubscribeBranches = onSnapshot(branchesRef, (snap) => {
         if (snap.exists()) {
           setUserBranches(snap.data() as Record<string, string>);
         }
+      }, async (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: branchesRef.path,
+          operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
 
-      getDoc(doc(firestore, 'config', 'settings')).then(snap => {
+      const settingsRef = doc(firestore, 'config', 'settings');
+      getDoc(settingsRef).then(snap => {
         if (snap.exists()) {
           setAccessPassword(snap.data().privateDataPassword || '');
         }
+      }).catch(error => {
+        const permissionError = new FirestorePermissionError({
+          path: settingsRef.path,
+          operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
 
       return () => {

@@ -22,7 +22,6 @@ service cloud.firestore {
       return isSignedIn() && (
         request.auth.token.email == 'sasmithagnanodya@gmail.com' ||
         request.auth.token.email == 'supundinushaps@gmail.com' ||
-        request.auth.token.email == 'caredrivelk@gmail.com' ||
         request.auth.token.email == 'caredrivelk@gmail.com'
       );
     }
@@ -52,7 +51,7 @@ service cloud.firestore {
       }
     }
 
-    match /config/settings {
+    match /config/{configDoc} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
