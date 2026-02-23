@@ -19,7 +19,7 @@ export type PrintField = {
   isBold?: boolean;
   color?: string;
   fontSize?: number;
-  inputType?: 'text' | 'dropdown';
+  inputType?: 'text' | 'dropdown' | 'combobox';
   options?: string[];
 };
 
@@ -134,6 +134,27 @@ export const ReportPage = ({
                 ))}
             </SelectContent>
           </Select>
+        ) : field.inputType === 'combobox' ? (
+          <>
+            <Input
+              list={`list-${field.id}`}
+              value={field.value}
+              onChange={handleInputChange}
+              className={cn(
+                "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-1 transition-all shadow-none ring-0"
+              )}
+              style={{ 
+                fontSize: style.fontSize, 
+                color: style.color, 
+                fontWeight: style.fontWeight 
+              }}
+            />
+            <datalist id={`list-${field.id}`}>
+              {(field.options || []).filter(Boolean).map(opt => (
+                <option key={opt} value={opt} />
+              ))}
+            </datalist>
+          </>
         ) : isDateField ? (
           <Input
             type='date'

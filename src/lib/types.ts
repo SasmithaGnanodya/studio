@@ -7,7 +7,7 @@ export type FieldPart = {
   isBold?: boolean;
   color?: string;
   fontSize?: number;
-  inputType?: 'text' | 'dropdown';
+  inputType?: 'text' | 'dropdown' | 'combobox';
   options?: string[];
   optionWeights?: Record<string, number>; // Mapping option label to a numeric value for calculations
   objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';

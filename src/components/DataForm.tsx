@@ -62,6 +62,21 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
                        ))}
                      </SelectContent>
                    </Select>
+                ) : inputType === 'combobox' ? (
+                  <>
+                    <Input
+                      id={field.fieldId}
+                      list={`list-form-${field.id}`}
+                      value={data[field.fieldId] || ''}
+                      onChange={(e) => onDataChange(field.fieldId, e.target.value)}
+                      placeholder="Type or select..."
+                    />
+                    <datalist id={`list-form-${field.id}`}>
+                      {(field.value.options || []).filter(Boolean).map(opt => (
+                        <option key={opt} value={opt} />
+                      ))}
+                    </datalist>
+                  </>
                 ) : inputType === 'image' ? (
                   <ImageAdjustmentControl
                     value={data[field.fieldId] || { url: '', scale: 1, x: 0, y: 0 }}

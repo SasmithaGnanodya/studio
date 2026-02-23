@@ -247,21 +247,27 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                       <RadioGroupItem value='dropdown' id='type-dropdown' />
                       <Label htmlFor='type-dropdown' className='font-bold text-xs cursor-pointer'>Options</Label>
                   </div>
+                  <div className='flex items-center space-x-2'>
+                      <RadioGroupItem value='combobox' id='type-combobox' />
+                      <Label htmlFor='type-combobox' className='font-bold text-xs cursor-pointer'>Suggestions</Label>
+                  </div>
               </RadioGroup>
             </div>
 
-            {data.inputType === 'dropdown' && (
+            {(data.inputType === 'dropdown' || data.inputType === 'combobox') && (
               <div className='space-y-3 animate-in slide-in-from-top-1'>
                   <div className="flex items-center justify-between">
                     <Label className='text-[10px] font-bold'>Menu Selections</Label>
-                    <Badge variant="secondary" className="text-[8px] uppercase tracking-tighter">Technical Scoring</Badge>
+                    <Badge variant="secondary" className="text-[8px] uppercase tracking-tighter">
+                      {data.inputType === 'dropdown' ? 'Technical Scoring' : 'Word Bank'}
+                    </Badge>
                   </div>
                   
                   <div className="space-y-2">
                     {(data.options || []).map((opt, index) => (
                       <div key={index} className="flex gap-1.5 items-center">
                         <Input 
-                          placeholder="Name" 
+                          placeholder={data.inputType === 'combobox' ? "Sentence..." : "Name"} 
                           value={opt} 
                           className="h-8 text-[10px] flex-1"
                           onChange={(e) => {
@@ -278,19 +284,21 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                             updateOptions(part, newOptions, newWeights);
                           }}
                         />
-                        <Input 
-                          placeholder="Val" 
-                          type="number"
-                          value={data.optionWeights?.[opt] ?? ''} 
-                          className="h-8 w-14 text-[10px]"
-                          onChange={(e) => {
-                            const newWeights = { ...(data.optionWeights || {}) };
-                            const val = parseFloat(e.target.value);
-                            if (isNaN(val)) delete newWeights[opt];
-                            else newWeights[opt] = val;
-                            updateOptions(part, data.options || [], newWeights);
-                          }}
-                        />
+                        {data.inputType === 'dropdown' && (
+                          <Input 
+                            placeholder="Val" 
+                            type="number"
+                            value={data.optionWeights?.[opt] ?? ''} 
+                            className="h-8 w-14 text-[10px]"
+                            onChange={(e) => {
+                              const newWeights = { ...(data.optionWeights || {}) };
+                              const val = parseFloat(e.target.value);
+                              if (isNaN(val)) delete newWeights[opt];
+                              else newWeights[opt] = val;
+                              updateOptions(part, data.options || [], newWeights);
+                            }}
+                          />
+                        )}
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -311,7 +319,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                       size="sm" 
                       className="w-full text-[10px] h-8 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 text-primary"
                       onClick={() => {
-                        const newOptions = [...(data.options || []), `Option ${(data.options?.length || 0) + 1}`];
+                        const newOptions = [...(data.options || []), `New ${data.inputType === 'combobox' ? 'Sentence' : 'Option'} ${(data.options?.length || 0) + 1}`];
                         updateOptions(part, newOptions, data.optionWeights);
                       }}
                     >
@@ -320,7 +328,10 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                   </div>
                   
                   <p className="text-[9px] text-muted-foreground italic leading-tight">
-                    The <b>Name</b> appears to the user. The <b>Value</b> (optional) is used for technical scoring and automated valuation logic.
+                    {data.inputType === 'dropdown' 
+                      ? "The Name appears to the user. The Value (optional) is used for technical scoring."
+                      : "Add pre-defined words or sentences that will appear as suggestions while typing."
+                    }
                   </p>
               </div>
             )}
