@@ -33,6 +33,7 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
       isBold: false,
       color: '#000000',
       fontSize: 12,
+      textAlign: 'center',
       inputType: 'text',
       options: [],
       optionWeights: {},
@@ -52,6 +53,7 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
       isBold: part.isBold ?? defaults.isBold,
       color: part.color ?? defaults.color,
       fontSize: part.fontSize ?? defaults.fontSize,
+      textAlign: part.textAlign ?? defaults.textAlign,
       inputType: part.inputType ?? defaults.inputType,
       options: Array.isArray(part.options) ? part.options : defaults.options,
       optionWeights: part.optionWeights ?? defaults.optionWeights,
@@ -160,8 +162,8 @@ export default function EditorPage() {
         id: newId,
         fieldId: 'regNumber',
         fieldType: 'text',
-        label: { text: 'Reg. Number:', x: 10, y: 10, width: 40, height: 5, isBold: true, color: '#000000', fontSize: 10 },
-        value: { text: 'regNumber', x: 55, y: 10, width: 60, height: 8, isBold: true, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
+        label: { text: 'Reg. Number:', x: 10, y: 10, width: 40, height: 5, isBold: true, color: '#000000', fontSize: 10, textAlign: 'center' },
+        value: { text: 'regNumber', x: 55, y: 10, width: 60, height: 8, isBold: true, color: '#000000', inputType: 'text', options: [], fontSize: 12, textAlign: 'center' },
         isLocked: true
       };
       setFields(prev => [...prev, newField]);
@@ -171,8 +173,8 @@ export default function EditorPage() {
         id: newId,
         fieldId: 'newField',
         fieldType: 'text',
-        label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 },
-        value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
+        label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12, textAlign: 'center' },
+        value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12, textAlign: 'center' },
       };
       setFields(prev => [...prev, newField]);
       setSelectedFieldId(newId);
@@ -181,8 +183,8 @@ export default function EditorPage() {
         id: newId,
         fieldId: 'reportNumber',
         fieldType: 'text',
-        label: { text: 'Report ID:', x: 10, y: 10, width: 40, height: 5, isBold: true, color: '#000000', fontSize: 10 },
-        value: { text: 'reportNumber', x: 55, y: 10, width: 60, height: 8, isBold: true, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
+        label: { text: 'Report ID:', x: 10, y: 10, width: 40, height: 5, isBold: true, color: '#000000', fontSize: 10, textAlign: 'center' },
+        value: { text: 'reportNumber', x: 55, y: 10, width: 60, height: 8, isBold: true, color: '#000000', inputType: 'text', options: [], fontSize: 12, textAlign: 'center' },
         isLocked: true
       };
       setFields(prev => [...prev, newField]);
@@ -192,8 +194,8 @@ export default function EditorPage() {
         id: newId,
         fieldId: 'newInput',
         fieldType: 'text',
-        label: { text: '', x: 10, y: 10, width: 20, height: 5, isBold: false, color: '#000000', fontSize: 10 },
-        value: { text: 'newInput', x: 10, y: 10, width: 60, height: 8, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
+        label: { text: '', x: 10, y: 10, width: 20, height: 5, isBold: false, color: '#000000', fontSize: 10, textAlign: 'center' },
+        value: { text: 'newInput', x: 10, y: 10, width: 60, height: 8, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12, textAlign: 'center' },
       };
       setFields(prev => [...prev, newField]);
       setSelectedFieldId(newId);
@@ -202,14 +204,15 @@ export default function EditorPage() {
         id: newId,
         fieldId: 'conditionScore',
         fieldType: 'text',
-        label: { text: 'Technical Grade:', x: 10, y: 30, width: 40, height: 5, isBold: true, color: '#000000', fontSize: 10 },
+        label: { text: 'Technical Grade:', x: 10, y: 30, width: 40, height: 5, isBold: true, color: '#000000', fontSize: 10, textAlign: 'center' },
         value: { 
           text: 'Excellent', 
           x: 50, y: 30, width: 60, height: 8, isBold: true, color: '#000000', 
           inputType: 'dropdown', 
           options: ['Excellent', 'Good', 'Fair', 'Poor'],
           optionWeights: { 'Excellent': 100, 'Good': 75, 'Fair': 50, 'Poor': 25 },
-          fontSize: 12 
+          fontSize: 12,
+          textAlign: 'center'
         },
       };
       setFields(prev => [...prev, newField]);
@@ -223,16 +226,16 @@ export default function EditorPage() {
         id: numericId,
         fieldId: baseFieldId,
         fieldType: 'text',
-        label: { text: 'Amount Rs:', x: 10, y: 30, width: 35, height: 5, isBold: true, color: '#000000', fontSize: 9 },
-        value: { text: baseFieldId, x: 45, y: 30, width: 50, height: 8, isBold: true, color: '#DC2626', inputType: 'text', options: [], fontSize: 12 },
+        label: { text: 'Amount Rs:', x: 10, y: 30, width: 35, height: 5, isBold: true, color: '#000000', fontSize: 9, textAlign: 'center' },
+        value: { text: baseFieldId, x: 45, y: 30, width: 50, height: 8, isBold: true, color: '#DC2626', inputType: 'text', options: [], fontSize: 12, textAlign: 'center' },
       };
 
       const wordField: FieldLayout = {
         id: wordId,
         fieldId: `${baseFieldId}_words`,
         fieldType: 'text',
-        label: { text: 'In Words:', x: 10, y: 40, width: 35, height: 5, fontSize: 9 },
-        value: { text: `${baseFieldId}_words`, x: 45, y: 40, width: 140, height: 10, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 10 },
+        label: { text: 'In Words:', x: 10, y: 40, width: 35, height: 5, fontSize: 9, textAlign: 'center' },
+        value: { text: `${baseFieldId}_words`, x: 45, y: 40, width: 140, height: 10, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 10, textAlign: 'center' },
         autoFillType: 'numberToWords',
         autoFillSource: baseFieldId
       };
@@ -260,7 +263,7 @@ export default function EditorPage() {
         id: newId,
         fieldId: `static_${newId}`,
         fieldType: 'staticText',
-        label: { text: 'Static Text', x: 10, y: 50, width: 80, height: 10, isBold: true, color: '#000000', fontSize: 16 },
+        label: { text: 'Static Text', x: 10, y: 50, width: 80, height: 10, isBold: true, color: '#000000', fontSize: 16, textAlign: 'center' },
         value: {} as any,
       };
       setFields(prev => [...prev, newStaticField]);
@@ -377,6 +380,7 @@ export default function EditorPage() {
       isBold: field.label.isBold,
       color: field.label.color,
       fontSize: field.label.fontSize,
+      textAlign: field.label.textAlign,
     }));
 
     const valuePlaceholders = fields.filter(f => f.fieldType === 'text').map(field => {
@@ -393,6 +397,7 @@ export default function EditorPage() {
         isBold: field.value.isBold,
         color: field.value.color,
         fontSize: field.value.fontSize,
+        textAlign: field.value.textAlign,
       };
     });
 

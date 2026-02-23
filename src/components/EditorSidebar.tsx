@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, Lock, Unlock, Palette, Type, PlusCircle, AlertTriangle } from 'lucide-react';
+import { Trash, X, Lock, Unlock, Palette, Type, PlusCircle, AlertTriangle, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
@@ -128,6 +128,36 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
               </div>
             </div>
 
+            <div className="space-y-1.5">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground">Alignment</Label>
+              <div className="flex bg-muted/20 p-1 rounded-md w-fit">
+                <Button 
+                  variant={data.textAlign === 'left' ? 'secondary' : 'ghost'} 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={() => handlePartChange(part, 'textAlign', 'left')}
+                >
+                  <AlignLeft size={14} />
+                </Button>
+                <Button 
+                  variant={data.textAlign === 'center' || !data.textAlign ? 'secondary' : 'ghost'} 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={() => handlePartChange(part, 'textAlign', 'center')}
+                >
+                  <AlignCenter size={14} />
+                </Button>
+                <Button 
+                  variant={data.textAlign === 'right' ? 'secondary' : 'ghost'} 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={() => handlePartChange(part, 'textAlign', 'right')}
+                >
+                  <AlignRight size={14} />
+                </Button>
+              </div>
+            </div>
+
             <div className="flex items-center space-x-2 pt-1">
               <Checkbox 
                 id={`${part}-bold`} 
@@ -181,10 +211,11 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
           
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground">
+              <Label htmlFor={`${part}-text`} className="text-[10px] uppercase font-bold text-muted-foreground">
                 {isValuePart ? 'Default Value' : 'Label Text'}
               </Label>
               <Input 
+                id={`${part}-text`}
                 value={data.text || ''} 
                 onChange={(e) => handlePartChange(part, 'text', e.target.value)}
                 className="h-9 bg-muted/20"
@@ -217,6 +248,36 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                     className="h-9 font-mono text-[9px] bg-muted/20"
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground">Alignment</Label>
+              <div className="flex bg-muted/20 p-1 rounded-md w-fit">
+                <Button 
+                  variant={data.textAlign === 'left' ? 'secondary' : 'ghost'} 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={() => handlePartChange(part, 'textAlign', 'left')}
+                >
+                  <AlignLeft size={14} />
+                </Button>
+                <Button 
+                  variant={data.textAlign === 'center' || !data.textAlign ? 'secondary' : 'ghost'} 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={() => handlePartChange(part, 'textAlign', 'center')}
+                >
+                  <AlignCenter size={14} />
+                </Button>
+                <Button 
+                  variant={data.textAlign === 'right' ? 'secondary' : 'ghost'} 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={() => handlePartChange(part, 'textAlign', 'right')}
+                >
+                  <AlignRight size={14} />
+                </Button>
               </div>
             </div>
 

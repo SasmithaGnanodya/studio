@@ -19,6 +19,7 @@ export type PrintField = {
   isBold?: boolean;
   color?: string;
   fontSize?: number;
+  textAlign?: 'left' | 'center' | 'right';
   inputType?: 'text' | 'dropdown' | 'combobox';
   options?: string[];
 };
@@ -53,6 +54,9 @@ export const ReportPage = ({
   const [adjustingFieldId, setAdjustingFieldId] = useState<string | null>(null);
 
   const renderTextField = (field: PrintField, isStatic: boolean) => {
+    const textAlign = field.textAlign || 'center';
+    const justifyContent = textAlign === 'left' ? 'flex-start' : textAlign === 'right' ? 'flex-end' : 'center';
+
     const style: React.CSSProperties = {
       top: `${field.y}mm`,
       left: `${field.x}mm`,
@@ -61,9 +65,11 @@ export const ReportPage = ({
       position: 'absolute',
       display: 'flex',
       alignItems: 'center',
+      justifyContent: justifyContent,
       fontWeight: field.isBold ? 'bold' : 'normal',
       color: field.color || '#000000',
       fontSize: field.fontSize ? `${field.fontSize}pt` : '10pt',
+      textAlign: textAlign,
     };
 
     if (isStatic) {
@@ -112,6 +118,7 @@ export const ReportPage = ({
     };
 
     const isDateField = field.fieldId.toLowerCase().includes('date');
+    const alignmentClass = textAlign === 'left' ? 'text-left' : textAlign === 'right' ? 'text-right' : 'text-center';
 
     return (
       <div key={field.id} style={style} className="z-20 group">
@@ -121,7 +128,7 @@ export const ReportPage = ({
             onValueChange={(val) => onValueChange?.(field.fieldId, val)}
           >
             <SelectTrigger 
-              className="h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 hover:border-primary transition-all p-1"
+              className={cn("h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 hover:border-primary transition-all p-1", alignmentClass)}
               style={{ color: style.color, fontWeight: style.fontWeight }}
             >
               <SelectValue />
@@ -141,7 +148,8 @@ export const ReportPage = ({
               value={field.value}
               onChange={handleInputChange}
               className={cn(
-                "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary text-center p-1 transition-all shadow-none ring-0"
+                "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary p-1 transition-all shadow-none ring-0",
+                alignmentClass
               )}
               style={{ 
                 fontSize: style.fontSize, 
@@ -161,7 +169,8 @@ export const ReportPage = ({
             value={field.value}
             onChange={handleInputChange}
             className={cn(
-              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary text-center p-0 transition-all shadow-none ring-0"
+              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary p-0 transition-all shadow-none ring-0",
+              alignmentClass
             )}
             style={{ 
               fontSize: style.fontSize, 
@@ -174,7 +183,8 @@ export const ReportPage = ({
             value={field.value}
             onChange={handleInputChange}
             className={cn(
-              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary text-center p-1 transition-all shadow-none ring-0 resize-none overflow-hidden min-h-0"
+              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary p-1 transition-all shadow-none ring-0 resize-none overflow-hidden min-h-0",
+              alignmentClass
             )}
             style={{ 
               fontSize: style.fontSize, 
