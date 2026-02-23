@@ -11,7 +11,7 @@ import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, Hash, LogO
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, collection, serverTimestamp, runTransaction, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query, where, serverTimestamp, runTransaction, setDoc, onSnapshot } from 'firebase/firestore';
 import type { ImageData, Report, FieldLayout } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { numberToWords, getDayOfYear } from '@/lib/utils';
@@ -269,21 +269,26 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     if (!user || !firestore) return;
 
     try {
-      // 1. Generate System Valuation Code
-      const nowObj = new Date();
+      // 1. Calculate Sequential Number for the specific branch
       const branchCode = userBranch || 'CDH';
+      const reportsRef = collection(firestore, 'reports');
+      const branchQuery = query(reportsRef, where('branch', '==', branchCode));
+      const branchSnap = await getDocs(branchQuery);
+      const sequenceNum = (branchSnap.size + 1).toString().padStart(3, '0');
+
+      // 2. Generate System Valuation Code
+      const nowObj = new Date();
       const yearYY = nowObj.getFullYear().toString().slice(-2);
       const dayOfYear = getDayOfYear(nowObj);
       
       const scoringField = currentLayout.find(f => f.fieldId === 'conditionScore');
       const selectedOption = reportData['conditionScore'] || '';
       const weight = scoringField?.value?.optionWeights?.[selectedOption] || 0;
-      const scoreStr = weight.toString().padStart(3, '0');
       
-      const reportNumClean = (reportData.reportNumber || '0').replace(/\D/g, '');
-      const reportNumStr = reportNumClean.slice(-3).padStart(3, '0');
+      // Score digit: Map weight 0-100 to 1-digit code (e.g. 100 -> 1, 75 -> 2, etc.)
+      const scoreDigit = weight >= 100 ? '1' : weight >= 75 ? '2' : weight >= 50 ? '3' : weight >= 25 ? '4' : '5';
       
-      const systemValuationCode = `${branchCode}${yearYY}${dayOfYear}${scoreStr}${reportNumStr}`;
+      const systemValuationCode = `${branchCode}${yearYY}${dayOfYear}${scoreDigit}${sequenceNum}`;
       
       const updatedReportData = {
         ...reportData,
@@ -303,6 +308,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
         const reportHeaderData = {
           vehicleId: vehicleId,
+          branch: branchCode,
           engineNumber: String(engineVal || '').toUpperCase().trim(),
           chassisNumber: String(chassisVal || '').toUpperCase().trim(),
           reportNumber: String(reportNumVal || '').toUpperCase().trim(),
