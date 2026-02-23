@@ -74,7 +74,8 @@ export const ReportPage = ({
       );
     }
 
-    const isSystemLocked = field.fieldId === 'regNumber' || field.fieldId === 'reportNumber';
+    const fieldIdLower = field.fieldId.toLowerCase();
+    const isSystemLocked = fieldIdLower === 'regnumber' || fieldIdLower === 'reportnumber';
 
     // If it's a locked system field, always render as static text even in editable mode
     if (!isEditable || isSystemLocked) {

@@ -35,7 +35,8 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
             ? 'image' 
             : (isDateField ? 'date' : (field.value.inputType || 'text'));
 
-          const isSystemLocked = field.fieldId === 'regNumber' || field.fieldId === 'reportNumber';
+          const fieldIdLower = field.fieldId.toLowerCase();
+          const isSystemLocked = fieldIdLower === 'regnumber' || fieldIdLower === 'reportnumber';
 
           return (
             <div key={field.id} className="space-y-2">

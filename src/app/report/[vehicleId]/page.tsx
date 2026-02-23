@@ -79,7 +79,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   // Synchronize browser title with Issued ID or Draft status
   useEffect(() => {
-    const isIssued = /^(CDH|CDK)\d{9}$/.test(reportData.reportNumber || '');
+    const isIssued = /^[A-Z]{3}\d{9}$/.test(reportData.reportNumber || '');
     if (isIssued) {
       document.title = `${reportData.reportNumber} - ${vehicleId}`;
     } else {
@@ -179,10 +179,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   }, [user, firestore, vehicleId, isAuthorized]);
 
   const findIdentifier = (patterns: string[]) => {
-    if (patterns.includes('reportNumber') && reportData.reportNumber && /^(CDH|CDK)\d{9}$/.test(reportData.reportNumber)) {
-      return reportData.reportNumber;
-    }
-
     const direct = patterns.map(p => reportData[p]).find(v => !!v);
     if (direct) return direct;
     
@@ -210,7 +206,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     const reportNumVal = findIdentifier(['reportNumber']);
     const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate', 'inspectedOn']);
 
-    const isIssued = /^(CDH|CDK)\d{9}$/.test(String(reportNumVal || ''));
+    const isIssued = /^[A-Z]{3}\d{9}$/.test(String(reportNumVal || ''));
     if (!engineVal && !chassisVal && !isIssued && !dateVal) return;
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
@@ -249,7 +245,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   }, [reportData, firestore, isAuthorized, user, vehicleId, isLoading, currentLayout]);
 
   const handleDataChange = (fieldId: string, value: string | ImageData) => {
-    if (fieldId === 'reportNumber') return; // Read-only
+    const fieldIdLower = fieldId.toLowerCase();
+    if (fieldIdLower === 'reportnumber' || fieldIdLower === 'regnumber') return; // Read-only
 
     setReportData(prev => {
       const updated = { ...prev, [fieldId]: value };
@@ -276,27 +273,36 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
     try {
       let finalReportNumber = reportData.reportNumber;
-      const branchCode = userBranch || 'CDH';
-
-      const isIssued = /^(CDH|CDK)\d{9}$/.test(finalReportNumber || '');
+      const isIssued = /^[A-Z]{3}\d{9}$/.test(finalReportNumber || '');
 
       if (!isIssued) {
-        const reportsRef = collection(firestore, 'reports');
-        const branchQuery = query(reportsRef, where('branch', '==', branchCode));
-        const branchSnap = await getDocs(branchQuery);
-        const sequenceNum = (branchSnap.size + 1).toString().padStart(3, '0');
-
         const nowObj = new Date();
         const yearYY = nowObj.getFullYear().toString().slice(-2);
         const dayOfYear = getDayOfYear(nowObj);
         
-        const scoringField = currentLayout.find(f => f.fieldId === 'conditionScore');
+        // Map CDK to KDH for display ID if needed, otherwise use branch code
+        const branchCode = userBranch || 'CDH';
+        const displayBranch = branchCode === 'CDK' ? 'KDH' : branchCode;
+        
+        const dateVal = new Date().toLocaleDateString('en-CA');
+
+        const reportsRef = collection(firestore, 'reports');
+        const q = query(
+          reportsRef, 
+          where('branch', '==', branchCode),
+          where('reportDate', '==', dateVal)
+        );
+        const daySnap = await getDocs(q);
+        const sequenceNum = (daySnap.size + 1).toString().padStart(3, '0');
+
+        const scoringField = currentLayout.find(f => f.fieldId.toLowerCase() === 'conditionscore');
         const selectedOption = reportData['conditionScore'] || '';
         const weight = scoringField?.value?.optionWeights?.[selectedOption] || 0;
         
+        // Single digit score conversion
         const scoreDigit = weight >= 100 ? '1' : weight >= 75 ? '2' : weight >= 50 ? '3' : weight >= 25 ? '4' : '5';
         
-        finalReportNumber = `${branchCode}${yearYY}${dayOfYear}${scoreDigit}${sequenceNum}`;
+        finalReportNumber = `${displayBranch}${yearYY}${dayOfYear}${scoreDigit}${sequenceNum}`;
       }
 
       const updatedReportData = {
@@ -316,7 +322,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
         const reportHeaderData = {
           vehicleId: vehicleId,
-          branch: branchCode,
+          branch: userBranch || 'CDH',
           engineNumber: String(engineVal || '').toUpperCase().trim(),
           chassisNumber: String(chassisVal || '').toUpperCase().trim(),
           reportNumber: finalReportNumber,
