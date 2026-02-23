@@ -475,23 +475,25 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                       <AlertDialogTitle className="text-destructive flex items-center gap-2">
                         <AlertTriangle className="h-5 w-5" /> Structural Integrity Warning
                       </AlertDialogTitle>
-                      <AlertDialogDescription className="space-y-4">
-                        <div className="p-4 bg-destructive/5 border border-destructive/10 rounded-lg">
-                          <p className="font-bold text-destructive text-sm leading-tight">
-                            "If you Delete some option without asking developer system may be crash"
+                      <AlertDialogDescription asChild>
+                        <div className="space-y-4">
+                          <div className="p-4 bg-destructive/5 border border-destructive/10 rounded-lg">
+                            <p className="font-bold text-destructive text-sm leading-tight">
+                              "If you Delete some option without asking developer system may be crash"
+                            </p>
+                          </div>
+                          <p className="text-xs text-muted-foreground italic">
+                            Deleting layout fields can break database indexing logic and historical report rendering.
                           </p>
-                        </div>
-                        <p className="text-xs text-muted-foreground italic">
-                          Deleting layout fields can break database indexing logic and historical report rendering.
-                        </p>
-                        <div className="space-y-2 mt-4 text-left">
-                          <Label className="text-[10px] font-bold uppercase tracking-widest text-foreground">Type "delete" to confirm</Label>
-                          <Input 
-                            value={deleteConfirmText}
-                            onChange={(e) => setDeleteConfirmText(e.target.value.toLowerCase())}
-                            placeholder="Type word here..."
-                            className="border-destructive/30 focus:border-destructive h-10 bg-background"
-                          />
+                          <div className="space-y-2 mt-4 text-left">
+                            <Label className="text-[10px] font-bold uppercase tracking-widest text-foreground">Type "delete" to confirm</Label>
+                            <Input 
+                              value={deleteConfirmText}
+                              onChange={(e) => setDeleteConfirmText(e.target.value.toLowerCase())}
+                              placeholder="Type word here..."
+                              className="border-destructive/30 focus:border-destructive h-10 bg-background"
+                            />
+                          </div>
                         </div>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
