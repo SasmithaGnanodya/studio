@@ -81,13 +81,15 @@ export const ReportPage = ({
       fieldIdLower === 'valuationcode' ||
       fieldIdLower.includes('reportnum');
 
-    // If it's a locked system field, ALWAYS render as static text to prevent any typing or ring focus
+    // If it's a locked system field or we are in view/editor mode, ALWAYS render as static text
+    // We add pointer-events-none when not editable to allow editor handles to capture clicks
     if (!isEditable || isSystemLocked) {
       return (
         <div 
           key={field.id} 
           className={cn(
             "field font-mono z-10",
+            !isEditable && "pointer-events-none",
             isSystemLocked && "select-none cursor-default"
           )} 
           style={style}

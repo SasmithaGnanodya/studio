@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -123,7 +122,7 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
     border: isSelected ? `2px solid ${borderColor}` : `1px dashed ${borderColor}`,
     backgroundColor: isSelected ? 'rgba(0, 123, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
     boxSizing: 'border-box',
-    zIndex: isSelected ? 10 : 1,
+    zIndex: isSelected ? 100 : 50, // Higher z-index to stay above rendered report text
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -138,7 +137,7 @@ export const DraggableField = ({ id, x, y, width, height, onDragStop, onResizeSt
       border: '1px solid white',
       borderRadius: '50%',
       boxShadow: '0 0 3px rgba(0,0,0,0.5)',
-      zIndex: 11,
+      zIndex: 101,
   };
 
   return (
