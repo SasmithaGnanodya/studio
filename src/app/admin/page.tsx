@@ -22,7 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, subDays, subMonths, isSameDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { Bar, BarChart } from "recharts";
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { cn } from '@/lib/utils';
 
@@ -48,7 +48,7 @@ function getIdentifiers(report: Report) {
 
   // Strictly use valid technical valuation code format
   let reportNum = report.reportNumber || 'DRAFT';
-  const isIssued = /^(CDH|CDK)\d{9}$/.test(reportNum);
+  const isIssued = /^(CDH|CDK|KDH)\d{9}$/.test(reportNum);
 
   return {
     engine: String(engine).toUpperCase().trim(),
@@ -183,6 +183,17 @@ export default function AdminPage() {
 
     return stats;
   }, [reports, authorizedUsers]);
+
+  const histogramData = useMemo(() => {
+    return Object.entries(authorizedUsers).map(([key, data]) => {
+      const stats = userRegistryStats[key];
+      return {
+        name: data.email.split('@')[0],
+        total: stats?.total || 0,
+        today: stats?.today || 0,
+      };
+    }).sort((a, b) => b.total - a.total);
+  }, [authorizedUsers, userRegistryStats]);
 
   const stats = useMemo(() => {
     const today = new Date();
@@ -379,120 +390,169 @@ export default function AdminPage() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 relative z-20">
-          <Card className="xl:col-span-2 border-primary/20 bg-card/50 backdrop-blur-sm shadow-xl overflow-visible">
-            <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                    <Car className="text-primary" /> Admin Control Panel
-                  </CardTitle>
-                  <CardDescription>Manage all vehicle reports and search records.</CardDescription>
+          <div className="xl:col-span-2 space-y-6">
+            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-xl overflow-visible">
+              <CardHeader>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-2xl font-bold flex items-center gap-2">
+                      <Car className="text-primary" /> Admin Control Panel
+                    </CardTitle>
+                    <CardDescription>Manage all vehicle reports and search records.</CardDescription>
+                  </div>
+                  <Link href="/editor" passHref>
+                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
+                      <LayoutTemplate className="mr-2 h-4 w-4" /> Open Layout Editor
+                    </Button>
+                  </Link>
                 </div>
-                <Link href="/editor" passHref>
-                  <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
-                    <LayoutTemplate className="mr-2 h-4 w-4" /> Open Layout Editor
-                  </Button>
-                </Link>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t mt-4 relative z-30">
-                <Select value={searchCategory} onValueChange={(val) => { setSearchCategory(val); setSearchTerm(''); }}>
-                  <SelectTrigger className="w-full sm:w-48 bg-background/50"><Filter className="mr-2 h-4 w-4 text-primary" /><SelectValue placeholder="Category" /></SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    <SelectItem value="all">All Identifiers</SelectItem>
-                    <SelectItem value="vehicleId">Reg No</SelectItem>
-                    <SelectItem value="engineNumber">Engine No</SelectItem>
-                    <SelectItem value="chassisNumber">Chassis No</SelectItem>
-                    <SelectItem value="reportNumber">Report No</SelectItem>
-                    <SelectItem value="reportDate">Report Date</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="relative flex-grow">
-                  {searchCategory === 'reportDate' ? (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start text-left font-normal h-10 bg-background/50 border-primary/20">
-                          <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                          {searchTerm ? searchTerm : <span>Filter by Date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 z-[100]" align="start">
-                        <Calendar mode="single" selected={searchTerm ? new Date(searchTerm) : undefined} onSelect={(date) => setSearchTerm(date ? format(date, "yyyy-MM-dd") : '')} />
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input type="text" placeholder="Search vehicle records..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value.toUpperCase())} className="w-full h-10 pl-10 bg-background/50 border-primary/20 focus:border-primary" />
-                    </div>
-                  )}
+                
+                <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t mt-4 relative z-30">
+                  <Select value={searchCategory} onValueChange={(val) => { setSearchCategory(val); setSearchTerm(''); }}>
+                    <SelectTrigger className="w-full sm:w-48 bg-background/50"><Filter className="mr-2 h-4 w-4 text-primary" /><SelectValue placeholder="Category" /></SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      <SelectItem value="all">All Identifiers</SelectItem>
+                      <SelectItem value="vehicleId">Reg No</SelectItem>
+                      <SelectItem value="engineNumber">Engine No</SelectItem>
+                      <SelectItem value="chassisNumber">Chassis No</SelectItem>
+                      <SelectItem value="reportNumber">Report No</SelectItem>
+                      <SelectItem value="reportDate">Report Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="relative flex-grow">
+                    {searchCategory === 'reportDate' ? (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start text-left font-normal h-10 bg-background/50 border-primary/20">
+                            <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                            {searchTerm ? searchTerm : <span>Filter by Date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                          <Calendar mode="single" selected={searchTerm ? new Date(searchTerm) : undefined} onSelect={(date) => setSearchTerm(date ? format(date, "yyyy-MM-dd") : '')} />
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input type="text" placeholder="Search vehicle records..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value.toUpperCase())} className="w-full h-10 pl-10 bg-background/50 border-primary/20 focus:border-primary" />
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredReportsList.slice(0, visibleReportsCount).map(report => {
-                  const ids = getIdentifiers(report);
-                  const isIssued = ids.reportNum !== 'DRAFT';
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredReportsList.slice(0, visibleReportsCount).map(report => {
+                    const ids = getIdentifiers(report);
+                    const isIssued = ids.reportNum !== 'DRAFT';
 
-                  return (
-                    <Card key={report.id} className="group border flex flex-col hover:border-primary transition-all bg-card/40 backdrop-blur-md shadow-md overflow-hidden h-full">
-                      <CardHeader className="pb-3 bg-muted/20 border-b">
-                        <div className="flex justify-between items-center">
-                          <CardTitle className="font-mono text-primary group-hover:underline text-lg">{report.vehicleId}</CardTitle>
-                          <Badge variant="outline" className="text-[8px] h-4 border-primary/20 bg-primary/5 text-primary">
-                            {(report as any).branch || 'Unknown'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <FileCheck size={12} className={cn(isIssued ? "text-primary" : "text-muted-foreground")} />
-                          <span className={cn(
-                            "text-[10px] font-mono font-bold truncate",
-                            isIssued ? "text-foreground" : "text-muted-foreground italic"
-                          )}>{ids.reportNum}</span>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3 pt-4 flex-grow">
-                        <div className="grid grid-cols-1 gap-2 text-[11px]">
-                          <div className="flex flex-col bg-muted/10 p-2 rounded">
-                            <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Engine Number</span>
-                            <span className="font-bold text-foreground flex items-center gap-1.5 truncate">
-                              <Fingerprint size={12} className="text-primary shrink-0" /> {ids.engine}
-                            </span>
+                    return (
+                      <Card key={report.id} className="group border flex flex-col hover:border-primary transition-all bg-card/40 backdrop-blur-md shadow-md overflow-hidden h-full">
+                        <CardHeader className="pb-3 bg-muted/20 border-b">
+                          <div className="flex justify-between items-center">
+                            <CardTitle className="font-mono text-primary group-hover:underline text-lg">{report.vehicleId}</CardTitle>
+                            <Badge variant="outline" className="text-[8px] h-4 border-primary/20 bg-primary/5 text-primary">
+                              {(report as any).branch || 'Unknown'}
+                            </Badge>
                           </div>
-                          <div className="flex flex-col bg-muted/10 p-2 rounded">
-                            <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Chassis Number</span>
-                            <span className="font-bold text-foreground flex items-center gap-1.5 truncate">
-                              <Hash size={12} className="text-primary shrink-0" /> {ids.chassis}
-                            </span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <FileCheck size={12} className={cn(isIssued ? "text-primary" : "text-muted-foreground")} />
+                            <span className={cn(
+                              "text-[10px] font-mono font-bold truncate",
+                              isIssued ? "text-foreground" : "text-muted-foreground italic"
+                            )}>{ids.reportNum}</span>
                           </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex justify-end gap-2 border-t py-2 bg-muted/5 mt-auto">
-                        <Link href={`/admin/history/${report.id}`} passHref>
-                          <Button variant="ghost" size="sm" className="h-8 text-[10px] gap-1.5 text-muted-foreground hover:text-primary">
-                            <History size={12} /> History
-                          </Button>
-                        </Link>
-                        <Link href={`/report/${report.vehicleId}`} passHref>
-                          <Button variant="outline" size="sm" className="h-8 text-[10px] gap-1.5 border-primary/20 text-primary hover:bg-primary/10">
-                            <Eye size={12} /> View
-                          </Button>
-                        </Link>
-                      </CardFooter>
-                    </Card>
-                  );
-                })}
-              </div>
-              {filteredReportsList.length > visibleReportsCount && (
-                <div className="mt-8 text-center">
-                  <Button onClick={() => setVisibleReportsCount(p => p + 12)} variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
-                    Show More Records
-                  </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-3 pt-4 flex-grow">
+                          <div className="grid grid-cols-1 gap-2 text-[11px]">
+                            <div className="flex flex-col bg-muted/10 p-2 rounded">
+                              <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Engine Number</span>
+                              <span className="font-bold text-foreground flex items-center gap-1.5 truncate">
+                                <Fingerprint size={12} className="text-primary shrink-0" /> {ids.engine}
+                              </span>
+                            </div>
+                            <div className="flex flex-col bg-muted/10 p-2 rounded">
+                              <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Chassis Number</span>
+                              <span className="font-bold text-foreground flex items-center gap-1.5 truncate">
+                                <Hash size={12} className="text-primary shrink-0" /> {ids.chassis}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="flex justify-end gap-2 border-t py-2 bg-muted/5 mt-auto">
+                          <Link href={`/admin/history/${report.id}`} passHref>
+                            <Button variant="ghost" size="sm" className="h-8 text-[10px] gap-1.5 text-muted-foreground hover:text-primary">
+                              <History size={12} /> History
+                            </Button>
+                          </Link>
+                          <Link href={`/report/${report.vehicleId}`} passHref>
+                            <Button variant="outline" size="sm" className="h-8 text-[10px] gap-1.5 border-primary/20 text-primary hover:bg-primary/10">
+                              <Eye size={12} /> View
+                            </Button>
+                          </Link>
+                        </CardFooter>
+                      </Card>
+                    );
+                  })}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                {filteredReportsList.length > visibleReportsCount && (
+                  <div className="mt-8 text-center">
+                    <Button onClick={() => setVisibleReportsCount(p => p + 12)} variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
+                      Show More Records
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-xl overflow-hidden">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <Users className="text-primary" /> Workforce Performance
+                    </CardTitle>
+                    <CardDescription>Comparative reporting volume across authorized personnel.</CardDescription>
+                  </div>
+                  <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black">HISTOGRAM</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-2 h-[350px]">
+                <ChartContainer 
+                  config={{ 
+                    total: { label: "Total Reports", color: "hsl(var(--primary))" },
+                    today: { label: "Today's Updates", color: "hsl(var(--accent))" } 
+                  }} 
+                  className="h-full w-full"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={histogramData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                      <CartGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                      <XAxis 
+                        dataKey="name" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 10, fontWeight: 'bold' }} 
+                        interval={0}
+                        angle={-45}
+                        textAnchor="end"
+                      />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="total" name="Total Reports" fill="var(--color-total)" radius={[4, 4, 0, 0]} barSize={40} />
+                      <Bar dataKey="today" name="Today" fill="var(--color-today)" radius={[4, 4, 0, 0]} barSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+              <CardFooter className="bg-muted/10 border-t py-3">
+                <p className="text-[10px] text-muted-foreground flex items-center gap-2 italic">
+                  <Activity size={12} className="text-primary" /> Data is aggregated in real-time from all vehicle records.
+                </p>
+              </CardFooter>
+            </Card>
+          </div>
 
           <div className="space-y-6">
             <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-xl">
