@@ -175,8 +175,8 @@ export default function HistoryViewerPage({ params }: { params: Promise<{ report
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
-      <main className="flex-1 flex flex-col p-4 no-print lg:p-8">
-        <Card className="mb-8 border-primary/20 bg-card/50 backdrop-blur-md shadow-xl sticky top-20 z-10">
+      <main className="flex-1 flex flex-col p-4 no-print lg:p-8 overflow-hidden">
+        <Card className="mb-8 border-primary/20 bg-card/50 backdrop-blur-md shadow-xl sticky top-20 z-10 shrink-0">
           <CardContent className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
@@ -215,14 +215,16 @@ export default function HistoryViewerPage({ params }: { params: Promise<{ report
           </CardContent>
         </Card>
 
-        <div className="flex-1 flex justify-center pb-20 overflow-visible">
-          <div className="preview-mode ring-1 ring-black/5 rounded-lg shadow-2xl">
-            <ReportPage 
-              staticLabels={staticLabels} 
-              dynamicValues={dynamicValues}
-              imageValues={imageValues}
-              isEditable={false}
-            />
+        <div className="flex-1 w-full overflow-auto pb-20 pt-4 flex justify-start md:justify-center">
+          <div className="min-w-fit px-4">
+            <div className="preview-mode ring-1 ring-black/5 rounded-lg shadow-2xl">
+              <ReportPage 
+                staticLabels={staticLabels} 
+                dynamicValues={dynamicValues}
+                imageValues={imageValues}
+                isEditable={false}
+              />
+            </div>
           </div>
         </div>
       </main>

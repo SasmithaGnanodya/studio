@@ -503,8 +503,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   return (
     <div className="flex min-h-screen flex-col bg-muted/10">
       <Header />
-      <main className="flex-1 flex flex-col p-4 no-print">
-        <Card className="mb-6 border-primary/20 shadow-sm">
+      <main className="flex-1 flex flex-col p-4 no-print overflow-hidden">
+        <Card className="mb-6 border-primary/20 shadow-sm shrink-0">
           <CardContent className="pt-6 flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-6">
               <div className="flex items-center space-x-2">
@@ -545,21 +545,23 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           </CardContent>
         </Card>
 
-        <div className="flex-1 flex justify-center pb-20 overflow-visible">
-          {isLoading ? (
-            <div className="animate-pulse bg-white w-[210mm] h-[297mm] shadow-2xl rounded-lg" />
-          ) : (
-            <div className={isFilling ? "preview-mode" : ""}>
-              <ReportPage 
-                staticLabels={staticLabels} 
-                dynamicValues={dynamicValues}
-                imageValues={imageValues}
-                isEditable={isFilling}
-                onValueChange={handleDataChange}
-                onBlur={handleBlur}
-              />
-            </div>
-          )}
+        <div className="flex-1 w-full overflow-auto pb-20 pt-4 flex justify-start md:justify-center">
+          <div className="min-w-fit px-4">
+            {isLoading ? (
+              <div className="animate-pulse bg-white w-[210mm] h-[297mm] shadow-2xl rounded-lg" />
+            ) : (
+              <div className={isFilling ? "preview-mode" : ""}>
+                <ReportPage 
+                  staticLabels={staticLabels} 
+                  dynamicValues={dynamicValues}
+                  imageValues={imageValues}
+                  isEditable={isFilling}
+                  onValueChange={handleDataChange}
+                  onBlur={handleBlur}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
