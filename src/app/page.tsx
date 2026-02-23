@@ -275,7 +275,7 @@ export default function LandingPage() {
                 <CardTitle className="text-3xl font-black flex items-center gap-3">
                     <Search className="h-7 w-7 text-primary" /> Global Records
                 </CardTitle>
-                <CardDescription className="text-base">Enter vehicle identifiers to retrieve or create valuation records.</CardDescription>
+                <CardDescription className="text-base">To create a new record, please enter the vehicle registration number. To search existing records, you can use any unique identifier.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-6">
