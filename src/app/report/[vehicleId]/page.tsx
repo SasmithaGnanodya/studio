@@ -278,6 +278,17 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const handleSave = async () => {
     if (!user || !firestore) return;
 
+    // Mandatory Field Validation: conditionScore is required for Valuation Code calculation
+    const conditionValue = reportData['conditionScore'];
+    if (!conditionValue || String(conditionValue).trim() === '') {
+      toast({
+        variant: "destructive",
+        title: "Mandatory Input Required",
+        description: "Condition Score (Technical Grade) field need to be filled. It is essential for the Valuation Code logic.",
+      });
+      return;
+    }
+
     try {
       const nowObj = new Date();
       const yearYY = nowObj.getFullYear().toString().slice(-2);
