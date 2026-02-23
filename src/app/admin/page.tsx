@@ -7,7 +7,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck, Activity } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck, Activity, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { format, subDays, subMonths, isSameDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
@@ -29,31 +30,19 @@ const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 
 const INITIAL_VISIBLE_REPORTS = 12;
 
 function getIdentifiers(report: Report) {
-  const data = report.reportData || {};
-  
-  const engine = report.engineNumber || 
-                 data.engineNumber || 
-                 Object.entries(data).find(([k]) => 
-                   ['engine', 'engno', 'motor', 'engnum'].some(p => k.toLowerCase().includes(p))
-                 )?.[1] || 
-                 'N/A';
-                 
-  const chassis = report.chassisNumber || 
-                  data.chassisNumber || 
-                  Object.entries(data).find(([k]) => 
-                    ['chassis', 'serial', 'vin', 'chas'].some(p => k.toLowerCase().includes(p))
-                  )?.[1] || 
-                  'N/A';
-
-  // Strictly use valid technical valuation code format
+  // Strictly use root reportNumber for generated technical valuation code
   let reportNum = report.reportNumber || 'DRAFT';
   const isIssued = /^(CDH|CDK|KDH)\d{9}$/.test(reportNum);
+
+  const data = report.reportData || {};
+  const engine = report.engineNumber || 'N/A';
+  const chassis = report.chassisNumber || 'N/A';
 
   return {
     engine: String(engine).toUpperCase().trim(),
     chassis: String(chassis).toUpperCase().trim(),
     reportNum: isIssued ? String(reportNum).toUpperCase().trim() : 'DRAFT',
-    date: report.reportDate || data.reportDate || data.date || 'N/A'
+    date: report.reportDate || 'N/A'
   };
 }
 
@@ -85,6 +74,7 @@ export default function AdminPage() {
   const [newEmail, setNewEmail] = useState('');
   const [newBranch, setNewBranch] = useState('CDH');
   const [isAddingUser, setIsAddingUser] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -307,15 +297,93 @@ export default function AdminPage() {
         <div className="flex items-center justify-between gap-4 bg-card/30 backdrop-blur-sm border border-primary/10 p-2 rounded-xl">
            <div className="flex items-center gap-3 pl-2">
               <Globe className="h-4 w-4 text-primary" />
-              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Stats Visibility</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">System Overview</span>
            </div>
-           <Tabs value={branchFilter} onValueChange={(v) => setBranchFilter(v as any)} className="h-9">
-              <TabsList className="bg-background/50 h-9 p-1">
-                <TabsTrigger value="all" className="text-[10px] px-4 h-7 uppercase font-black">Global View</TabsTrigger>
-                <TabsTrigger value="CDH" className="text-[10px] px-4 h-7 uppercase font-black">Head Office (CDH)</TabsTrigger>
-                <TabsTrigger value="CDK" className="text-[10px] px-4 h-7 uppercase font-black">Kadawatha (CDK)</TabsTrigger>
-              </TabsList>
-           </Tabs>
+           <div className="flex items-center gap-4">
+              <Tabs value={branchFilter} onValueChange={(v) => setBranchFilter(v as any)} className="h-9">
+                  <TabsList className="bg-background/50 h-9 p-1">
+                    <TabsTrigger value="all" className="text-[10px] px-4 h-7 uppercase font-black">Global View</TabsTrigger>
+                    <TabsTrigger value="CDH" className="text-[10px] px-4 h-7 uppercase font-black">Head Office</TabsTrigger>
+                    <TabsTrigger value="CDK" className="text-[10px] px-4 h-7 uppercase font-black">Kadawatha</TabsTrigger>
+                  </TabsList>
+              </Tabs>
+
+              <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-2 border-primary/20 bg-background/50 font-bold text-xs">
+                    <Settings size={16} className="text-primary" /> System Settings
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="w-full sm:max-w-md bg-card border-l-2">
+                  <SheetHeader className="mb-8">
+                    <SheetTitle className="text-2xl font-black flex items-center gap-2">
+                      <Settings className="text-primary" /> Admin Controls
+                    </SheetTitle>
+                    <SheetDescription>Manage system access and layout templates.</SheetDescription>
+                  </SheetHeader>
+                  
+                  <div className="space-y-10">
+                    <section className="space-y-4">
+                      <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <UserPlus size={14} /> Grant Access
+                      </h3>
+                      <Card className="border-primary/10 bg-muted/20 shadow-none">
+                        <CardContent className="pt-6 space-y-4">
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Authorized Email</Label>
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input 
+                                placeholder="e.g. user@caredrive.lk" 
+                                value={newEmail} 
+                                onChange={(e) => setNewEmail(e.target.value)} 
+                                className="pl-10 h-10 bg-background/50 border-primary/20"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Branch Designation</Label>
+                            <Select value={newBranch} onValueChange={setNewBranch}>
+                              <SelectTrigger className="bg-background/50 border-primary/20 h-10">
+                                <div className="flex items-center gap-2">
+                                  <Building2 size={16} className="text-primary" />
+                                  <SelectValue placeholder="Select Branch" />
+                                </div>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="CDH">CDH - Head Office</SelectItem>
+                                <SelectItem value="CDK">CDK - Kadawatha Branch</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button 
+                            onClick={handleAddUser} 
+                            disabled={isAddingUser} 
+                            className="w-full bg-primary font-bold shadow-lg"
+                          >
+                            {isAddingUser ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Authorizing...</> : "Authorize User"}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </section>
+
+                    <section className="space-y-4">
+                      <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <LayoutTemplate size={14} /> Template Management
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                        Access the master visual editor to modify the pre-printed layout dimensions and field mappings.
+                      </p>
+                      <Link href="/editor" passHref className="block">
+                        <Button className="w-full h-12 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 font-black shadow-inner gap-2">
+                          <LayoutTemplate size={18} /> Open Master Layout Editor
+                        </Button>
+                      </Link>
+                    </section>
+                  </div>
+                </SheetContent>
+              </Sheet>
+           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
@@ -399,11 +467,6 @@ export default function AdminPage() {
                     </CardTitle>
                     <CardDescription>Manage all vehicle reports and search records.</CardDescription>
                   </div>
-                  <Link href="/editor" passHref>
-                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
-                      <LayoutTemplate className="mr-2 h-4 w-4" /> Open Layout Editor
-                    </Button>
-                  </Link>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t mt-4 relative z-30">
@@ -452,7 +515,7 @@ export default function AdminPage() {
                           <div className="flex justify-between items-center">
                             <CardTitle className="font-mono text-primary group-hover:underline text-lg">{report.vehicleId}</CardTitle>
                             <Badge variant="outline" className="text-[8px] h-4 border-primary/20 bg-primary/5 text-primary">
-                              {(report as any).branch || 'Unknown'}
+                              {ids.date}
                             </Badge>
                           </div>
                           <div className="flex items-center gap-2 mt-1">
@@ -539,8 +602,8 @@ export default function AdminPage() {
                       />
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                       <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="total" name="Total Reports" fill="var(--color-total)" radius={[4, 4, 0, 0]} barSize={40} />
-                      <Bar dataKey="today" name="Today" fill="var(--color-today)" radius={[4, 4, 0, 0]} barSize={40} />
+                      <Bar dataKey="total" name="Total Reports" fill="#4682B4" radius={[4, 4, 0, 0]} barSize={40} />
+                      <Bar dataKey="today" name="Today" fill="#87CEEB" radius={[4, 4, 0, 0]} barSize={40} />
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
@@ -554,60 +617,18 @@ export default function AdminPage() {
           </div>
 
           <div className="space-y-6">
-            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-lg font-bold flex items-center gap-2 text-primary">
-                  <UserPlus className="h-5 w-5" /> Grant Access
-                </CardTitle>
-                <CardDescription>Authorize an email and assign a branch.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Authorized Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="e.g. user@caredrive.lk" 
-                      value={newEmail} 
-                      onChange={(e) => setNewEmail(e.target.value)} 
-                      className="pl-10 h-10 bg-background/50 border-primary/20"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Branch Designation</Label>
-                  <Select value={newBranch} onValueChange={setNewBranch}>
-                    <SelectTrigger className="bg-background/50 border-primary/20 h-10">
-                      <div className="flex items-center gap-2">
-                        <Building2 size={16} className="text-primary" />
-                        <SelectValue placeholder="Select Branch" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CDH">CDH - Head Office</SelectItem>
-                      <SelectItem value="CDK">CDK - Kadawatha Branch</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button 
-                  onClick={handleAddUser} 
-                  disabled={isAddingUser} 
-                  className="w-full bg-primary font-bold shadow-lg"
-                >
-                  {isAddingUser ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Authorizing...</> : "Authorize User"}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-md flex flex-col h-[600px]">
-                <CardHeader className="shrink-0">
-                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <ShieldCheck className="h-4 w-4 text-primary" /> Access Registry
+            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-md flex flex-col h-full min-h-[600px]">
+                <CardHeader className="shrink-0 border-b bg-muted/10">
+                    <CardTitle className="text-sm font-bold flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="h-4 w-4 text-primary" /> Access Registry
+                        </div>
+                        <Badge variant="secondary" className="text-[8px] font-black">{Object.keys(authorizedUsers).length} USERS</Badge>
                     </CardTitle>
-                    <CardDescription className="text-[10px]">Managed list of authorized system users.</CardDescription>
+                    <CardDescription className="text-[10px]">Managed list of authorized system users and their metrics.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0 flex-grow">
-                  <ScrollArea className="h-full px-4 pb-4">
+                  <ScrollArea className="h-full px-4 pt-4 pb-4">
                     <div className="space-y-3">
                       {Object.entries(authorizedUsers).map(([key, data]) => (
                         <div key={key} className="bg-muted/20 p-3 rounded-lg border border-primary/5 group hover:border-primary/20 transition-all flex flex-col">
@@ -634,18 +655,18 @@ export default function AdminPage() {
                             </Button>
                           </div>
                           
-                          <div className="grid grid-cols-2 gap-4 text-[10px] mt-2 pt-2 border-t border-primary/5">
+                          <div className="grid grid-cols-2 gap-4 text-[10px] mt-3 pt-3 border-t border-primary/5">
                             <div className="flex flex-col">
-                              <span className="text-muted-foreground uppercase font-bold text-[8px] flex items-center gap-1">
-                                <Zap size={8} className="text-primary" /> Daily
+                              <span className="text-muted-foreground uppercase font-black text-[8px] flex items-center gap-1">
+                                <Zap size={10} className="text-primary" /> Daily
                               </span>
-                              <span className="font-black text-primary">{userRegistryStats[key]?.today || 0}</span>
+                              <span className="text-base font-black text-primary">{userRegistryStats[key]?.today || 0}</span>
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-muted-foreground uppercase font-bold text-[8px] flex items-center gap-1">
-                                <Activity size={8} className="text-primary" /> Overall
+                              <span className="text-muted-foreground uppercase font-black text-[8px] flex items-center gap-1">
+                                <Activity size={10} className="text-primary" /> Overall
                               </span>
-                              <span className="font-black text-foreground">{userRegistryStats[key]?.total || 0}</span>
+                              <span className="text-base font-black text-foreground">{userRegistryStats[key]?.total || 0}</span>
                             </div>
                           </div>
                         </div>
@@ -659,8 +680,8 @@ export default function AdminPage() {
                   </ScrollArea>
                 </CardContent>
                 <CardFooter className="p-4 border-t bg-muted/10 shrink-0">
-                  <div className="text-[9px] text-muted-foreground flex items-center gap-1.5 italic">
-                    <ShieldAlert size={10} className="text-primary" /> Admin emails are protected from removal.
+                  <div className="text-[9px] text-muted-foreground flex items-center gap-1.5 italic font-medium">
+                    <ShieldAlert size={10} className="text-primary" /> System administrators are protected from deletion.
                   </div>
                 </CardFooter>
             </Card>
