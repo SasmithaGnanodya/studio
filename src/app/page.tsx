@@ -36,18 +36,14 @@ function getIdentifiers(report: Report) {
                   )?.[1] || 
                   'N/A';
 
-  // Strictly use generated valuation ID format, avoid legacy 'V' keys or data-bound fallbacks
+  // Strictly prioritize valid technical valuation code format
   let reportNum = report.reportNumber || 'DRAFT';
-  
-  // Sanitize legacy formats
-  if (reportNum.startsWith('V') && !reportNum.includes('-') && !reportNum.startsWith('CD')) {
-    reportNum = 'DRAFT';
-  }
+  const isIssued = /^(CDH|CDK)\d{9}$/.test(reportNum);
 
   return {
     engine: String(engine).toUpperCase().trim(),
     chassis: String(chassis).toUpperCase().trim(),
-    reportNum: String(reportNum).toUpperCase().trim(),
+    reportNum: isIssued ? String(reportNum).toUpperCase().trim() : 'DRAFT',
     date: report.reportDate || data.reportDate || data.date || 'N/A'
   };
 }

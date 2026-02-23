@@ -12,20 +12,17 @@ import { ArrowLeft, ShieldOff, Eye, Clock, FileCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
 function getIdentifiers(entry: ReportHistory) {
-  // Strictly prioritize the technical valuation code stored at the root or in history meta
+  // Strictly prioritize valid technical valuation code format
   let reportNum = entry.reportNumber || 'DRAFT';
-  
-  // Clean up legacy IDs if they exist in the snapshot
-  if (reportNum.startsWith('V') && !reportNum.includes('-') && !reportNum.startsWith('CD')) {
-    reportNum = 'DRAFT';
-  }
+  const isIssued = /^(CDH|CDK)\d{9}$/.test(reportNum);
 
   return {
-    reportNum: String(reportNum).toUpperCase().trim()
+    reportNum: isIssued ? String(reportNum).toUpperCase().trim() : 'DRAFT'
   };
 }
 

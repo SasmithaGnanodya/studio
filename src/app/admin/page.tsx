@@ -45,16 +45,14 @@ function getIdentifiers(report: Report) {
                   )?.[1] || 
                   'N/A';
 
-  // Strictly use generated valuation ID format, avoid legacy 'V' keys
+  // Strictly use valid technical valuation code format
   let reportNum = report.reportNumber || 'DRAFT';
-  if (reportNum.startsWith('V') && !reportNum.includes('-') && !reportNum.startsWith('CD')) {
-    reportNum = 'DRAFT';
-  }
+  const isIssued = /^(CDH|CDK)\d{9}$/.test(reportNum);
 
   return {
     engine: String(engine).toUpperCase().trim(),
     chassis: String(chassis).toUpperCase().trim(),
-    reportNum: String(reportNum).toUpperCase().trim(),
+    reportNum: isIssued ? String(reportNum).toUpperCase().trim() : 'DRAFT',
     date: report.reportDate || data.reportDate || data.date || 'N/A'
   };
 }
@@ -278,7 +276,7 @@ export default function AdminPage() {
               <CardTitle className="text-3xl font-black text-primary">{uniqueReports.length}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-1 font-medium">
                 <TrendingUp size={10} className="text-green-500" /> {branchFilter === 'all' ? 'Active Database' : `${branchFilter} Records`}
               </p>
             </CardContent>

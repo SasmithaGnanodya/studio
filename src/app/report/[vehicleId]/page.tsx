@@ -76,8 +76,10 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const isAdmin = useMemo(() => user?.email && ADMIN_EMAILS.includes(user.email), [user]);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Synchronize browser title with Issued ID or Draft status
   useEffect(() => {
-    if (reportData.reportNumber && reportData.reportNumber !== "V-PENDING") {
+    const isIssued = /^(CDH|CDK)\d{9}$/.test(reportData.reportNumber || '');
+    if (isIssued) {
       document.title = `${reportData.reportNumber} - ${vehicleId}`;
     } else {
       document.title = `Draft - ${vehicleId}`;
@@ -203,7 +205,9 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum', 'ref', 'val', 'v-', 'valuation', 'id']);
     const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate', 'inspectedOn']);
 
-    if (!engineVal && !chassisVal && (!reportNumVal || reportNumVal === 'V-PENDING') && !dateVal) return;
+    // Check if the current report number is in the valid issued format
+    const isIssued = /^(CDH|CDK)\d{9}$/.test(reportNumVal || '');
+    if (!engineVal && !chassisVal && !isIssued && !dateVal) return;
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
@@ -214,7 +218,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           vehicleId: vehicleId,
           engineNumber: String(engineVal || '').toUpperCase().trim(),
           chassisNumber: String(chassisVal || '').toUpperCase().trim(),
-          reportNumber: String(reportNumVal || '').toUpperCase().trim(),
+          reportNumber: isIssued ? String(reportNumVal).toUpperCase().trim() : 'DRAFT',
           reportDate: String(dateVal || ''),
           updatedAt: serverTimestamp(),
           userId: user.uid,
@@ -268,7 +272,10 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       let finalReportNumber = reportData.reportNumber;
       const branchCode = userBranch || 'CDH';
 
-      if (!finalReportNumber || finalReportNumber === "V-PENDING" || finalReportNumber.startsWith("V-")) {
+      // Check if current report number matches issued format. If not, regenerate.
+      const isIssued = /^(CDH|CDK)\d{9}$/.test(finalReportNumber || '');
+
+      if (!isIssued) {
         const reportsRef = collection(firestore, 'reports');
         const branchQuery = query(reportsRef, where('branch', '==', branchCode));
         const branchSnap = await getDocs(branchQuery);
