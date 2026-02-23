@@ -8,7 +8,7 @@ import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ShieldOff, Eye, Clock } from 'lucide-react';
+import { ArrowLeft, ShieldOff, Eye, Clock, FileCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -122,7 +122,7 @@ export default function ReportHistoryPage({ params }: { params: Promise<{ report
             <div>
               <CardTitle className="text-2xl font-black">History for Report: <span className="font-mono text-primary">{report?.vehicleId || 'Loading...'}</span></CardTitle>
               <CardDescription className="flex items-center gap-2">
-                <Clock size={14} className="text-primary" /> Audit log of all saved snapshots.
+                <Clock size={14} className="text-primary" /> Audit log of all saved snapshots and generated versions.
               </CardDescription>
             </div>
             <Link href="/admin" passHref>
@@ -137,7 +137,7 @@ export default function ReportHistoryPage({ params }: { params: Promise<{ report
                 <TableRow>
                   <TableHead className="font-bold uppercase text-[10px] tracking-widest">Saved At</TableHead>
                   <TableHead className="font-bold uppercase text-[10px] tracking-widest">Saved By</TableHead>
-                  <TableHead className="font-bold uppercase text-[10px] tracking-widest">History ID</TableHead>
+                  <TableHead className="font-bold uppercase text-[10px] tracking-widest">Report ID (Generated)</TableHead>
                   <TableHead className="text-right font-bold uppercase text-[10px] tracking-widest">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -154,7 +154,14 @@ export default function ReportHistoryPage({ params }: { params: Promise<{ report
                           <span className="text-[10px] text-muted-foreground font-mono">{entry.userId}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{entry.id}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <FileCheck size={14} className="text-primary" />
+                          <span className="font-mono text-xs font-bold text-foreground bg-primary/5 px-2 py-1 rounded border border-primary/10">
+                            {entry.reportNumber || 'DRAFT'}
+                          </span>
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         <Link href={`/admin/history/${reportId}/${entry.id}`} passHref>
                           <Button size="sm" variant="ghost" className="h-8 gap-2 text-primary hover:text-primary-foreground hover:bg-primary transition-all">
