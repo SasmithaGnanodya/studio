@@ -41,11 +41,9 @@ const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 
 const INITIAL_VISIBLE_REPORTS = 12;
 
 function getIdentifiers(report: Report) {
-  // Strictly use root reportNumber for generated technical valuation code
   let reportNum = report.reportNumber || 'DRAFT';
   const isIssued = /^(CDH|CDK|KDH)\d{9}$/.test(reportNum);
 
-  const data = report.reportData || {};
   const engine = report.engineNumber || 'N/A';
   const chassis = report.chassisNumber || 'N/A';
 
@@ -86,7 +84,6 @@ export default function AdminPage() {
   const [newBranch, setNewBranch] = useState('CDH');
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isDeletingReportId, setIsDeletingReportId] = useState<string | null>(null);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
 
   useEffect(() => {
@@ -294,7 +291,6 @@ export default function AdminPage() {
         description: "You may not have permission to delete this record.",
       });
     } finally {
-      setIsDeletingReportId(null);
       setDeleteConfirmationText('');
     }
   };
@@ -718,9 +714,9 @@ export default function AdminPage() {
                       {Object.entries(authorizedUsers).map(([key, data]) => (
                         <div key={key} className="bg-muted/20 p-3 rounded-lg border border-primary/5 group hover:border-primary/20 transition-all flex flex-col">
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
                               <span className="text-[11px] font-bold truncate text-foreground">{data.email}</span>
-                              <div className="flex items-center gap-1.5 mt-1">
+                              <div className="flex items-center gap-1.5">
                                 <Badge variant="outline" className="text-[8px] h-4 border-primary/20 bg-primary/5 text-primary">
                                   {data.branch}
                                 </Badge>
@@ -734,7 +730,7 @@ export default function AdminPage() {
                               size="icon" 
                               className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
                               onClick={() => handleRemoveUser(key)}
-                              disabled={ADMIN_EMAILS.includes(data.email)} // Protected admins
+                              disabled={ADMIN_EMAILS.includes(data.email)}
                             >
                               <Trash2 size={14} />
                             </Button>

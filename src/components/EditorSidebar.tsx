@@ -339,7 +339,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                   
                   <p className="text-[9px] text-muted-foreground italic leading-tight">
                     {data.inputType === 'dropdown' 
-                      ? "Values used for Valuation Code (9th digit): 100=1, 75=2, 50=3, 25=4. Default=5."
+                      ? "Values used for Valuation Code (9th digit). Example: Selecting an option with Val '1' puts '1' in the 9th position."
                       : "Add pre-defined words or sentences that will appear as suggestions while typing."
                     }
                   </p>
@@ -461,7 +461,6 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
             <div className="flex flex-col">
                 {field.fieldType === 'text' ? (
                 <>
-                    {/* Only show label configuration if the label has text */}
                     {field.label.text && renderTextPartEditor('label')}
                     {field.label.text && <Separator />}
                     {renderTextPartEditor('value')}
