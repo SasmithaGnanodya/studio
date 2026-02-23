@@ -287,7 +287,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const dayOfYear = getDayOfYear(nowObj);
         
         const branchCode = userBranch || 'CDH';
-        const displayBranch = branchCode === 'CDK' ? 'KDH' : branchCode;
+        const displayBranch = branchCode; // Removed KDH mapping - use branch code directly
         
         const dateVal = new Date().toLocaleDateString('en-CA');
 
