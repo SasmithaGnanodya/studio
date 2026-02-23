@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Save, PlusCircle, Image as ImageIcon, Type, LayoutTemplate, Wand2, Hash, Calculator, ShieldCheck } from 'lucide-react';
+import { Save, PlusCircle, Image as ImageIcon, Type, LayoutTemplate, Wand2, Hash, Calculator, ShieldCheck, Car } from 'lucide-react';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
@@ -151,11 +151,22 @@ export default function EditorPage() {
     setSelectedFieldId(baseId);
   };
   
-  const handleAddNewField = (type: 'text' | 'image' | 'staticText' | 'wordConverter' | 'inputOnly' | 'scoringField' | 'systemCode') => {
+  const handleAddNewField = (type: 'text' | 'image' | 'staticText' | 'wordConverter' | 'inputOnly' | 'scoringField' | 'systemCode' | 'registration') => {
     const timestamp = Date.now();
     const newId = `${type}_${timestamp}`;
     
-    if (type === 'text') {
+    if (type === 'registration') {
+      const newField: FieldLayout = {
+        id: newId,
+        fieldId: 'regNumber',
+        fieldType: 'text',
+        label: { text: 'Reg. Number:', x: 10, y: 10, width: 40, height: 5, isBold: true, color: '#000000', fontSize: 10 },
+        value: { text: 'regNumber', x: 55, y: 10, width: 60, height: 8, isBold: true, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
+        isLocked: true
+      };
+      setFields(prev => [...prev, newField]);
+      setSelectedFieldId(newId);
+    } else if (type === 'text') {
       const newField: FieldLayout = {
         id: newId,
         fieldId: 'newField',
@@ -429,6 +440,9 @@ export default function EditorPage() {
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('systemCode')} className="text-primary border-primary/20 hover:bg-primary/5">
                   <ShieldCheck className="mr-2 h-4 w-4" /> Add System Code
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleAddNewField('registration')} className="text-primary border-primary/20 hover:bg-primary/5">
+                  <Car className="mr-2 h-4 w-4" /> Add Registration
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('wordConverter')} className="text-primary border-primary/20 hover:bg-primary/5">
                   <Wand2 className="mr-2 h-4 w-4" /> Add Word Converter
