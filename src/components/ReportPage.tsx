@@ -74,7 +74,10 @@ export const ReportPage = ({
       );
     }
 
-    if (!isEditable) {
+    const isSystemLocked = field.fieldId === 'regNumber' || field.fieldId === 'reportNumber';
+
+    // If it's a locked system field, always render as static text even in editable mode
+    if (!isEditable || isSystemLocked) {
       return (
         <div key={field.id} className="field font-mono z-10" style={style}>
           {field.value}
@@ -92,8 +95,6 @@ export const ReportPage = ({
       
       onValueChange?.(field.fieldId, val);
     };
-
-    const isSystemLocked = field.fieldId === 'regNumber' || field.fieldId === 'reportNumber';
 
     return (
       <div key={field.id} style={style} className="z-20 group">
@@ -122,15 +123,13 @@ export const ReportPage = ({
             value={field.value}
             onChange={handleInputChange}
             className={cn(
-              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-0 transition-all",
-              isSystemLocked && "bg-muted/10 border-dashed opacity-80 cursor-not-allowed"
+              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-0 transition-all"
             )}
             style={{ 
               fontSize: style.fontSize, 
               color: style.color, 
               fontWeight: style.fontWeight 
             }}
-            disabled={isSystemLocked}
           />
         )}
       </div>
