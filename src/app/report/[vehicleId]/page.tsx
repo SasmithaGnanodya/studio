@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, Hash, LogOut, ChevronLeft, Loader2 } from 'lucide-react';
+import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, LogOut, ChevronLeft, Loader2 } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
@@ -408,20 +408,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                   <span className="text-primary font-mono">{vehicleId}</span>
                 </div>
                 
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="top-report-num" className="text-[10px] uppercase font-bold text-muted-foreground">Report Number</Label>
-                  <div className="relative">
-                    <Hash className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-primary/50" />
-                    <Input 
-                      id="top-report-num"
-                      value={reportData.reportNumber || ''} 
-                      onChange={(e) => handleDataChange('reportNumber', e.target.value.toUpperCase())}
-                      className="h-8 w-32 pl-7 font-mono text-xs bg-background/50 border-primary/20 focus:border-primary"
-                      placeholder="Report #"
-                    />
-                  </div>
-                </div>
-
                 {isSyncing && (
                   <div className="flex flex-col justify-center">
                     <span className="flex items-center gap-1.5 text-[10px] text-primary font-bold animate-pulse bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
