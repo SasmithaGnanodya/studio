@@ -45,10 +45,11 @@ function getIdentifiers(report: Report) {
                   )?.[1] || 
                   'N/A';
 
-  // Strictly use reportNumber field, avoid falling back to legacy keys like 'V'
-  const reportNum = report.reportNumber || 
-                    data.reportNumber || 
-                    'DRAFT';
+  // Strictly use generated valuation ID format, avoid legacy 'V' keys
+  let reportNum = report.reportNumber || 'DRAFT';
+  if (reportNum.startsWith('V') && !reportNum.includes('-') && !reportNum.startsWith('CD')) {
+    reportNum = 'DRAFT';
+  }
 
   return {
     engine: String(engine).toUpperCase().trim(),
@@ -392,6 +393,8 @@ export default function AdminPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredReportsList.slice(0, visibleReportsCount).map(report => {
                   const ids = getIdentifiers(report);
+                  const isIssued = ids.reportNum !== 'DRAFT';
+
                   return (
                     <Card key={report.id} className="group border flex flex-col hover:border-primary transition-all bg-card/40 backdrop-blur-md shadow-md overflow-hidden h-full">
                       <CardHeader className="pb-3 bg-muted/20 border-b">
@@ -402,8 +405,11 @@ export default function AdminPage() {
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <FileCheck size={12} className="text-primary" />
-                          <span className="text-[10px] font-mono font-bold text-foreground truncate">{ids.reportNum}</span>
+                          <FileCheck size={12} className={cn(isIssued ? "text-primary" : "text-muted-foreground")} />
+                          <span className={cn(
+                            "text-[10px] font-mono font-bold truncate",
+                            isIssued ? "text-foreground" : "text-muted-foreground italic"
+                          )}>{ids.reportNum}</span>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3 pt-4 flex-grow">

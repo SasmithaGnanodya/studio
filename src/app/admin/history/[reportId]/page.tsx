@@ -16,12 +16,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
 function getIdentifiers(entry: ReportHistory) {
-  const data = entry.reportData || {};
+  // Strictly prioritize the technical valuation code stored at the root or in history meta
+  let reportNum = entry.reportNumber || 'DRAFT';
   
-  // Prioritize the branch-specific generated code, avoid legacy prefixes
-  const reportNum = entry.reportNumber || 
-                    data.reportNumber || 
-                    'DRAFT';
+  // Clean up legacy IDs if they exist in the snapshot
+  if (reportNum.startsWith('V') && !reportNum.includes('-') && !reportNum.startsWith('CD')) {
+    reportNum = 'DRAFT';
+  }
 
   return {
     reportNum: String(reportNum).toUpperCase().trim()
@@ -158,6 +159,8 @@ export default function ReportHistoryPage({ params }: { params: Promise<{ report
                 {history.length > 0 ? (
                   history.map((entry) => {
                     const ids = getIdentifiers(entry);
+                    const isDraft = ids.reportNum === 'DRAFT';
+
                     return (
                       <TableRow key={entry.id} className="group transition-colors hover:bg-primary/5">
                         <TableCell className="font-medium">
@@ -171,8 +174,11 @@ export default function ReportHistoryPage({ params }: { params: Promise<{ report
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <FileCheck size={14} className="text-primary" />
-                            <span className="font-mono text-xs font-bold text-foreground bg-primary/5 px-2 py-1 rounded border border-primary/10">
+                            <FileCheck size={14} className={cn(isDraft ? "text-muted-foreground" : "text-primary")} />
+                            <span className={cn(
+                              "font-mono text-xs font-bold px-2 py-1 rounded border",
+                              isDraft ? "bg-muted text-muted-foreground border-muted-foreground/10" : "bg-primary/5 text-foreground border-primary/10"
+                            )}>
                               {ids.reportNum}
                             </span>
                           </div>

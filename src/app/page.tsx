@@ -36,10 +36,13 @@ function getIdentifiers(report: Report) {
                   )?.[1] || 
                   'N/A';
 
-  // Strictly use generated valuation ID format (CDH/CDK prefixes), avoid legacy 'V' keys
-  const reportNum = report.reportNumber || 
-                    data.reportNumber || 
-                    'N/A';
+  // Strictly use generated valuation ID format, avoid legacy 'V' keys or data-bound fallbacks
+  let reportNum = report.reportNumber || 'DRAFT';
+  
+  // Sanitize legacy formats
+  if (reportNum.startsWith('V') && !reportNum.includes('-') && !reportNum.startsWith('CD')) {
+    reportNum = 'DRAFT';
+  }
 
   return {
     engine: String(engine).toUpperCase().trim(),
@@ -84,6 +87,8 @@ function ReportStats({ reports }: { reports: Report[] }) {
 
 function ReportCard({ report }: { report: Report }) {
     const ids = getIdentifiers(report);
+    const isIssued = ids.reportNum !== 'DRAFT' && ids.reportNum !== 'N/A';
+
     return (
         <Link href={`/report/${report.vehicleId}`} passHref>
             <Card className="group hover:border-primary/50 transition-all cursor-pointer bg-card/40 backdrop-blur-md shadow-lg overflow-hidden h-full flex flex-col">
@@ -95,8 +100,11 @@ function ReportCard({ report }: { report: Report }) {
                                 {report.vehicleId}
                             </CardTitle>
                         </div>
-                        <div className="inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold transition-colors border-primary/20 bg-primary/5 text-primary font-mono">
-                            #{ids.reportNum}
+                        <div className={cn(
+                          "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold transition-colors font-mono",
+                          isIssued ? "border-primary/20 bg-primary/5 text-primary" : "border-muted-foreground/20 bg-muted/5 text-muted-foreground"
+                        )}>
+                            {ids.reportNum}
                         </div>
                     </div>
                 </CardHeader>
