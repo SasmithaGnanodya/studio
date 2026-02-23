@@ -7,7 +7,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -48,9 +48,9 @@ function getIdentifiers(report: Report) {
   const reportNum = report.reportNumber || 
                     data.reportNumber || 
                     Object.entries(data).find(([k]) => 
-                      ['reportnum', 'reportno', 'ref-', 'val-', 'v-'].some(p => k.toLowerCase().includes(p))
+                      ['reportnumber', 'reportno', 'ref', 'val', 'v-', 'valuation', 'id'].some(p => k.toLowerCase().includes(p))
                     )?.[1] || 
-                    'N/A';
+                    'DRAFT';
 
   return {
     engine: String(engine).toUpperCase().trim(),
@@ -403,9 +403,10 @@ export default function AdminPage() {
                             {(report as any).branch || 'Unknown'}
                           </Badge>
                         </div>
-                        <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1.5 pt-1">
-                          <CalendarIcon size={12} className="text-primary" /> {ids.date}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <FileCheck size={12} className="text-primary" />
+                          <span className="text-[10px] font-mono font-bold text-foreground truncate">{ids.reportNum}</span>
+                        </div>
                       </CardHeader>
                       <CardContent className="space-y-3 pt-4 flex-grow">
                         <div className="grid grid-cols-1 gap-2 text-[11px]">

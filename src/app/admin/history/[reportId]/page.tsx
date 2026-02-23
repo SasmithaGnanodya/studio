@@ -15,6 +15,21 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
+function getIdentifiers(entry: ReportHistory) {
+  const data = entry.reportData || {};
+  
+  const reportNum = entry.reportNumber || 
+                    data.reportNumber || 
+                    Object.entries(data).find(([k]) => 
+                      ['reportnumber', 'reportno', 'ref', 'val', 'v-', 'valuation', 'id'].some(p => k.toLowerCase().includes(p))
+                    )?.[1] || 
+                    'DRAFT';
+
+  return {
+    reportNum: String(reportNum).toUpperCase().trim()
+  };
+}
+
 export default function ReportHistoryPage({ params }: { params: Promise<{ reportId: string }> }) {
   const resolvedParams = use(params);
   const { reportId } = resolvedParams;
@@ -137,40 +152,43 @@ export default function ReportHistoryPage({ params }: { params: Promise<{ report
                 <TableRow>
                   <TableHead className="font-bold uppercase text-[10px] tracking-widest">Saved At</TableHead>
                   <TableHead className="font-bold uppercase text-[10px] tracking-widest">Saved By</TableHead>
-                  <TableHead className="font-bold uppercase text-[10px] tracking-widest">Report ID (Generated)</TableHead>
+                  <TableHead className="font-bold uppercase text-[10px] tracking-widest">Report Number (Issued)</TableHead>
                   <TableHead className="text-right font-bold uppercase text-[10px] tracking-widest">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {history.length > 0 ? (
-                  history.map((entry) => (
-                    <TableRow key={entry.id} className="group transition-colors hover:bg-primary/5">
-                      <TableCell className="font-medium">
-                        {entry.savedAt ? new Date(entry.savedAt.seconds * 1000).toLocaleString() : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-sm">{entry.userName}</span>
-                          <span className="text-[10px] text-muted-foreground font-mono">{entry.userId}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <FileCheck size={14} className="text-primary" />
-                          <span className="font-mono text-xs font-bold text-foreground bg-primary/5 px-2 py-1 rounded border border-primary/10">
-                            {entry.reportNumber || 'DRAFT'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link href={`/admin/history/${reportId}/${entry.id}`} passHref>
-                          <Button size="sm" variant="ghost" className="h-8 gap-2 text-primary hover:text-primary-foreground hover:bg-primary transition-all">
-                            <Eye size={14} /> View Version
-                          </Button>
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  history.map((entry) => {
+                    const ids = getIdentifiers(entry);
+                    return (
+                      <TableRow key={entry.id} className="group transition-colors hover:bg-primary/5">
+                        <TableCell className="font-medium">
+                          {entry.savedAt ? new Date(entry.savedAt.seconds * 1000).toLocaleString() : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-sm">{entry.userName}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono">{entry.userId}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <FileCheck size={14} className="text-primary" />
+                            <span className="font-mono text-xs font-bold text-foreground bg-primary/5 px-2 py-1 rounded border border-primary/10">
+                              {ids.reportNum}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link href={`/admin/history/${reportId}/${entry.id}`} passHref>
+                            <Button size="sm" variant="ghost" className="h-8 gap-2 text-primary hover:text-primary-foreground hover:bg-primary transition-all">
+                              <Eye size={14} /> View Version
+                            </Button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 ) : (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center h-48 text-muted-foreground font-medium italic">
