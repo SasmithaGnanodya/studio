@@ -93,6 +93,8 @@ export const ReportPage = ({
       onValueChange?.(field.fieldId, val);
     };
 
+    const isSystemLocked = field.fieldId === 'regNumber' || field.fieldId === 'reportNumber';
+
     return (
       <div key={field.id} style={style} className="z-20 group">
         {field.inputType === 'dropdown' ? (
@@ -119,13 +121,16 @@ export const ReportPage = ({
             type={field.fieldId.toLowerCase().includes('date') ? 'date' : 'text'}
             value={field.value}
             onChange={handleInputChange}
-            className="h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-0 transition-all"
+            className={cn(
+              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-0 transition-all",
+              isSystemLocked && "bg-muted/10 border-dashed opacity-80 cursor-not-allowed"
+            )}
             style={{ 
               fontSize: style.fontSize, 
               color: style.color, 
               fontWeight: style.fontWeight 
             }}
-            disabled={field.fieldId === 'regNumber'}
+            disabled={isSystemLocked}
           />
         )}
       </div>

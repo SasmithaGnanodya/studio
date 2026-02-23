@@ -1,3 +1,4 @@
+
 // src/components/DataForm.tsx
 
 import React from 'react';
@@ -34,6 +35,7 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
             ? 'image' 
             : (isDateField ? 'date' : (field.value.inputType || 'text'));
 
+          const isSystemLocked = field.fieldId === 'regNumber' || field.fieldId === 'reportNumber';
 
           return (
             <div key={field.id} className="space-y-2">
@@ -69,7 +71,7 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
                     type={inputType}
                     value={data[field.fieldId] || ''}
                     onChange={(e) => onDataChange(e.target.name, e.target.value)}
-                    disabled={field.fieldId === 'regNumber'}
+                    disabled={isSystemLocked}
                   />
                 )}
               </div>

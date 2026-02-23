@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -178,6 +179,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   }, [user, firestore, vehicleId, isAuthorized]);
 
   const findIdentifier = (patterns: string[]) => {
+    // If we are looking for the report number, specifically check reportNumber field first
+    if (patterns.includes('reportNumber') && reportData.reportNumber && /^(CDH|CDK)\d{9}$/.test(reportData.reportNumber)) {
+      return reportData.reportNumber;
+    }
+
     const direct = patterns.map(p => reportData[p]).find(v => !!v);
     if (direct) return direct;
     
@@ -202,11 +208,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
     const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor', 'engnum', 'eng']);
     const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial', 'vin', 'chas']);
-    const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum', 'ref', 'val', 'v-', 'valuation', 'id']);
+    const reportNumVal = findIdentifier(['reportNumber']);
     const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate', 'inspectedOn']);
 
     // Check if the current report number is in the valid issued format
-    const isIssued = /^(CDH|CDK)\d{9}$/.test(reportNumVal || '');
+    const isIssued = /^(CDH|CDK)\d{9}$/.test(String(reportNumVal || ''));
     if (!engineVal && !chassisVal && !isIssued && !dateVal) return;
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
@@ -245,6 +251,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   }, [reportData, firestore, isAuthorized, user, vehicleId, isLoading, currentLayout]);
 
   const handleDataChange = (fieldId: string, value: string | ImageData) => {
+    if (fieldId === 'reportNumber') return; // Read-only
+
     setReportData(prev => {
       const updated = { ...prev, [fieldId]: value };
 
