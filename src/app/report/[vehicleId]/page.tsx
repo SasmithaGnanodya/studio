@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, LogOut, ChevronLeft, Loader2 } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
@@ -77,7 +76,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const isAdmin = useMemo(() => user?.email && ADMIN_EMAILS.includes(user.email), [user]);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Set document title for printing naming - Sensitive to issued report number
   useEffect(() => {
     if (reportData.reportNumber && reportData.reportNumber !== "V-PENDING") {
       document.title = `${reportData.reportNumber} - ${vehicleId}`;
@@ -270,7 +268,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       let finalReportNumber = reportData.reportNumber;
       const branchCode = userBranch || 'CDH';
 
-      // Only generate a new report number if it's currently a draft or invalid
       if (!finalReportNumber || finalReportNumber === "V-PENDING" || finalReportNumber.startsWith("V-")) {
         const reportsRef = collection(firestore, 'reports');
         const branchQuery = query(reportsRef, where('branch', '==', branchCode));

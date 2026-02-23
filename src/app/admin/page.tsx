@@ -126,7 +126,6 @@ export default function AdminPage() {
     }
   }, [user, firestore, isUserLoading, router]);
 
-  // Derive branch for each report based on the authorized users registry
   const reportsWithBranch = useMemo(() => {
     const emailToBranch: Record<string, string> = {};
     Object.values(authorizedUsers).forEach(u => {
@@ -135,7 +134,7 @@ export default function AdminPage() {
 
     return reports.map(r => ({
       ...r,
-      branch: emailToBranch[r.userName?.toLowerCase() || ''] || 'Unknown'
+      branch: (r as any).branch || emailToBranch[r.userName?.toLowerCase() || ''] || 'Unknown'
     }));
   }, [reports, authorizedUsers]);
 
@@ -149,8 +148,8 @@ export default function AdminPage() {
   const stats = useMemo(() => {
     const today = new Date();
     const reportsToday = filteredReportsByBranch.filter(r => {
-      if (!r.updatedAt?.seconds) return false;
-      return isSameDay(new Date(r.updatedAt.seconds * 1000), today);
+      const date = r.updatedAt?.seconds ? new Date(r.updatedAt.seconds * 1000) : new Date();
+      return isSameDay(date, today);
     }).length;
 
     let chartData: { label: string; count: number }[] = [];
@@ -160,8 +159,8 @@ export default function AdminPage() {
         const d = subDays(today, 6 - i);
         const dayStr = format(d, 'MMM dd');
         const count = filteredReportsByBranch.filter(r => {
-          if (!r.updatedAt?.seconds) return false;
-          return isSameDay(new Date(r.updatedAt.seconds * 1000), d);
+          const date = r.updatedAt?.seconds ? new Date(r.updatedAt.seconds * 1000) : new Date();
+          return isSameDay(date, d);
         }).length;
         return { label: dayStr, count };
       });
@@ -170,8 +169,8 @@ export default function AdminPage() {
         const d = subDays(today, 29 - i);
         const dayStr = format(d, 'MMM dd');
         const count = filteredReportsByBranch.filter(r => {
-          if (!r.updatedAt?.seconds) return false;
-          return isSameDay(new Date(r.updatedAt.seconds * 1000), d);
+          const date = r.updatedAt?.seconds ? new Date(r.updatedAt.seconds * 1000) : new Date();
+          return isSameDay(date, d);
         }).length;
         return { label: dayStr, count };
       });
@@ -180,9 +179,8 @@ export default function AdminPage() {
         const d = subMonths(today, 11 - i);
         const monthStr = format(d, 'MMM');
         const count = filteredReportsByBranch.filter(r => {
-          if (!r.updatedAt?.seconds) return false;
-          const reportDate = new Date(r.updatedAt.seconds * 1000);
-          return reportDate.getMonth() === d.getMonth() && reportDate.getFullYear() === d.getFullYear();
+          const date = r.updatedAt?.seconds ? new Date(r.updatedAt.seconds * 1000) : new Date();
+          return date.getMonth() === d.getMonth() && date.getFullYear() === d.getFullYear();
         }).length;
         return { label: monthStr, count };
       });
@@ -228,7 +226,6 @@ export default function AdminPage() {
   };
 
   const filteredReportsList = useMemo(() => {
-    // Note: The searchable list uses the global uniqueReports set (which respects the branch filter)
     if (!searchTerm || searchTerm.trim().length === 0) return uniqueReports;
     const term = searchTerm.toUpperCase().trim();
     return uniqueReports.filter(report => {
@@ -258,7 +255,6 @@ export default function AdminPage() {
       <Header />
       <main className="flex-1 p-6 space-y-6">
         
-        {/* Branch Switcher for Stats */}
         <div className="flex items-center justify-between gap-4 bg-card/30 backdrop-blur-sm border border-primary/10 p-2 rounded-xl">
            <div className="flex items-center gap-3 pl-2">
               <Globe className="h-4 w-4 text-primary" />
