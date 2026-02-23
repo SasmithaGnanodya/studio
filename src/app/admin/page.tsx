@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
-const INITIAL_VISIBLE_REPORTS = 12;
+const INITIAL_VISIBLE_REPORTS = 4;
 
 function getIdentifiers(report: Report) {
   let reportNum = report.reportNumber || 'DRAFT';
@@ -535,7 +535,7 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
                   {filteredReportsList.slice(0, visibleReportsCount).map(report => {
                     const ids = getIdentifiers(report);
                     const isIssued = ids.reportNum !== 'DRAFT';
@@ -641,8 +641,8 @@ export default function AdminPage() {
                 </div>
                 {filteredReportsList.length > visibleReportsCount && (
                   <div className="mt-8 text-center">
-                    <Button onClick={() => setVisibleReportsCount(p => p + 12)} variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
-                      Show More Records
+                    <Button onClick={() => setVisibleReportsCount(p => p + 4)} variant="outline" className="border-primary/50 text-primary hover:bg-primary/10 px-8 font-bold">
+                      Load More Records
                     </Button>
                   </div>
                 )}
