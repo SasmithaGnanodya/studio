@@ -76,11 +76,20 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const isAdmin = useMemo(() => user?.email && ADMIN_EMAILS.includes(user.email), [user]);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  /**
+   * Technical mapping for the 9th digit of the Valuation Code based on Condition Score weighting.
+   */
   const getScoreDigit = (score: string, layout: FieldLayout[]) => {
     const scoringField = layout.find(f => f.fieldId.toLowerCase() === 'conditionscore');
     const selectedOption = score || '';
     const weight = scoringField?.value?.optionWeights?.[selectedOption] || 0;
-    return weight >= 100 ? '1' : weight >= 75 ? '2' : weight >= 50 ? '3' : weight >= 25 ? '4' : '5';
+    
+    // Mapping rules for the 9th digit (index 8)
+    if (weight >= 100) return '1';
+    if (weight >= 75) return '2';
+    if (weight >= 50) return '3';
+    if (weight >= 25) return '4';
+    return '5'; // Default technical grade
   };
 
   // Synchronize browser title with Issued ID or Draft status
@@ -93,42 +102,47 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     }
   }, [reportData.reportNumber, vehicleId]);
 
-  // Live update of the report number / valuation code preview to always include score digit
+  /**
+   * Live update of the report number / valuation code preview.
+   * This ensures the 9th digit strictly responds to the conditionScore selection in real-time.
+   */
   useEffect(() => {
     if (!isAuthorized || isLoading) return;
 
     const currentScore = reportData['conditionScore'];
-    if (!currentScore) return;
+    // We only update if a score is selected to avoid messy V-PENDING strings
+    if (!currentScore || String(currentScore).trim() === '') return;
 
     const scoreDigit = getScoreDigit(String(currentScore), currentLayout);
     const nowObj = new Date();
-    const todayDateCode = `${nowObj.getFullYear().toString().slice(-2)}${getDayOfYear(nowObj)}`;
+    const yearYY = nowObj.getFullYear().toString().slice(-2);
+    const dayOfYear = getDayOfYear(nowObj);
+    const todayDateCode = `${yearYY}${dayOfYear}`;
     const branchCode = userBranch || 'CDH';
 
-    const currentNum = reportData.reportNumber || '';
+    const currentNum = reportData.reportNumber || 'V-PENDING';
     const isIssued = /^[A-Z]{3}\d{9}$/.test(currentNum);
     const issuedDateCode = isIssued ? currentNum.substring(3, 8) : null;
 
+    let nextNum = currentNum;
+
     if (!isIssued) {
-      const previewCode = `${branchCode}${todayDateCode}${scoreDigit}---`;
-      if (currentNum !== previewCode) {
-        setReportData(prev => ({ 
-          ...prev, 
-          reportNumber: previewCode,
-          valuationCode: previewCode 
-        }));
-      }
-    } else if (isIssued && issuedDateCode === todayDateCode) {
+      // Format: [BRANCH(3)][DATE(5)][SCORE(1)][SEQ(3)]
+      // Drafts use '---' for sequence
+      nextNum = `${branchCode}${todayDateCode}${scoreDigit}---`;
+    } else if (issuedDateCode === todayDateCode) {
+      // For issued reports from today, strictly synchronize the 9th digit (index 8)
       const prefix = currentNum.substring(0, 8);
       const suffix = currentNum.substring(9);
-      const updatedCode = `${prefix}${scoreDigit}${suffix}`;
-      if (currentNum !== updatedCode) {
-        setReportData(prev => ({ 
-          ...prev, 
-          reportNumber: updatedCode,
-          valuationCode: updatedCode 
-        }));
-      }
+      nextNum = `${prefix}${scoreDigit}${suffix}`;
+    }
+
+    if (currentNum !== nextNum) {
+      setReportData(prev => ({ 
+        ...prev, 
+        reportNumber: nextNum,
+        valuationCode: nextNum 
+      }));
     }
   }, [reportData.conditionScore, userBranch, isAuthorized, isLoading, currentLayout]);
 
@@ -251,7 +265,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     const reportNumVal = findIdentifier(['reportNumber']);
     const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate', 'inspectedOn']);
 
-    const isIssued = /^[A-Z]{3}\d{9}$/.test(String(reportNumVal || ''));
     if (!engineVal && !chassisVal && !reportNumVal && !dateVal) return;
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
@@ -323,7 +336,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const handleSave = async () => {
     if (!user || !firestore) return;
 
-    // Mandatory Field Validation: conditionScore is required for Valuation Code calculation
+    // Mandatory Field Validation: conditionScore is required for Valuation Code calculation (9th digit)
     const conditionValue = reportData['conditionScore'];
     if (!conditionValue || String(conditionValue).trim() === '') {
       toast({
@@ -350,7 +363,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       // Logic: Generate new code if not issued OR if issued for a different day
       if (!isIssued || issuedDateCode !== todayDateCode) {
         const branchCode = userBranch || 'CDH';
-        const displayBranch = branchCode;
         
         const reportsRef = collection(firestore, 'reports');
         const q = query(
@@ -361,9 +373,9 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const daySnap = await getDocs(q);
         const sequenceNum = (daySnap.size + 1).toString().padStart(3, '0');
         
-        finalReportNumber = `${displayBranch}${todayDateCode}${scoreDigit}${sequenceNum}`;
+        finalReportNumber = `${branchCode}${todayDateCode}${scoreDigit}${sequenceNum}`;
       } else if (isIssued && issuedDateCode === todayDateCode) {
-        // Ensure score digit matches current selection even if already issued today
+        // Strictly ensure 9th digit matches current selection even if already issued today
         const prefix = finalReportNumber.substring(0, 8);
         const suffix = finalReportNumber.substring(9);
         finalReportNumber = `${prefix}${scoreDigit}${suffix}`;
