@@ -8,7 +8,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -83,6 +83,7 @@ export default function AdminPage() {
 
   const [accessPassword, setAccessPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [userBranches, setUserBranches] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -93,11 +94,17 @@ export default function AdminPage() {
     if (firestore) {
       setIsLoading(true);
       const q = query(collection(firestore, 'reports'), orderBy('updatedAt', 'desc'));
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const unsubscribeReports = onSnapshot(q, (querySnapshot) => {
         const fetched: Report[] = [];
         querySnapshot.forEach((doc) => fetched.push({ id: doc.id, ...(doc.data() as Omit<Report, 'id'>) }));
         setReports(fetched);
         setIsLoading(false);
+      });
+
+      const unsubscribeBranches = onSnapshot(doc(firestore, 'config', 'userBranches'), (snap) => {
+        if (snap.exists()) {
+          setUserBranches(snap.data() as Record<string, string>);
+        }
       });
 
       getDoc(doc(firestore, 'config', 'settings')).then(snap => {
@@ -106,7 +113,10 @@ export default function AdminPage() {
         }
       });
 
-      return () => unsubscribe();
+      return () => {
+        unsubscribeReports();
+        unsubscribeBranches();
+      };
     }
   }, [user, firestore, isUserLoading, router]);
 
@@ -157,7 +167,6 @@ export default function AdminPage() {
     return { reportsToday, chartData };
   }, [reports, timeRange]);
 
-  // Derive active users from reports
   const activeUsers = useMemo(() => {
     const userMap = new Map<string, { name: string, lastSeen: number }>();
     reports.forEach(r => {
@@ -199,6 +208,25 @@ export default function AdminPage() {
     }
   };
 
+  const handleSetBranch = async (userId: string, branchCode: string) => {
+    if (!firestore) return;
+    try {
+      await setDoc(doc(firestore, 'config', 'userBranches'), {
+        [userId]: branchCode
+      }, { merge: true });
+      toast({
+        title: "Branch Assigned",
+        description: `User successfully linked to ${branchCode === 'CDH' ? 'Head Office' : 'Kadawatha'}.`,
+      });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Assignment Failed",
+        description: "Could not update user branch information.",
+      });
+    }
+  };
+
   const filteredReports = useMemo(() => {
     if (!searchTerm || searchTerm.trim().length === 0) return uniqueReports;
     const term = searchTerm.toUpperCase().trim();
@@ -229,7 +257,6 @@ export default function AdminPage() {
       <Header />
       <main className="flex-1 p-6 space-y-6">
         
-        {/* TOP DASHBOARD: 4 STAT CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
           <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative min-h-[140px]">
             <div className="absolute top-0 right-0 p-3 opacity-10">
@@ -453,21 +480,42 @@ export default function AdminPage() {
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
                         <Users className="h-4 w-4 text-primary" /> Active System Users
                     </CardTitle>
-                    <CardDescription className="text-[10px]">Accounts currently identified in the audit logs.</CardDescription>
+                    <CardDescription className="text-[10px]">Assign branches to identified accounts.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                    <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1">
+                <CardContent className="space-y-3">
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
                       {activeUsers.map(u => (
-                        <div key={u.uid} className="text-[10px] bg-muted/20 p-2 rounded flex items-center justify-between border group hover:border-primary transition-colors">
-                          <div className="flex flex-col truncate pr-2">
-                            <span className="font-bold truncate">{u.name}</span>
-                            <span className="text-[8px] text-muted-foreground italic">Last seen: {u.lastSeen ? format(new Date(u.lastSeen * 1000), 'MMM dd, HH:mm') : 'N/A'}</span>
+                        <div key={u.uid} className="text-[10px] bg-muted/20 p-3 rounded-lg flex flex-col gap-2 border group hover:border-primary transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex flex-col truncate pr-2">
+                              <span className="font-bold truncate text-[11px]">{u.name}</span>
+                              <span className="text-[8px] text-muted-foreground italic">Last seen: {u.lastSeen ? format(new Date(u.lastSeen * 1000), 'MMM dd, HH:mm') : 'N/A'}</span>
+                            </div>
+                            {u.isAdmin ? (
+                              <ShieldAlert size={14} className="text-primary shrink-0" />
+                            ) : (
+                              <UserCheck size={14} className="text-muted-foreground shrink-0" />
+                            )}
                           </div>
-                          {u.isAdmin ? (
-                            <ShieldAlert size={14} className="text-primary shrink-0" />
-                          ) : (
-                            <UserCheck size={14} className="text-muted-foreground shrink-0" />
-                          )}
+                          
+                          <div className="pt-1 flex items-center gap-2">
+                            <Select 
+                              value={userBranches[u.uid] || 'NONE'} 
+                              onValueChange={(val) => handleSetBranch(u.uid, val)}
+                            >
+                              <SelectTrigger className="h-7 text-[9px] bg-background/50 border-primary/10">
+                                <div className="flex items-center gap-1.5">
+                                  <Building2 size={10} className="text-primary" />
+                                  <SelectValue placeholder="Assign Branch" />
+                                </div>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="NONE" className="text-[9px]">Unassigned</SelectItem>
+                                <SelectItem value="CDH" className="text-[9px]">CDH - Head Office</SelectItem>
+                                <SelectItem value="CDK" className="text-[9px]">CDK - Kadawatha Branch</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       ))}
                     </div>
