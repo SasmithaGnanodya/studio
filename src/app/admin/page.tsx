@@ -2,12 +2,12 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, deleteField, updateDoc } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2 } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -79,9 +79,10 @@ export default function AdminPage() {
   const [visibleReportsCount, setVisibleReportsCount] = useState(INITIAL_VISIBLE_REPORTS);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '1y'>('7d');
 
-  const [accessPassword, setAccessPassword] = useState('');
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-  const [userBranches, setUserBranches] = useState<Record<string, string>>({});
+  const [authorizedUsers, setAuthorizedUsers] = useState<Record<string, { branch: string, email: string }>>({});
+  const [newEmail, setNewEmail] = useState('');
+  const [newBranch, setNewBranch] = useState('CDH');
+  const [isAddingUser, setIsAddingUser] = useState(false);
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -101,42 +102,21 @@ export default function AdminPage() {
         setReports(fetched);
         setIsLoading(false);
       }, async (error) => {
-        const permissionError = new FirestorePermissionError({
-          path: 'reports',
-          operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'reports', operation: 'list' }));
       });
 
-      const branchesRef = doc(firestore, 'config', 'userBranches');
-      const unsubscribeBranches = onSnapshot(branchesRef, (snap) => {
+      const authRef = doc(firestore, 'config', 'authorizedUsers');
+      const unsubscribeAuth = onSnapshot(authRef, (snap) => {
         if (snap.exists()) {
-          setUserBranches(snap.data() as Record<string, string>);
+          setAuthorizedUsers(snap.data() as Record<string, { branch: string, email: string }>);
         }
       }, async (error) => {
-        const permissionError = new FirestorePermissionError({
-          path: branchesRef.path,
-          operation: 'get',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
-
-      const settingsRef = doc(firestore, 'config', 'settings');
-      getDoc(settingsRef).then(snap => {
-        if (snap.exists()) {
-          setAccessPassword(snap.data().privateDataPassword || '');
-        }
-      }).catch(error => {
-        const permissionError = new FirestorePermissionError({
-          path: settingsRef.path,
-          operation: 'get',
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: authRef.path, operation: 'get' }));
       });
 
       return () => {
         unsubscribeReports();
-        unsubscribeBranches();
+        unsubscribeAuth();
       };
     }
   }, [user, firestore, isUserLoading, router]);
@@ -188,63 +168,40 @@ export default function AdminPage() {
     return { reportsToday, chartData };
   }, [reports, timeRange]);
 
-  const activeUsers = useMemo(() => {
-    const userMap = new Map<string, { name: string, lastSeen: number }>();
-    reports.forEach(r => {
-      if (r.userId && r.userName) {
-        const current = userMap.get(r.userId);
-        const reportTime = r.updatedAt?.seconds || 0;
-        if (!current || reportTime > current.lastSeen) {
-          userMap.set(r.userId, { name: r.userName, lastSeen: reportTime });
-        }
-      }
-    });
-    return Array.from(userMap.entries()).map(([id, data]) => ({
-      uid: id,
-      name: data.name,
-      lastSeen: data.lastSeen,
-      isAdmin: ADMIN_EMAILS.some(email => data.name.includes(email))
-    })).sort((a, b) => b.lastSeen - a.lastSeen);
-  }, [reports]);
-
-  const handleUpdatePassword = async () => {
-    if (!firestore) return;
-    setIsUpdatingPassword(true);
+  const handleAddUser = async () => {
+    if (!firestore || !newEmail.includes('@')) {
+      toast({ variant: "destructive", title: "Invalid Input", description: "Please enter a valid email address." });
+      return;
+    }
+    setIsAddingUser(true);
     try {
-      await setDoc(doc(firestore, 'config', 'settings'), {
-        privateDataPassword: accessPassword
+      // Normalize email for field keys
+      const emailKey = newEmail.toLowerCase().replace(/[.@]/g, '_');
+      await setDoc(doc(firestore, 'config', 'authorizedUsers'), {
+        [emailKey]: {
+          email: newEmail.toLowerCase().trim(),
+          branch: newBranch
+        }
       }, { merge: true });
-      toast({
-        title: "Settings Updated",
-        description: "The global access password has been changed.",
-      });
+      
+      setNewEmail('');
+      toast({ title: "User Authorized", description: `${newEmail} has been granted access for ${newBranch === 'CDH' ? 'Head Office' : 'Kadawatha'}.` });
     } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: "Could not update the access password.",
-      });
+      toast({ variant: "destructive", title: "Action Failed", description: "Could not authorize user." });
     } finally {
-      setIsUpdatingPassword(false);
+      setIsAddingUser(false);
     }
   };
 
-  const handleSetBranch = async (userId: string, branchCode: string) => {
+  const handleRemoveUser = async (emailKey: string) => {
     if (!firestore) return;
     try {
-      await setDoc(doc(firestore, 'config', 'userBranches'), {
-        [userId]: branchCode
-      }, { merge: true });
-      toast({
-        title: "Branch Assigned",
-        description: `User successfully linked to ${branchCode === 'CDH' ? 'Head Office' : 'Kadawatha'}.`,
+      await updateDoc(doc(firestore, 'config', 'authorizedUsers'), {
+        [emailKey]: deleteField()
       });
+      toast({ title: "Access Revoked", description: "User has been removed from the system." });
     } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Assignment Failed",
-        description: "Could not update user branch information.",
-      });
+      toast({ variant: "destructive", title: "Action Failed", description: "Could not remove user access." });
     }
   };
 
@@ -459,99 +416,98 @@ export default function AdminPage() {
           <div className="space-y-6">
             <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-xl">
               <CardHeader>
-                <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <KeyRound className="text-primary" /> Security & Access Settings
+                <CardTitle className="text-lg font-bold flex items-center gap-2 text-primary">
+                  <UserPlus className="h-5 w-5" /> Grant Access
                 </CardTitle>
-                <CardDescription>Manage the global password for vehicle reports.</CardDescription>
+                <CardDescription>Authorize an email and assign a branch.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Global Access Password</label>
+                  <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Authorized Email</Label>
                   <div className="relative">
-                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
-                      type="text" 
-                      placeholder="Enter new password" 
-                      value={accessPassword} 
-                      onChange={(e) => setAccessPassword(e.target.value)} 
-                      className="pl-10 bg-background/50 border-primary/20"
+                      placeholder="e.g. user@caredrive.lk" 
+                      value={newEmail} 
+                      onChange={(e) => setNewEmail(e.target.value)} 
+                      className="pl-10 h-10 bg-background/50 border-primary/20"
                     />
                   </div>
-                  <p className="text-[10px] text-muted-foreground italic flex items-start gap-1.5 mt-2">
-                    <ShieldCheck size={12} className="text-primary shrink-0 mt-0.5" />
-                    This password is required for non-admin users to unlock and edit vehicle reports.
-                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Branch Designation</Label>
+                  <Select value={newBranch} onValueChange={setNewBranch}>
+                    <SelectTrigger className="bg-background/50 border-primary/20 h-10">
+                      <div className="flex items-center gap-2">
+                        <Building2 size={16} className="text-primary" />
+                        <SelectValue placeholder="Select Branch" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CDH">CDH - Head Office</SelectItem>
+                      <SelectItem value="CDK">CDK - Kadawatha Branch</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button 
-                  onClick={handleUpdatePassword} 
-                  disabled={isUpdatingPassword} 
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
+                  onClick={handleAddUser} 
+                  disabled={isAddingUser} 
+                  className="w-full bg-primary font-bold shadow-lg"
                 >
-                  {isUpdatingPassword ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</>
-                  ) : (
-                    "Save Access Password"
-                  )}
+                  {isAddingUser ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Authorizing...</> : "Authorize User"}
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-md">
-                <CardHeader>
+            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-md flex flex-col h-[500px]">
+                <CardHeader className="shrink-0">
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <Users className="h-4 w-4 text-primary" /> Active System Users
+                        <ShieldCheck className="h-4 w-4 text-primary" /> Access Registry
                     </CardTitle>
-                    <CardDescription className="text-[10px]">Assign branches to identified accounts.</CardDescription>
+                    <CardDescription className="text-[10px]">Managed list of authorized system users.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-                      {activeUsers.map(u => (
-                        <div key={u.uid} className="text-[10px] bg-muted/20 p-3 rounded-lg flex flex-col gap-2 border group hover:border-primary transition-colors">
-                          <div className="flex items-center justify-between">
-                            <div className="flex flex-col truncate pr-2">
-                              <span className="font-bold truncate text-[11px]">{u.name}</span>
-                              <span className="text-[8px] text-muted-foreground italic">Last seen: {u.lastSeen ? format(new Date(u.lastSeen * 1000), 'MMM dd, HH:mm') : 'N/A'}</span>
+                <CardContent className="p-0 flex-grow">
+                  <ScrollArea className="h-full px-4 pb-4">
+                    <div className="space-y-3">
+                      {Object.entries(authorizedUsers).map(([key, data]) => (
+                        <div key={key} className="bg-muted/20 p-3 rounded-lg border border-primary/5 group hover:border-primary/20 transition-all">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[11px] font-bold truncate text-foreground">{data.email}</span>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <Badge variant="outline" className="text-[8px] h-4 border-primary/20 bg-primary/5 text-primary">
+                                  {data.branch}
+                                </Badge>
+                                {ADMIN_EMAILS.includes(data.email) && (
+                                  <Badge className="text-[8px] h-4 bg-primary/20 text-primary border-0">ADMIN</Badge>
+                                )}
+                              </div>
                             </div>
-                            {u.isAdmin ? (
-                              <ShieldAlert size={14} className="text-primary shrink-0" />
-                            ) : (
-                              <UserCheck size={14} className="text-muted-foreground shrink-0" />
-                            )}
-                          </div>
-                          
-                          <div className="pt-1 flex items-center gap-2">
-                            <Select 
-                              value={userBranches[u.uid] || 'NONE'} 
-                              onValueChange={(val) => handleSetBranch(u.uid, val)}
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                              onClick={() => handleRemoveUser(key)}
+                              disabled={ADMIN_EMAILS.includes(data.email)} // Protected admins
                             >
-                              <SelectTrigger className="h-7 text-[9px] bg-background/50 border-primary/10">
-                                <div className="flex items-center gap-1.5">
-                                  <Building2 size={10} className="text-primary" />
-                                  <SelectValue placeholder="Assign Branch" />
-                                </div>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="NONE" className="text-[9px]">Unassigned</SelectItem>
-                                <SelectItem value="CDH" className="text-[9px]">CDH - Head Office</SelectItem>
-                                <SelectItem value="CDK" className="text-[9px]">CDK - Kadawatha Branch</SelectItem>
-                              </SelectContent>
-                            </Select>
+                              <Trash2 size={14} />
+                            </Button>
                           </div>
                         </div>
                       ))}
+                      {Object.keys(authorizedUsers).length === 0 && (
+                        <div className="text-center py-10 opacity-30 italic text-[10px]">
+                          No authorized users found.
+                        </div>
+                      )}
                     </div>
-                    <div className="pt-4 border-t mt-2">
-                        <CardTitle className="text-[10px] font-bold uppercase text-muted-foreground flex items-center gap-1.5 mb-2">
-                          <ShieldCheck size={12} className="text-primary" /> Master Admins
-                        </CardTitle>
-                        {ADMIN_EMAILS.map(email => (
-                          <div key={email} className="text-[10px] py-1 flex items-center justify-between opacity-80">
-                            <span className="truncate max-w-[150px]">{email}</span>
-                            <ShieldCheck size={10} className="text-primary shrink-0" />
-                          </div>
-                        ))}
-                    </div>
+                  </ScrollArea>
                 </CardContent>
+                <CardFooter className="p-4 border-t bg-muted/10 shrink-0">
+                  <div className="text-[9px] text-muted-foreground flex items-center gap-1.5 italic">
+                    <ShieldAlert size={10} className="text-primary" /> Admin emails are protected from removal.
+                  </div>
+                </CardFooter>
             </Card>
           </div>
         </div>

@@ -7,8 +7,8 @@ service cloud.firestore {
      * 
      * Core Philosophy: 
      * 1. Admin Access: Specific users (by email) have full access to all data.
-     * 2. User Ownership: Users can create and manage their own reports.
-     * 3. Config Access: Authenticated users can read app settings (like the password salt).
+     * 2. User Ownership: Authorized users can create and manage their own reports.
+     * 3. Access Control: Authorized users can read system configuration to verify access.
      */
 
     // --- Global Helper Functions ---
@@ -26,27 +26,20 @@ service cloud.firestore {
       );
     }
 
-    /** @description Checks if the authenticated user's UID matches the provided userId. */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    /** @description Checks if the user's email is authorized in the registry. */
+    function isAuthorizedUser() {
+      // Admins are always authorized. Others must be in the registry.
+      return isAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/config/authorizedUsers));
     }
 
     // --- Collection Rules ---
 
-    /**
-     * @description Rules for the main 'reports' collection.
-     * Reports are accessible by all authenticated users for search, 
-     * but only owners or admins can modify.
-     */
     match /reports/{reportId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn(); // Allow updates for report data and history tracking
+      allow read, create, update: if isAuthorizedUser();
       allow delete: if isAdmin();
 
       match /history/{historyId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn();
+        allow read, create: if isAuthorizedUser();
         allow update, delete: if isAdmin();
       }
     }
@@ -57,27 +50,18 @@ service cloud.firestore {
     }
 
     match /layouts/{layoutId} {
-      allow read: if isSignedIn();
+      allow read: if isAuthorizedUser();
       allow write: if isAdmin();
     }
 
     match /layouts/config {
-      allow read: if isSignedIn();
+      allow read: if isAuthorizedUser();
       allow write: if isAdmin();
     }
 
     match /users/{userId}/{allPaths=**} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
-
-    /**
-     * STORAGE RULES REFERENCE (Apply these in the Storage Tab)
-     * match /b/{bucket}/o {
-     *   match /report-images/{allPaths=**} {
-     *     allow read, write: if request.auth != null;
-     *   }
-     * }
-     */
 
     match /{path=**} {
       allow read, write: if false;

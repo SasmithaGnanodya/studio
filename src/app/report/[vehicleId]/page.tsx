@@ -7,61 +7,48 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Printer, Save, LockKeyhole, AlertTriangle, LayoutTemplate, RefreshCw, Hash } from 'lucide-react';
+import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, Hash, LogOut, ChevronLeft } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, collection, serverTimestamp, runTransaction, setDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, serverTimestamp, runTransaction, setDoc, onSnapshot } from 'firebase/firestore';
 import type { ImageData, Report, FieldLayout } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { numberToWords } from '@/lib/utils';
+import Link from 'next/link';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
-function PasswordGate({ onPasswordCorrect }: { onPasswordCorrect: () => void }) {
-  const { firestore } = useFirebase();
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    const settingsRef = doc(firestore, 'config', 'settings');
-    try {
-      const docSnap = await getDoc(settingsRef);
-      if (docSnap.exists() && docSnap.data().privateDataPassword === password) {
-        onPasswordCorrect();
-      } else {
-        setError('Incorrect password.');
-      }
-    } catch (err) {
-      setError('Failed to verify password.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+function UnauthorizedAccess() {
+  const { auth } = useFirebase();
   return (
     <div className="flex-1 flex items-center justify-center p-4">
-      <Card className="w-full max-sm:max-w-xs border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary"><LockKeyhole className="h-5 w-5" /> Secure Access</CardTitle>
-          <CardDescription>Enter password to unlock this report.</CardDescription>
+      <Card className="w-full max-w-md border-destructive/20 shadow-2xl bg-card/50 backdrop-blur-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+            <ShieldAlert className="h-10 w-10 text-destructive" />
+          </div>
+          <CardTitle className="text-2xl font-black tracking-tight text-foreground">Access Restricted</CardTitle>
+          <CardDescription className="text-base pt-2">
+            Your account is not authorized to access this technical environment.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <Input 
-              type="password" 
-              placeholder="Password"
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required
-            />
-            {error && <p className="text-sm text-destructive flex items-center gap-2"><AlertTriangle size={14} /> {error}</p>}
-            <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? 'Verifying...' : 'Unlock'}</Button>
-          </form>
+        <CardContent className="space-y-6 pt-2">
+          <div className="p-4 bg-muted/30 rounded-xl border border-dashed text-sm space-y-3">
+             <p className="font-medium text-muted-foreground italic">Contact a system administrator to request authorization for your email address.</p>
+             <div className="flex items-center gap-2 pt-2 border-t">
+               <Lock size={14} className="text-primary" />
+               <span className="text-xs font-bold uppercase tracking-widest text-primary">Security Protocol Active</span>
+             </div>
+          </div>
+          <div className="flex flex-col gap-3">
+             <Button asChild variant="outline" className="w-full h-12 font-bold gap-2">
+                <Link href="/"><ChevronLeft size={18} /> Back to Dashboard</Link>
+             </Button>
+             <Button onClick={() => auth.signOut()} variant="ghost" className="w-full text-muted-foreground hover:text-destructive">
+                <LogOut size={16} className="mr-2" /> Sign Out
+             </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -79,7 +66,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const [latestLayoutId, setLatestLayoutId] = useState<string | null>(null);
   
   const [isFilling, setIsFilling] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -89,7 +76,35 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const isAdmin = useMemo(() => user?.email && ADMIN_EMAILS.includes(user.email), [user]);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => { if (isAdmin) setIsAuthorized(true); }, [isAdmin]);
+  useEffect(() => {
+    if (!user || !firestore) {
+      if (!user) setIsAuthorized(false);
+      return;
+    }
+
+    if (isAdmin) {
+      setIsAuthorized(true);
+      return;
+    }
+
+    // Check authorization from registry
+    const authRef = doc(firestore, 'config', 'authorizedUsers');
+    const unsubscribe = onSnapshot(authRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        const emailKey = user.email?.toLowerCase().replace(/[.@]/g, '_') || '';
+        if (data[emailKey]) {
+          setIsAuthorized(true);
+        } else {
+          setIsAuthorized(false);
+        }
+      } else {
+        setIsAuthorized(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user, firestore, isAdmin]);
 
   useEffect(() => {
     if (isAuthorized) {
@@ -113,7 +128,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   }, [isAuthorized]);
 
   useEffect(() => {
-    if (!user || !firestore || !isAuthorized) return;
+    if (!user || !firestore || isAuthorized !== true) return;
 
     const fetchData = async () => {
       setIsLoading(true);
@@ -183,7 +198,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   };
 
   useEffect(() => {
-    if (!firestore || !isAuthorized || !user || isLoading) return;
+    if (!firestore || isAuthorized !== true || !user || isLoading) return;
 
     const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor', 'engnum', 'eng']);
     const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial', 'vin', 'chas']);
@@ -231,10 +246,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     setReportData(prev => {
       const updated = { ...prev, [fieldId]: value };
 
-      // PROFESSIONAL AUTO-FILL: Dynamically check layout for linked automation fields
       currentLayout.forEach(layoutField => {
         if (layoutField.autoFillSource === fieldId && layoutField.autoFillType === 'numberToWords' && typeof value === 'string') {
-          // Strip non-numeric characters for conversion
           const cleanVal = value.replace(/[^\d.]/g, ''); 
           const num = parseFloat(cleanVal);
           
@@ -344,7 +357,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     return { staticLabels: labels, dynamicValues: values, imageValues: images };
   }, [reportData, currentLayout]);
 
-  if (!isAuthorized) return <PasswordGate onPasswordCorrect={() => setIsAuthorized(true)} />;
+  if (isAuthorized === false) return <UnauthorizedAccess />;
+  if (isAuthorized === null) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/10">
