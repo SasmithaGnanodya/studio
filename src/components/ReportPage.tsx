@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -75,12 +74,24 @@ export const ReportPage = ({
     }
 
     const fieldIdLower = field.fieldId.toLowerCase();
-    const isSystemLocked = fieldIdLower === 'regnumber' || fieldIdLower === 'reportnumber';
+    // Strictly lock system fields: Registration, Report Number, and variations of Valuation ID
+    const isSystemLocked = 
+      fieldIdLower === 'regnumber' || 
+      fieldIdLower === 'reportnumber' || 
+      fieldIdLower === 'valuationcode' ||
+      fieldIdLower.includes('reportnum');
 
-    // If it's a locked system field, always render as static text even in editable mode
+    // If it's a locked system field, ALWAYS render as static text to prevent any typing or ring focus
     if (!isEditable || isSystemLocked) {
       return (
-        <div key={field.id} className="field font-mono z-10" style={style}>
+        <div 
+          key={field.id} 
+          className={cn(
+            "field font-mono z-10",
+            isSystemLocked && "select-none cursor-default"
+          )} 
+          style={style}
+        >
           {field.value}
         </div>
       );
@@ -124,7 +135,7 @@ export const ReportPage = ({
             value={field.value}
             onChange={handleInputChange}
             className={cn(
-              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-0 transition-all"
+              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-0 transition-all shadow-none ring-0"
             )}
             style={{ 
               fontSize: style.fontSize, 

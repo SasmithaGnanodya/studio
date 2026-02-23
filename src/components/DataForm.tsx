@@ -1,4 +1,3 @@
-
 // src/components/DataForm.tsx
 
 import React from 'react';
@@ -36,7 +35,12 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
             : (isDateField ? 'date' : (field.value.inputType || 'text'));
 
           const fieldIdLower = field.fieldId.toLowerCase();
-          const isSystemLocked = fieldIdLower === 'regnumber' || fieldIdLower === 'reportnumber';
+          // Lock system critical technical IDs from manual editing
+          const isSystemLocked = 
+            fieldIdLower === 'regnumber' || 
+            fieldIdLower === 'reportnumber' || 
+            fieldIdLower === 'valuationcode' ||
+            fieldIdLower.includes('reportnum');
 
           return (
             <div key={field.id} className="space-y-2">
@@ -73,6 +77,7 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
                     value={data[field.fieldId] || ''}
                     onChange={(e) => onDataChange(e.target.name, e.target.value)}
                     disabled={isSystemLocked}
+                    className={isSystemLocked ? "bg-muted/50 font-mono cursor-not-allowed" : ""}
                   />
                 )}
               </div>

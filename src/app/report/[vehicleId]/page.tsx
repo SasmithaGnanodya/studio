@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -246,7 +245,13 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   const handleDataChange = (fieldId: string, value: string | ImageData) => {
     const fieldIdLower = fieldId.toLowerCase();
-    if (fieldIdLower === 'reportnumber' || fieldIdLower === 'regnumber') return; // Read-only
+    // Strictly block manual updates to system-protected technical fields
+    if (
+      fieldIdLower === 'reportnumber' || 
+      fieldIdLower === 'regnumber' || 
+      fieldIdLower === 'valuationcode' ||
+      fieldIdLower.includes('reportnum')
+    ) return; 
 
     setReportData(prev => {
       const updated = { ...prev, [fieldId]: value };
@@ -280,7 +285,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const yearYY = nowObj.getFullYear().toString().slice(-2);
         const dayOfYear = getDayOfYear(nowObj);
         
-        // Map CDK to KDH for display ID if needed, otherwise use branch code
         const branchCode = userBranch || 'CDH';
         const displayBranch = branchCode === 'CDK' ? 'KDH' : branchCode;
         
@@ -299,7 +303,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const selectedOption = reportData['conditionScore'] || '';
         const weight = scoringField?.value?.optionWeights?.[selectedOption] || 0;
         
-        // Single digit score conversion
         const scoreDigit = weight >= 100 ? '1' : weight >= 75 ? '2' : weight >= 50 ? '3' : weight >= 25 ? '4' : '5';
         
         finalReportNumber = `${displayBranch}${yearYY}${dayOfYear}${scoreDigit}${sequenceNum}`;
@@ -307,7 +310,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
       const updatedReportData = {
         ...reportData,
-        reportNumber: finalReportNumber
+        reportNumber: finalReportNumber,
+        valuationCode: finalReportNumber // Keep both in sync for robust matching
       };
 
       await runTransaction(firestore, async (transaction) => {
