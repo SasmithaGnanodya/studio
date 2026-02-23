@@ -7,7 +7,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +23,7 @@ import { format, subDays, subMonths, isSameDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Bar, BarChart } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { cn } from '@/lib/utils';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 const INITIAL_VISIBLE_REPORTS = 12;
@@ -81,6 +82,7 @@ export default function AdminPage() {
   const [searchCategory, setSearchCategory] = useState('all');
   const [visibleReportsCount, setVisibleReportsCount] = useState(INITIAL_VISIBLE_REPORTS);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '1y'>('7d');
+  const [branchFilter, setBranchFilter] = useState<'all' | 'CDH' | 'CDK'>('all');
 
   const [authorizedUsers, setAuthorizedUsers] = useState<Record<string, { branch: string, email: string }>>({});
   const [newEmail, setNewEmail] = useState('');
@@ -124,11 +126,29 @@ export default function AdminPage() {
     }
   }, [user, firestore, isUserLoading, router]);
 
-  const uniqueReports = useMemo(() => getUniqueReports(reports), [reports]);
+  // Derive branch for each report based on the authorized users registry
+  const reportsWithBranch = useMemo(() => {
+    const emailToBranch: Record<string, string> = {};
+    Object.values(authorizedUsers).forEach(u => {
+      emailToBranch[u.email.toLowerCase()] = u.branch;
+    });
+
+    return reports.map(r => ({
+      ...r,
+      branch: emailToBranch[r.userName?.toLowerCase() || ''] || 'Unknown'
+    }));
+  }, [reports, authorizedUsers]);
+
+  const filteredReportsByBranch = useMemo(() => {
+    if (branchFilter === 'all') return reportsWithBranch;
+    return reportsWithBranch.filter(r => r.branch === branchFilter);
+  }, [reportsWithBranch, branchFilter]);
+
+  const uniqueReports = useMemo(() => getUniqueReports(filteredReportsByBranch), [filteredReportsByBranch]);
 
   const stats = useMemo(() => {
     const today = new Date();
-    const reportsToday = reports.filter(r => {
+    const reportsToday = filteredReportsByBranch.filter(r => {
       if (!r.updatedAt?.seconds) return false;
       return isSameDay(new Date(r.updatedAt.seconds * 1000), today);
     }).length;
@@ -139,7 +159,7 @@ export default function AdminPage() {
       chartData = [...Array(7)].map((_, i) => {
         const d = subDays(today, 6 - i);
         const dayStr = format(d, 'MMM dd');
-        const count = reports.filter(r => {
+        const count = filteredReportsByBranch.filter(r => {
           if (!r.updatedAt?.seconds) return false;
           return isSameDay(new Date(r.updatedAt.seconds * 1000), d);
         }).length;
@@ -149,7 +169,7 @@ export default function AdminPage() {
       chartData = [...Array(30)].map((_, i) => {
         const d = subDays(today, 29 - i);
         const dayStr = format(d, 'MMM dd');
-        const count = reports.filter(r => {
+        const count = filteredReportsByBranch.filter(r => {
           if (!r.updatedAt?.seconds) return false;
           return isSameDay(new Date(r.updatedAt.seconds * 1000), d);
         }).length;
@@ -159,7 +179,7 @@ export default function AdminPage() {
       chartData = [...Array(12)].map((_, i) => {
         const d = subMonths(today, 11 - i);
         const monthStr = format(d, 'MMM');
-        const count = reports.filter(r => {
+        const count = filteredReportsByBranch.filter(r => {
           if (!r.updatedAt?.seconds) return false;
           const reportDate = new Date(r.updatedAt.seconds * 1000);
           return reportDate.getMonth() === d.getMonth() && reportDate.getFullYear() === d.getFullYear();
@@ -169,7 +189,7 @@ export default function AdminPage() {
     }
 
     return { reportsToday, chartData };
-  }, [reports, timeRange]);
+  }, [filteredReportsByBranch, timeRange]);
 
   const handleAddUser = async () => {
     if (!firestore || !newEmail.includes('@')) {
@@ -178,7 +198,6 @@ export default function AdminPage() {
     }
     setIsAddingUser(true);
     try {
-      // Normalize email for field keys
       const emailKey = newEmail.toLowerCase().replace(/[.@]/g, '_');
       await setDoc(doc(firestore, 'config', 'authorizedUsers'), {
         [emailKey]: {
@@ -208,7 +227,8 @@ export default function AdminPage() {
     }
   };
 
-  const filteredReports = useMemo(() => {
+  const filteredReportsList = useMemo(() => {
+    // Note: The searchable list uses the global uniqueReports set (which respects the branch filter)
     if (!searchTerm || searchTerm.trim().length === 0) return uniqueReports;
     const term = searchTerm.toUpperCase().trim();
     return uniqueReports.filter(report => {
@@ -238,6 +258,21 @@ export default function AdminPage() {
       <Header />
       <main className="flex-1 p-6 space-y-6">
         
+        {/* Branch Switcher for Stats */}
+        <div className="flex items-center justify-between gap-4 bg-card/30 backdrop-blur-sm border border-primary/10 p-2 rounded-xl">
+           <div className="flex items-center gap-3 pl-2">
+              <Globe className="h-4 w-4 text-primary" />
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Stats Visibility</span>
+           </div>
+           <Tabs value={branchFilter} onValueChange={(v) => setBranchFilter(v as any)} className="h-9">
+              <TabsList className="bg-background/50 h-9 p-1">
+                <TabsTrigger value="all" className="text-[10px] px-4 h-7 uppercase font-black">Global View</TabsTrigger>
+                <TabsTrigger value="CDH" className="text-[10px] px-4 h-7 uppercase font-black">Head Office (CDH)</TabsTrigger>
+                <TabsTrigger value="CDK" className="text-[10px] px-4 h-7 uppercase font-black">Kadawatha (CDK)</TabsTrigger>
+              </TabsList>
+           </Tabs>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
           <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative min-h-[140px]">
             <div className="absolute top-0 right-0 p-3 opacity-10">
@@ -249,7 +284,7 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                <TrendingUp size={10} className="text-green-500" /> Active Database
+                <TrendingUp size={10} className="text-green-500" /> {branchFilter === 'all' ? 'Active Database' : `${branchFilter} Records`}
               </p>
             </CardContent>
           </Card>
@@ -260,7 +295,7 @@ export default function AdminPage() {
             </div>
             <CardHeader className="pb-2">
               <CardDescription className="text-[10px] font-bold uppercase tracking-wider">Total Syncs</CardDescription>
-              <CardTitle className="text-3xl font-black text-primary">{reports.length}</CardTitle>
+              <CardTitle className="text-3xl font-black text-primary">{filteredReportsByBranch.length}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -287,7 +322,7 @@ export default function AdminPage() {
           <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg relative min-h-[140px] overflow-hidden">
             <CardHeader className="pb-0 pt-4 flex flex-row items-center justify-between">
               <div>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-wider">System Activity</CardDescription>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-wider">Activity Trend</CardDescription>
               </div>
               <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as any)} className="h-6">
                 <TabsList className="bg-muted/50 h-6 p-0.5">
@@ -361,14 +396,16 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent className="pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredReports.slice(0, visibleReportsCount).map(report => {
+                {filteredReportsList.slice(0, visibleReportsCount).map(report => {
                   const ids = getIdentifiers(report);
                   return (
                     <Card key={report.id} className="group border flex flex-col hover:border-primary transition-all bg-card/40 backdrop-blur-md shadow-md overflow-hidden h-full">
                       <CardHeader className="pb-3 bg-muted/20 border-b">
                         <div className="flex justify-between items-center">
                           <CardTitle className="font-mono text-primary group-hover:underline text-lg">{report.vehicleId}</CardTitle>
-                          <div className="text-[10px] bg-primary/5 text-primary border border-primary/20 px-2 py-0.5 rounded font-mono">#{ids.reportNum}</div>
+                          <Badge variant="outline" className="text-[8px] h-4 border-primary/20 bg-primary/5 text-primary">
+                            {(report as any).branch || 'Unknown'}
+                          </Badge>
                         </div>
                         <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1.5 pt-1">
                           <CalendarIcon size={12} className="text-primary" /> {ids.date}
@@ -406,7 +443,7 @@ export default function AdminPage() {
                   );
                 })}
               </div>
-              {filteredReports.length > visibleReportsCount && (
+              {filteredReportsList.length > visibleReportsCount && (
                 <div className="mt-8 text-center">
                   <Button onClick={() => setVisibleReportsCount(p => p + 12)} variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
                     Show More Records
