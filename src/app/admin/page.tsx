@@ -87,6 +87,7 @@ export default function AdminPage() {
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDeletingReportId, setIsDeletingReportId] = useState<string | null>(null);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -294,6 +295,7 @@ export default function AdminPage() {
       });
     } finally {
       setIsDeletingReportId(null);
+      setDeleteConfirmationText('');
     }
   };
 
@@ -587,7 +589,7 @@ export default function AdminPage() {
                             </Button>
                           </Link>
                           
-                          <AlertDialog>
+                          <AlertDialog onOpenChange={(open) => { if (!open) setDeleteConfirmationText(''); }}>
                             <AlertDialogTrigger asChild>
                               <Button 
                                 variant="ghost" 
@@ -612,6 +614,15 @@ export default function AdminPage() {
                                         This action cannot be undone. This will permanently delete the valuation report and remove all technical history from our servers.
                                       </p>
                                     </div>
+                                    <div className="space-y-2 mt-4 text-left">
+                                      <Label className="text-[10px] font-bold uppercase tracking-widest text-foreground">Type "delete report" to confirm</Label>
+                                      <Input 
+                                        value={deleteConfirmationText}
+                                        onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                                        placeholder="Type phrase here..."
+                                        className="border-destructive/30 focus:border-destructive h-10 bg-background"
+                                      />
+                                    </div>
                                   </div>
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
@@ -619,6 +630,7 @@ export default function AdminPage() {
                                 <AlertDialogCancel className="font-bold">Cancel</AlertDialogCancel>
                                 <AlertDialogAction 
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-black"
+                                  disabled={deleteConfirmationText.toLowerCase() !== 'delete report'}
                                   onClick={() => handleDeleteReport(report.id)}
                                 >
                                   Confirm Delete
