@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -78,7 +77,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const isAdmin = useMemo(() => user?.email && ADMIN_EMAILS.includes(user.email), [user]);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Set document title for printing naming
+  // Set document title for printing naming - Sensitive to issued report number
   useEffect(() => {
     if (reportData.reportNumber && reportData.reportNumber !== "V-PENDING") {
       document.title = `${reportData.reportNumber} - ${vehicleId}`;

@@ -2,7 +2,6 @@ import type { FieldLayout, ImageData } from './types';
 
 export const initialReportState: { [key: string]: any } = {
   reportNumber: "V-PENDING",
-  valuationCode: "", // System generated on save
   date: "", // To be filled on client to avoid hydration mismatch
   inspectionLocation: "Colombo",
   regNumber: "",
