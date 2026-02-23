@@ -1,11 +1,11 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, Lock, Unlock, Palette, Type, PlusCircle } from 'lucide-react';
+import { Trash, X, Lock, Unlock, Palette, Type, PlusCircle, AlertTriangle } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
@@ -15,6 +15,15 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -27,6 +36,8 @@ type EditorSidebarProps = {
 const PROTECTED_FIELDS = ['regNumber', 'engineNumber', 'chassisNumber', 'reportNumber', 'date'];
 
 export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFieldIds = [] }: EditorSidebarProps) => {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const isSystemMandatory = PROTECTED_FIELDS.includes(field.fieldId) || 
                             PROTECTED_FIELDS.some(id => id.toLowerCase() === field.fieldId.toLowerCase().trim());
@@ -447,9 +458,59 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                 Close
             </Button>
             {!isLocked && (
-                <Button variant="destructive" size="sm" onClick={() => onDelete(field.id)} className="text-[10px] font-black uppercase tracking-widest h-9 px-4">
+                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    onClick={() => {
+                      setDeleteConfirmText("");
+                      setIsDeleteDialogOpen(true);
+                    }} 
+                    className="text-[10px] font-black uppercase tracking-widest h-9 px-4"
+                  >
                     <Trash className="mr-2 h-3.5 w-3.5" /> Delete
-                </Button>
+                  </Button>
+                  <AlertDialogContent className="border-2 border-destructive/20 shadow-2xl">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-destructive flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5" /> Structural Integrity Warning
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="space-y-4">
+                        <div className="p-4 bg-destructive/5 border border-destructive/10 rounded-lg">
+                          <p className="font-bold text-destructive text-sm leading-tight">
+                            "If you Delete some option without asking developer system may be crash"
+                          </p>
+                        </div>
+                        <p className="text-xs text-muted-foreground italic">
+                          Deleting layout fields can break database indexing logic and historical report rendering.
+                        </p>
+                        <div className="space-y-2 mt-4 text-left">
+                          <Label className="text-[10px] font-bold uppercase tracking-widest text-foreground">Type "delete" to confirm</Label>
+                          <Input 
+                            value={deleteConfirmText}
+                            onChange={(e) => setDeleteConfirmText(e.target.value.toLowerCase())}
+                            placeholder="Type word here..."
+                            className="border-destructive/30 focus:border-destructive h-10 bg-background"
+                          />
+                        </div>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-6">
+                      <AlertDialogCancel className="font-bold">Cancel Action</AlertDialogCancel>
+                      <Button 
+                        variant="destructive" 
+                        className="font-black"
+                        disabled={deleteConfirmText !== 'delete'}
+                        onClick={() => {
+                          onDelete(field.id);
+                          setIsDeleteDialogOpen(false);
+                        }}
+                      >
+                        I Understand, Delete
+                      </Button>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
             )}
             {isLocked && (
                 <TooltipProvider>
