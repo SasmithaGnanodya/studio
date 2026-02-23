@@ -648,17 +648,6 @@ export default function AdminPage() {
                               <span className="font-black text-foreground">{userRegistryStats[key]?.total || 0}</span>
                             </div>
                           </div>
-
-                          <div className="h-12 w-full mt-3 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <ChartContainer 
-                              config={{ count: { label: "Performance", color: "hsl(var(--primary))" } }} 
-                              className="h-full w-full"
-                            >
-                              <BarChart data={userRegistryStats[key]?.history || []}>
-                                <Bar dataKey="count" fill="var(--color-count)" radius={[1, 1, 0, 0]} />
-                              </BarChart>
-                            </ChartContainer>
-                          </div>
                         </div>
                       ))}
                       {Object.keys(authorizedUsers).length === 0 && (
