@@ -89,13 +89,13 @@
     position: relative;
     margin: 0 auto;
     overflow: hidden;
-    font-family: 'Arial Narrow', sans-serif;
+    font-family: 'Calibri', 'Candara', 'Segoe', 'Segoe UI', 'Optima', 'Arial', sans-serif;
     color: #000;
   }
 
   .field {
     position: absolute;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Calibri', 'Candara', 'Segoe', 'Segoe UI', 'Optima', 'Arial', sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;

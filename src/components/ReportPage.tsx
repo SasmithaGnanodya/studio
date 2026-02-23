@@ -89,7 +89,7 @@ export const ReportPage = ({
         <div 
           key={field.id} 
           className={cn(
-            "field font-mono z-10",
+            "field z-10",
             !isEditable && "pointer-events-none",
             isSystemLocked && "select-none cursor-default"
           )} 
@@ -141,7 +141,7 @@ export const ReportPage = ({
               value={field.value}
               onChange={handleInputChange}
               className={cn(
-                "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-1 transition-all shadow-none ring-0"
+                "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary text-center p-1 transition-all shadow-none ring-0"
               )}
               style={{ 
                 fontSize: style.fontSize, 
@@ -161,7 +161,7 @@ export const ReportPage = ({
             value={field.value}
             onChange={handleInputChange}
             className={cn(
-              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-0 transition-all shadow-none ring-0"
+              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary text-center p-0 transition-all shadow-none ring-0"
             )}
             style={{ 
               fontSize: style.fontSize, 
@@ -174,7 +174,7 @@ export const ReportPage = ({
             value={field.value}
             onChange={handleInputChange}
             className={cn(
-              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-1 transition-all shadow-none ring-0 resize-none overflow-hidden min-h-0"
+              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary text-center p-1 transition-all shadow-none ring-0 resize-none overflow-hidden min-h-0"
             )}
             style={{ 
               fontSize: style.fontSize, 
