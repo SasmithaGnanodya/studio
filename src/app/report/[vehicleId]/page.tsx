@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -77,6 +78,15 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const isAdmin = useMemo(() => user?.email && ADMIN_EMAILS.includes(user.email), [user]);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Set document title for printing naming
+  useEffect(() => {
+    if (reportData.reportNumber && reportData.reportNumber !== "V-PENDING") {
+      document.title = `${reportData.reportNumber} - ${vehicleId}`;
+    } else {
+      document.title = `Draft - ${vehicleId}`;
+    }
+  }, [reportData.reportNumber, vehicleId]);
+
   useEffect(() => {
     if (!user || !firestore) {
       if (!user) setIsAuthorized(false);
@@ -88,7 +98,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       return;
     }
 
-    // Check authorization from registry
     const authRef = doc(firestore, 'config', 'authorizedUsers');
     const unsubscribe = onSnapshot(authRef, (snap) => {
       if (snap.exists()) {
@@ -111,19 +120,10 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   useEffect(() => {
     if (isAuthorized) {
       setReportData(prev => {
-        const needsReportNum = prev.reportNumber === "V-PENDING" || !prev.reportNumber;
-        const needsDate = !prev.date;
-        
-        if (!needsReportNum && !needsDate) return prev;
-
+        if (prev.date) return prev;
         return {
           ...prev,
-          reportNumber: needsReportNum 
-            ? "V" + Math.floor(1000 + Math.random() * 9000) 
-            : prev.reportNumber,
-          date: needsDate 
-            ? new Date().toLocaleDateString('en-CA') 
-            : prev.date
+          date: new Date().toLocaleDateString('en-CA') 
         };
       });
     }
@@ -151,8 +151,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         setReportData(prev => ({ 
           ...prev, 
           ...report.reportData, 
-          regNumber: vehicleId,
-          reportNumber: (report.reportData?.reportNumber || prev.reportNumber)
+          regNumber: vehicleId
         }));
         
         const layoutToLoad = latestId || report.layoutId;
@@ -269,30 +268,32 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     if (!user || !firestore) return;
 
     try {
-      // 1. Calculate Sequential Number for the specific branch
+      let finalReportNumber = reportData.reportNumber;
       const branchCode = userBranch || 'CDH';
-      const reportsRef = collection(firestore, 'reports');
-      const branchQuery = query(reportsRef, where('branch', '==', branchCode));
-      const branchSnap = await getDocs(branchQuery);
-      const sequenceNum = (branchSnap.size + 1).toString().padStart(3, '0');
 
-      // 2. Generate System Valuation Code
-      const nowObj = new Date();
-      const yearYY = nowObj.getFullYear().toString().slice(-2);
-      const dayOfYear = getDayOfYear(nowObj);
-      
-      const scoringField = currentLayout.find(f => f.fieldId === 'conditionScore');
-      const selectedOption = reportData['conditionScore'] || '';
-      const weight = scoringField?.value?.optionWeights?.[selectedOption] || 0;
-      
-      // Score digit: Map weight 0-100 to 1-digit code (e.g. 100 -> 1, 75 -> 2, etc.)
-      const scoreDigit = weight >= 100 ? '1' : weight >= 75 ? '2' : weight >= 50 ? '3' : weight >= 25 ? '4' : '5';
-      
-      const systemValuationCode = `${branchCode}${yearYY}${dayOfYear}${scoreDigit}${sequenceNum}`;
-      
+      // Only generate a new report number if it's currently a draft or invalid
+      if (!finalReportNumber || finalReportNumber === "V-PENDING" || finalReportNumber.startsWith("V-")) {
+        const reportsRef = collection(firestore, 'reports');
+        const branchQuery = query(reportsRef, where('branch', '==', branchCode));
+        const branchSnap = await getDocs(branchQuery);
+        const sequenceNum = (branchSnap.size + 1).toString().padStart(3, '0');
+
+        const nowObj = new Date();
+        const yearYY = nowObj.getFullYear().toString().slice(-2);
+        const dayOfYear = getDayOfYear(nowObj);
+        
+        const scoringField = currentLayout.find(f => f.fieldId === 'conditionScore');
+        const selectedOption = reportData['conditionScore'] || '';
+        const weight = scoringField?.value?.optionWeights?.[selectedOption] || 0;
+        
+        const scoreDigit = weight >= 100 ? '1' : weight >= 75 ? '2' : weight >= 50 ? '3' : weight >= 25 ? '4' : '5';
+        
+        finalReportNumber = `${branchCode}${yearYY}${dayOfYear}${scoreDigit}${sequenceNum}`;
+      }
+
       const updatedReportData = {
         ...reportData,
-        valuationCode: systemValuationCode
+        reportNumber: finalReportNumber
       };
 
       await runTransaction(firestore, async (transaction) => {
@@ -303,7 +304,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
         const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor', 'engnum', 'eng']);
         const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial', 'vin', 'chas']);
-        const reportNumVal = findIdentifier(['reportNumber', 'reportNo', 'reportnum', 'ref', 'val', 'v-', 'valuation', 'id']);
         const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate', 'inspectedOn']);
 
         const reportHeaderData = {
@@ -311,7 +311,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           branch: branchCode,
           engineNumber: String(engineVal || '').toUpperCase().trim(),
           chassisNumber: String(chassisVal || '').toUpperCase().trim(),
-          reportNumber: String(reportNumVal || '').toUpperCase().trim(),
+          reportNumber: finalReportNumber,
           reportDate: String(dateVal || ''),
           userId: user.uid,
           userName: user.displayName || user.email,
@@ -342,7 +342,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       });
       
       setReportData(updatedReportData);
-      toast({ title: "Success", description: `Report saved. Valuation ID: ${systemValuationCode}` });
+      toast({ title: "Success", description: `Report saved as ${finalReportNumber}` });
     } catch (e) {
       console.error(e);
       toast({ variant: "destructive", title: "Error", description: "Failed to save report." });
