@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -528,7 +527,7 @@ export default function AdminPage() {
                 >
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={histogramData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                      <CartGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
                       <XAxis 
                         dataKey="name" 
                         axisLine={false} 
