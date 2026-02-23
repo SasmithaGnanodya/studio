@@ -17,6 +17,7 @@ import { Separator } from './ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -285,19 +286,28 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                           }}
                         />
                         {data.inputType === 'dropdown' && (
-                          <Input 
-                            placeholder="Val" 
-                            type="number"
-                            value={data.optionWeights?.[opt] ?? ''} 
-                            className="h-8 w-14 text-[10px]"
-                            onChange={(e) => {
-                              const newWeights = { ...(data.optionWeights || {}) };
-                              const val = parseFloat(e.target.value);
-                              if (isNaN(val)) delete newWeights[opt];
-                              else newWeights[opt] = val;
-                              updateOptions(part, data.options || [], newWeights);
-                            }}
-                          />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Input 
+                                  placeholder="Val" 
+                                  type="number"
+                                  value={data.optionWeights?.[opt] ?? ''} 
+                                  className="h-8 w-14 text-[10px] bg-primary/5 border-primary/20 focus:ring-1 focus:ring-primary"
+                                  onChange={(e) => {
+                                    const newWeights = { ...(data.optionWeights || {}) };
+                                    const val = parseFloat(e.target.value);
+                                    if (isNaN(val)) delete newWeights[opt];
+                                    else newWeights[opt] = val;
+                                    updateOptions(part, data.options || [], newWeights);
+                                  }}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="bg-primary text-primary-foreground">
+                                <p className="text-[10px] font-bold">Valuation Code Calculation Value</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                         <Button 
                           variant="ghost" 
@@ -329,7 +339,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                   
                   <p className="text-[9px] text-muted-foreground italic leading-tight">
                     {data.inputType === 'dropdown' 
-                      ? "The Name appears to the user. The Value (optional) is used for technical scoring."
+                      ? "Values used for Valuation Code (9th digit): 100=1, 75=2, 50=3, 25=4. Default=5."
                       : "Add pre-defined words or sentences that will appear as suggestions while typing."
                     }
                   </p>
