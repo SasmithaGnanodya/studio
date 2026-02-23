@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -7,7 +8,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -143,12 +144,18 @@ export default function AdminPage() {
   const uniqueReports = useMemo(() => getUniqueReports(filteredReportsByBranch), [filteredReportsByBranch]);
 
   const userRegistryStats = useMemo(() => {
-    const stats: Record<string, { total: number, today: number }> = {};
+    const stats: Record<string, { total: number, today: number, history: { day: string, count: number }[] }> = {};
     const today = new Date();
+    const last7DaysStrings = [...Array(7)].map((_, i) => format(subDays(today, 6 - i), 'MM/dd'));
 
     const emailToKey: Record<string, string> = {};
     Object.entries(authorizedUsers).forEach(([key, data]) => {
       emailToKey[data.email.toLowerCase()] = key;
+      stats[key] = { 
+        total: 0, 
+        today: 0, 
+        history: last7DaysStrings.map(d => ({ day: d, count: 0 }))
+      };
     });
 
     reports.forEach(r => {
@@ -158,12 +165,19 @@ export default function AdminPage() {
       const key = emailToKey[email.toLowerCase()];
       if (!key) return;
 
-      if (!stats[key]) stats[key] = { total: 0, today: 0 };
       stats[key].total += 1;
 
       const updateDate = r.updatedAt?.seconds ? new Date(r.updatedAt.seconds * 1000) : null;
-      if (updateDate && isSameDay(updateDate, today)) {
-        stats[key].today += 1;
+      if (updateDate) {
+        if (isSameDay(updateDate, today)) {
+          stats[key].today += 1;
+        }
+        
+        const dayStr = format(updateDate, 'MM/dd');
+        const historyItem = stats[key].history.find(h => h.day === dayStr);
+        if (historyItem) {
+          historyItem.count += 1;
+        }
       }
     });
 
@@ -526,7 +540,7 @@ export default function AdminPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-md flex flex-col h-[500px]">
+            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-md flex flex-col h-[600px]">
                 <CardHeader className="shrink-0">
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
                         <ShieldCheck className="h-4 w-4 text-primary" /> Access Registry
@@ -537,7 +551,7 @@ export default function AdminPage() {
                   <ScrollArea className="h-full px-4 pb-4">
                     <div className="space-y-3">
                       {Object.entries(authorizedUsers).map(([key, data]) => (
-                        <div key={key} className="bg-muted/20 p-3 rounded-lg border border-primary/5 group hover:border-primary/20 transition-all">
+                        <div key={key} className="bg-muted/20 p-3 rounded-lg border border-primary/5 group hover:border-primary/20 transition-all flex flex-col">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex flex-col min-w-0">
                               <span className="text-[11px] font-bold truncate text-foreground">{data.email}</span>
@@ -561,15 +575,30 @@ export default function AdminPage() {
                             </Button>
                           </div>
                           
-                          <div className="flex items-center gap-4 text-[10px] mt-2 pt-2 border-t border-primary/5">
+                          <div className="grid grid-cols-2 gap-4 text-[10px] mt-2 pt-2 border-t border-primary/5">
                             <div className="flex flex-col">
-                              <span className="text-muted-foreground uppercase font-bold text-[8px]">Daily</span>
+                              <span className="text-muted-foreground uppercase font-bold text-[8px] flex items-center gap-1">
+                                <Zap size={8} className="text-primary" /> Daily
+                              </span>
                               <span className="font-black text-primary">{userRegistryStats[key]?.today || 0}</span>
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-muted-foreground uppercase font-bold text-[8px]">Overall</span>
+                              <span className="text-muted-foreground uppercase font-bold text-[8px] flex items-center gap-1">
+                                <Activity size={8} className="text-primary" /> Overall
+                              </span>
                               <span className="font-black text-foreground">{userRegistryStats[key]?.total || 0}</span>
                             </div>
+                          </div>
+
+                          <div className="h-12 w-full mt-3 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <ChartContainer 
+                              config={{ count: { label: "Performance", color: "hsl(var(--primary))" } }} 
+                              className="h-full w-full"
+                            >
+                              <BarChart data={userRegistryStats[key]?.history || []}>
+                                <Bar dataKey="count" fill="var(--color-count)" radius={[1, 1, 0, 0]} />
+                              </BarChart>
+                            </ChartContainer>
                           </div>
                         </div>
                       ))}
