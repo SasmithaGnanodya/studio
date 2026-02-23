@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -278,19 +279,21 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     if (!user || !firestore) return;
 
     try {
+      const nowObj = new Date();
+      const yearYY = nowObj.getFullYear().toString().slice(-2);
+      const dayOfYear = getDayOfYear(nowObj);
+      const todayDateCode = `${yearYY}${dayOfYear}`;
+      const dateVal = nowObj.toLocaleDateString('en-CA');
+
       let finalReportNumber = reportData.reportNumber;
       const isIssued = /^[A-Z]{3}\d{9}$/.test(finalReportNumber || '');
+      const issuedDateCode = isIssued ? finalReportNumber.substring(3, 8) : null;
 
-      if (!isIssued) {
-        const nowObj = new Date();
-        const yearYY = nowObj.getFullYear().toString().slice(-2);
-        const dayOfYear = getDayOfYear(nowObj);
-        
+      // Logic: Generate new code if not issued OR if issued for a different day
+      if (!isIssued || issuedDateCode !== todayDateCode) {
         const branchCode = userBranch || 'CDH';
-        const displayBranch = branchCode; // Removed KDH mapping - use branch code directly
+        const displayBranch = branchCode;
         
-        const dateVal = new Date().toLocaleDateString('en-CA');
-
         const reportsRef = collection(firestore, 'reports');
         const q = query(
           reportsRef, 
@@ -306,13 +309,14 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         
         const scoreDigit = weight >= 100 ? '1' : weight >= 75 ? '2' : weight >= 50 ? '3' : weight >= 25 ? '4' : '5';
         
-        finalReportNumber = `${displayBranch}${yearYY}${dayOfYear}${scoreDigit}${sequenceNum}`;
+        finalReportNumber = `${displayBranch}${todayDateCode}${scoreDigit}${sequenceNum}`;
       }
 
       const updatedReportData = {
         ...reportData,
         reportNumber: finalReportNumber,
-        valuationCode: finalReportNumber // Keep both in sync for robust matching
+        valuationCode: finalReportNumber,
+        date: dateVal // Ensure document date matches issued date
       };
 
       await runTransaction(firestore, async (transaction) => {
@@ -323,7 +327,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
         const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor', 'engnum', 'eng']);
         const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial', 'vin', 'chas']);
-        const dateVal = findIdentifier(['date', 'reportDate', 'inspectionDate', 'inspectedOn']);
 
         const reportHeaderData = {
           vehicleId: vehicleId,
@@ -331,7 +334,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           engineNumber: String(engineVal || '').toUpperCase().trim(),
           chassisNumber: String(chassisVal || '').toUpperCase().trim(),
           reportNumber: finalReportNumber,
-          reportDate: String(dateVal || ''),
+          reportDate: dateVal,
           userId: user.uid,
           userEmail: user.email,
           userName: user.displayName || user.email,
