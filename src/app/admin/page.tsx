@@ -520,8 +520,8 @@ export default function AdminPage() {
               <CardContent className="pt-2 h-[350px]">
                 <ChartContainer 
                   config={{ 
-                    total: { label: "Total Reports", color: "hsl(var(--primary))" },
-                    today: { label: "Today's Updates", color: "hsl(var(--accent))" } 
+                    total: { label: "Total Reports", color: "#4682B4" },
+                    today: { label: "Today's Updates", color: "#87CEEB" } 
                   }} 
                   className="h-full w-full"
                 >
