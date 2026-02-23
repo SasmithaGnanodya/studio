@@ -1,11 +1,10 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Save, PlusCircle, Image as ImageIcon, Type, LayoutTemplate, Wand2, Hash } from 'lucide-react';
+import { Save, PlusCircle, Image as ImageIcon, Type, LayoutTemplate, Wand2, Hash, Calculator } from 'lucide-react';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
@@ -36,6 +35,7 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
       fontSize: 12,
       inputType: 'text',
       options: [],
+      optionWeights: {},
       objectFit: 'cover',
     };
   
@@ -54,6 +54,7 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
       fontSize: part.fontSize ?? defaults.fontSize,
       inputType: part.inputType ?? defaults.inputType,
       options: Array.isArray(part.options) ? part.options : defaults.options,
+      optionWeights: part.optionWeights ?? defaults.optionWeights,
       objectFit: part.objectFit ?? defaults.objectFit,
     };
 };
@@ -150,7 +151,7 @@ export default function EditorPage() {
     setSelectedFieldId(baseId);
   };
   
-  const handleAddNewField = (type: 'text' | 'image' | 'staticText' | 'wordConverter' | 'inputOnly') => {
+  const handleAddNewField = (type: 'text' | 'image' | 'staticText' | 'wordConverter' | 'inputOnly' | 'scoringField') => {
     const timestamp = Date.now();
     const newId = `${type}_${timestamp}`;
     
@@ -171,6 +172,23 @@ export default function EditorPage() {
         fieldType: 'text',
         label: { text: '', x: 10, y: 10, width: 20, height: 5, isBold: false, color: '#000000', fontSize: 10 },
         value: { text: 'newInput', x: 10, y: 10, width: 60, height: 8, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
+      };
+      setFields(prev => [...prev, newField]);
+      setSelectedFieldId(newId);
+    } else if (type === 'scoringField') {
+      const newField: FieldLayout = {
+        id: newId,
+        fieldId: 'conditionScore',
+        fieldType: 'text',
+        label: { text: 'Technical Grade:', x: 10, y: 30, width: 40, height: 5, isBold: true, color: '#000000', fontSize: 10 },
+        value: { 
+          text: 'Excellent', 
+          x: 50, y: 30, width: 60, height: 8, isBold: true, color: '#000000', 
+          inputType: 'dropdown', 
+          options: ['Excellent', 'Good', 'Fair', 'Poor'],
+          optionWeights: { 'Excellent': 100, 'Good': 75, 'Fair': 50, 'Poor': 25 },
+          fontSize: 12 
+        },
       };
       setFields(prev => [...prev, newField]);
       setSelectedFieldId(newId);
@@ -395,6 +413,9 @@ export default function EditorPage() {
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('inputOnly')}><Hash className="mr-2 h-4 w-4" /> Add Input</Button>
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('staticText')}><Type className="mr-2 h-4 w-4" /> Add Text</Button>
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('image')}><ImageIcon className="mr-2 h-4 w-4" /> Add Photo</Button>
+                <Button variant="outline" size="sm" onClick={() => handleAddNewField('scoringField')} className="text-primary border-primary/20 hover:bg-primary/5">
+                  <Calculator className="mr-2 h-4 w-4" /> Add Scoring Field
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('wordConverter')} className="text-primary border-primary/20 hover:bg-primary/5">
                   <Wand2 className="mr-2 h-4 w-4" /> Add Word Converter
                 </Button>

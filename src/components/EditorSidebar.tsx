@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -15,6 +14,7 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/t
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -44,7 +44,32 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
       }
       
       if (property === 'options' && typeof value === 'string') {
-          processedValue = value.split('\n');
+          const lines = value.split('\n');
+          const options: string[] = [];
+          const weights: Record<string, number> = {};
+          
+          lines.forEach(line => {
+            const [label, weight] = line.split(':');
+            const cleanLabel = label?.trim();
+            if (cleanLabel) {
+              options.push(cleanLabel);
+              if (weight) {
+                const numWeight = parseFloat(weight.trim());
+                if (!isNaN(numWeight)) {
+                  weights[cleanLabel] = numWeight;
+                }
+              }
+            }
+          });
+          
+          onUpdate(field.id, { 
+            [part]: { 
+              ...currentPart, 
+              options, 
+              optionWeights: Object.keys(weights).length > 0 ? weights : undefined 
+            } 
+          });
+          return;
       }
 
       const newPart = { ...currentPart, [property]: processedValue };
@@ -151,6 +176,11 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
     if (!data) return null;
     const isValuePart = part === 'value';
 
+    const formattedOptions = (data.options || []).map(opt => {
+      const weight = data.optionWeights?.[opt];
+      return weight !== undefined ? `${opt}:${weight}` : opt;
+    }).join('\n');
+
     return (
       <div className="flex-1 px-4 py-4 space-y-6">
         <div>
@@ -233,13 +263,19 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
 
             {data.inputType === 'dropdown' && (
               <div className='space-y-2 animate-in slide-in-from-top-1'>
-                  <Label className='text-[10px] font-bold'>Menu Items (Line by Line)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className='text-[10px] font-bold'>Menu Items</Label>
+                    <Badge variant="outline" className="text-[8px] uppercase tracking-tighter">Support Label:Value</Badge>
+                  </div>
                   <Textarea
-                      value={(data.options || []).join('\n')}
+                      value={formattedOptions}
                       onChange={(e) => handlePartChange(part, 'options', e.target.value)}
-                      placeholder={'Option 1\nOption 2...'}
-                      className='text-xs min-h-[100px] bg-muted/20 font-mono'
+                      placeholder={'Excellent:100\nGood:75\nFair:50\nPoor:25'}
+                      className='text-xs min-h-[120px] bg-muted/20 font-mono leading-relaxed'
                   />
+                  <p className="text-[9px] text-muted-foreground italic leading-tight">
+                    Each line represents a selection. Use the ":" character to assign a numeric weight for scoring calculations.
+                  </p>
               </div>
             )}
           </div>
