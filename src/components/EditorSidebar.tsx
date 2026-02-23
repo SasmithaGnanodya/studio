@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash, X, Lock, Unlock, Palette, Type } from 'lucide-react';
+import { Trash, X, Lock, Unlock, Palette, Type, PlusCircle } from 'lucide-react';
 import type { FieldLayout, FieldPart } from '@/lib/types';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
@@ -14,7 +14,7 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/t
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type EditorSidebarProps = {
   field: FieldLayout;
@@ -43,39 +43,22 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
           if (isNaN(processedValue)) processedValue = 0;
       }
       
-      if (property === 'options' && typeof value === 'string') {
-          const lines = value.split('\n');
-          const options: string[] = [];
-          const weights: Record<string, number> = {};
-          
-          lines.forEach(line => {
-            const [label, weight] = line.split(':');
-            const cleanLabel = label?.trim();
-            if (cleanLabel) {
-              options.push(cleanLabel);
-              if (weight) {
-                const numWeight = parseFloat(weight.trim());
-                if (!isNaN(numWeight)) {
-                  weights[cleanLabel] = numWeight;
-                }
-              }
-            }
-          });
-          
-          onUpdate(field.id, { 
-            [part]: { 
-              ...currentPart, 
-              options, 
-              optionWeights: Object.keys(weights).length > 0 ? weights : undefined 
-            } 
-          });
-          return;
-      }
-
       const newPart = { ...currentPart, [property]: processedValue };
       onUpdate(field.id, { [part]: newPart });
   };
   
+  const updateOptions = (part: 'label' | 'value', options: string[], weights?: Record<string, number>) => {
+    const currentPart = field[part];
+    if (!currentPart) return;
+    onUpdate(field.id, {
+      [part]: {
+        ...currentPart,
+        options,
+        optionWeights: weights && Object.keys(weights).length > 0 ? weights : undefined
+      }
+    });
+  };
+
   const handleFieldIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isLocked) {
       onUpdate(field.id, { fieldId: e.target.value });
@@ -176,11 +159,6 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
     if (!data) return null;
     const isValuePart = part === 'value';
 
-    const formattedOptions = (data.options || []).map(opt => {
-      const weight = data.optionWeights?.[opt];
-      return weight !== undefined ? `${opt}:${weight}` : opt;
-    }).join('\n');
-
     return (
       <div className="flex-1 px-4 py-4 space-y-6">
         <div>
@@ -262,20 +240,76 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
             </div>
 
             {data.inputType === 'dropdown' && (
-              <div className='space-y-2 animate-in slide-in-from-top-1'>
+              <div className='space-y-3 animate-in slide-in-from-top-1'>
                   <div className="flex items-center justify-between">
-                    <Label className='text-[10px] font-bold'>Menu Selections (Name:Value)</Label>
-                    <Badge variant="secondary" className="text-[8px] uppercase tracking-tighter">Format: Name:Value</Badge>
+                    <Label className='text-[10px] font-bold'>Menu Selections</Label>
+                    <Badge variant="secondary" className="text-[8px] uppercase tracking-tighter">Technical Scoring</Badge>
                   </div>
-                  <Textarea
-                      value={formattedOptions}
-                      onChange={(e) => handlePartChange(part, 'options', e.target.value)}
-                      placeholder={'Motor Car:100\nVan:80\nMotor Cycle:50'}
-                      className='text-xs min-h-[120px] bg-muted/20 font-mono leading-relaxed'
-                  />
+                  
+                  <div className="space-y-2">
+                    {(data.options || []).map((opt, index) => (
+                      <div key={index} className="flex gap-1.5 items-center">
+                        <Input 
+                          placeholder="Name" 
+                          value={opt} 
+                          className="h-8 text-[10px] flex-1"
+                          onChange={(e) => {
+                            const newOptions = [...(data.options || [])];
+                            const oldName = newOptions[index];
+                            const newName = e.target.value;
+                            newOptions[index] = newName;
+                            
+                            const newWeights = { ...(data.optionWeights || {}) };
+                            if (oldName && newWeights[oldName] !== undefined) {
+                              newWeights[newName] = newWeights[oldName];
+                              delete newWeights[oldName];
+                            }
+                            updateOptions(part, newOptions, newWeights);
+                          }}
+                        />
+                        <Input 
+                          placeholder="Val" 
+                          type="number"
+                          value={data.optionWeights?.[opt] ?? ''} 
+                          className="h-8 w-14 text-[10px]"
+                          onChange={(e) => {
+                            const newWeights = { ...(data.optionWeights || {}) };
+                            const val = parseFloat(e.target.value);
+                            if (isNaN(val)) delete newWeights[opt];
+                            else newWeights[opt] = val;
+                            updateOptions(part, data.options || [], newWeights);
+                          }}
+                        />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0" 
+                          onClick={() => {
+                            const newOptions = (data.options || []).filter((_, i) => i !== index);
+                            const newWeights = { ...(data.optionWeights || {}) };
+                            delete newWeights[opt];
+                            updateOptions(part, newOptions, newWeights);
+                          }}
+                        >
+                          <Trash size={12} />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full text-[10px] h-8 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 text-primary"
+                      onClick={() => {
+                        const newOptions = [...(data.options || []), `Option ${(data.options?.length || 0) + 1}`];
+                        updateOptions(part, newOptions, data.optionWeights);
+                      }}
+                    >
+                      <PlusCircle className="mr-2 h-3.5 w-3.5" /> Add New Row
+                    </Button>
+                  </div>
+                  
                   <p className="text-[9px] text-muted-foreground italic leading-tight">
-                    Each line is one choice. Use the colon ":" to assign a score (e.g., <b>Excellent:100</b>). 
-                    The name appears to the user, and the value is used for calculations.
+                    The <b>Name</b> appears to the user. The <b>Value</b> (optional) is used for technical scoring and automated valuation logic.
                   </p>
               </div>
             )}
