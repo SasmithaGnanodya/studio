@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import type { ImageData } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { ImageAdjustmentControl } from './ImageAdjustmentControl';
 import { cn } from '@/lib/utils';
 
@@ -99,7 +100,7 @@ export const ReportPage = ({
       );
     }
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       let val = e.target.value;
       
       const sensitivePatterns = ['engine', 'chassis', 'report', 'reg', 'ref', 'val', 'id'];
@@ -109,6 +110,8 @@ export const ReportPage = ({
       
       onValueChange?.(field.fieldId, val);
     };
+
+    const isDateField = field.fieldId.toLowerCase().includes('date');
 
     return (
       <div key={field.id} style={style} className="z-20 group">
@@ -131,13 +134,26 @@ export const ReportPage = ({
                 ))}
             </SelectContent>
           </Select>
-        ) : (
+        ) : isDateField ? (
           <Input
-            type={field.fieldId.toLowerCase().includes('date') ? 'date' : 'text'}
+            type='date'
             value={field.value}
             onChange={handleInputChange}
             className={cn(
               "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-0 transition-all shadow-none ring-0"
+            )}
+            style={{ 
+              fontSize: style.fontSize, 
+              color: style.color, 
+              fontWeight: style.fontWeight 
+            }}
+          />
+        ) : (
+          <Textarea
+            value={field.value}
+            onChange={handleInputChange}
+            className={cn(
+              "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary font-mono text-center p-1 transition-all shadow-none ring-0 resize-none overflow-hidden min-h-0"
             )}
             style={{ 
               fontSize: style.fontSize, 

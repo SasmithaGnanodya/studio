@@ -98,8 +98,13 @@
     font-family: 'Courier New', Courier, monospace;
     display: flex;
     align-items: center;
-    padding-left: 2mm;
-    white-space: nowrap;
+    justify-content: center;
+    padding: 0 1mm;
+    white-space: pre-wrap;
+    word-break: break-word;
+    text-align: center;
+    overflow: hidden;
+    line-height: 1.1;
   }
   
   .calibration-mode .field {
