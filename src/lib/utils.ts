@@ -6,6 +6,17 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Calculates the day of the year (1-366) for a given date.
+ */
+export function getDayOfYear(date: Date = new Date()): string {
+  const start = new Date(date.getFullYear(), 0, 0);
+  const diff = (date.getTime() - start.getTime()) + ((start.getTimezoneOffset() - date.getTimezoneOffset()) * 60 * 1000);
+  const oneDay = 1000 * 60 * 60 * 24;
+  const day = Math.floor(diff / oneDay);
+  return day.toString().padStart(3, '0');
+}
+
+/**
  * Converts a number to its English word representation.
  * Optimized for professional currency values (Rupees) using the International Numbering System (Millions).
  */

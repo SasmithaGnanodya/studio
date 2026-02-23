@@ -7,14 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, Hash, LogOut, ChevronLeft } from 'lucide-react';
+import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, Hash, LogOut, ChevronLeft, Loader2 } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, collection, serverTimestamp, runTransaction, setDoc, onSnapshot } from 'firebase/firestore';
 import type { ImageData, Report, FieldLayout } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { numberToWords } from '@/lib/utils';
+import { numberToWords, getDayOfYear } from '@/lib/utils';
 import Link from 'next/link';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
@@ -67,6 +67,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   
   const [isFilling, setIsFilling] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [userBranch, setUserBranch] = useState<string>('CDH');
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -95,6 +96,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const emailKey = user.email?.toLowerCase().replace(/[.@]/g, '_') || '';
         if (data[emailKey]) {
           setIsAuthorized(true);
+          setUserBranch(data[emailKey].branch || 'CDH');
         } else {
           setIsAuthorized(false);
         }
@@ -247,7 +249,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       const updated = { ...prev, [fieldId]: value };
 
       currentLayout.forEach(layoutField => {
-        if (layoutField.autoFillSource === fieldId && layoutField.autoFillType === 'numberToWords' && typeof value === 'string') {
+        if (layoutField.autoFillType === 'numberToWords' && layoutField.autoFillSource === fieldId && typeof value === 'string') {
           const cleanVal = value.replace(/[^\d.]/g, ''); 
           const num = parseFloat(cleanVal);
           
@@ -267,6 +269,27 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     if (!user || !firestore) return;
 
     try {
+      // 1. Generate System Valuation Code
+      const nowObj = new Date();
+      const branchCode = userBranch || 'CDH';
+      const yearYY = nowObj.getFullYear().toString().slice(-2);
+      const dayOfYear = getDayOfYear(nowObj);
+      
+      const scoringField = currentLayout.find(f => f.fieldId === 'conditionScore');
+      const selectedOption = reportData['conditionScore'] || '';
+      const weight = scoringField?.value?.optionWeights?.[selectedOption] || 0;
+      const scoreStr = weight.toString().padStart(3, '0');
+      
+      const reportNumClean = (reportData.reportNumber || '0').replace(/\D/g, '');
+      const reportNumStr = reportNumClean.slice(-3).padStart(3, '0');
+      
+      const systemValuationCode = `${branchCode}${yearYY}${dayOfYear}${scoreStr}${reportNumStr}`;
+      
+      const updatedReportData = {
+        ...reportData,
+        valuationCode: systemValuationCode
+      };
+
       await runTransaction(firestore, async (transaction) => {
         const now = serverTimestamp();
         const configRef = doc(firestore, 'layouts', 'config');
@@ -286,7 +309,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           reportDate: String(dateVal || ''),
           userId: user.uid,
           userName: user.displayName || user.email,
-          reportData: reportData,
+          reportData: updatedReportData,
           updatedAt: now,
           layoutId: activeLayoutId
         };
@@ -311,7 +334,9 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
             savedAt: now
         });
       });
-      toast({ title: "Success", description: "Report saved successfully." });
+      
+      setReportData(updatedReportData);
+      toast({ title: "Success", description: `Report saved. Valuation ID: ${systemValuationCode}` });
     } catch (e) {
       console.error(e);
       toast({ variant: "destructive", title: "Error", description: "Failed to save report." });

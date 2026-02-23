@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Save, PlusCircle, Image as ImageIcon, Type, LayoutTemplate, Wand2, Hash, Calculator } from 'lucide-react';
+import { Save, PlusCircle, Image as ImageIcon, Type, LayoutTemplate, Wand2, Hash, Calculator, ShieldCheck } from 'lucide-react';
 import { DraggableField } from '@/components/DraggableField';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
@@ -21,7 +21,7 @@ const MM_TO_PX = (mm: number) => mm * INCH_PER_MM * DPI;
 const PX_TO_MM = (px: number) => px / (INCH_PER_MM * DPI);
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
-const PROTECTED_FIELDS = ['regNumber', 'engineNumber', 'chassisNumber', 'reportNumber', 'date'];
+const PROTECTED_FIELDS = ['regNumber', 'engineNumber', 'chassisNumber', 'reportNumber', 'date', 'valuationCode'];
 
 const validateAndCleanFieldPart = (part: any): FieldPart => {
     const defaults: FieldPart = {
@@ -151,7 +151,7 @@ export default function EditorPage() {
     setSelectedFieldId(baseId);
   };
   
-  const handleAddNewField = (type: 'text' | 'image' | 'staticText' | 'wordConverter' | 'inputOnly' | 'scoringField') => {
+  const handleAddNewField = (type: 'text' | 'image' | 'staticText' | 'wordConverter' | 'inputOnly' | 'scoringField' | 'systemCode') => {
     const timestamp = Date.now();
     const newId = `${type}_${timestamp}`;
     
@@ -162,6 +162,17 @@ export default function EditorPage() {
         fieldType: 'text',
         label: { text: 'New Label', x: 10, y: 10, width: 50, height: 5, isBold: false, color: '#000000', fontSize: 12 },
         value: { text: 'newField', x: 10, y: 20, width: 50, height: 5, isBold: false, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
+      };
+      setFields(prev => [...prev, newField]);
+      setSelectedFieldId(newId);
+    } else if (type === 'systemCode') {
+      const newField: FieldLayout = {
+        id: newId,
+        fieldId: 'valuationCode',
+        fieldType: 'text',
+        label: { text: 'Valuation ID:', x: 10, y: 10, width: 40, height: 5, isBold: true, color: '#000000', fontSize: 10 },
+        value: { text: 'valuationCode', x: 55, y: 10, width: 60, height: 8, isBold: true, color: '#000000', inputType: 'text', options: [], fontSize: 12 },
+        isLocked: true
       };
       setFields(prev => [...prev, newField]);
       setSelectedFieldId(newId);
@@ -415,6 +426,9 @@ export default function EditorPage() {
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('image')}><ImageIcon className="mr-2 h-4 w-4" /> Add Photo</Button>
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('scoringField')} className="text-primary border-primary/20 hover:bg-primary/5">
                   <Calculator className="mr-2 h-4 w-4" /> Add Scoring Field
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleAddNewField('systemCode')} className="text-primary border-primary/20 hover:bg-primary/5">
+                  <ShieldCheck className="mr-2 h-4 w-4" /> Add System Code
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => handleAddNewField('wordConverter')} className="text-primary border-primary/20 hover:bg-primary/5">
                   <Wand2 className="mr-2 h-4 w-4" /> Add Word Converter
