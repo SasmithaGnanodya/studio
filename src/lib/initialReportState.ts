@@ -53,7 +53,7 @@ export const initialReportState: { [key: string]: any } = {
   marketValueNum: "",
   marketValueText: "",
   forcedSaleValue: "",
-  conditionScore: "Excellent", // Default for scoring fields
+  conditionScore: "", // Default empty to hide save button until selection is made
   image1: { url: '', scale: 1, x: 0, y: 0 } as ImageData,
 };
 

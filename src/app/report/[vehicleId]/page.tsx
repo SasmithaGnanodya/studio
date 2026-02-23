@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -458,9 +457,12 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                       <LayoutTemplate className="mr-2 h-4 w-4" /> Upgrade Layout
                   </Button>
               )}
-              <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  <Save className="mr-2 h-4 w-4" /> Save Report
-              </Button>
+              {/* Save Button is hidden until Condition Score (Load Vehicle) is selected */}
+              {reportData['conditionScore'] && String(reportData['conditionScore']).trim() !== '' && (
+                <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground animate-in fade-in zoom-in duration-300">
+                    <Save className="mr-2 h-4 w-4" /> Save Report
+                </Button>
+              )}
               <Button variant="outline" onClick={() => window.print()}>
                   <Printer className="mr-2 h-4 w-4" /> Print
               </Button>
