@@ -264,17 +264,18 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
             {data.inputType === 'dropdown' && (
               <div className='space-y-2 animate-in slide-in-from-top-1'>
                   <div className="flex items-center justify-between">
-                    <Label className='text-[10px] font-bold'>Menu Items</Label>
-                    <Badge variant="outline" className="text-[8px] uppercase tracking-tighter">Support Label:Value</Badge>
+                    <Label className='text-[10px] font-bold'>Menu Selections (Name:Value)</Label>
+                    <Badge variant="secondary" className="text-[8px] uppercase tracking-tighter">Format: Name:Value</Badge>
                   </div>
                   <Textarea
                       value={formattedOptions}
                       onChange={(e) => handlePartChange(part, 'options', e.target.value)}
-                      placeholder={'Excellent:100\nGood:75\nFair:50\nPoor:25'}
+                      placeholder={'Motor Car:100\nVan:80\nMotor Cycle:50'}
                       className='text-xs min-h-[120px] bg-muted/20 font-mono leading-relaxed'
                   />
                   <p className="text-[9px] text-muted-foreground italic leading-tight">
-                    Each line represents a selection. Use the ":" character to assign a numeric weight for scoring calculations.
+                    Each line is one choice. Use the colon ":" to assign a score (e.g., <b>Excellent:100</b>). 
+                    The name appears to the user, and the value is used for calculations.
                   </p>
               </div>
             )}
