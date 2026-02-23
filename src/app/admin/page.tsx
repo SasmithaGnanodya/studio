@@ -602,14 +602,16 @@ export default function AdminPage() {
                                 <AlertDialogTitle className="text-destructive flex items-center gap-2">
                                   <AlertTriangle className="h-5 w-5" /> Permanent Deletion Warning
                                 </AlertDialogTitle>
-                                <AlertDialogDescription className="space-y-4">
-                                  <p className="font-bold text-foreground">
-                                    Are you absolutely sure you want to delete report <span className="font-mono text-primary">{report.vehicleId}</span>?
-                                  </p>
-                                  <div className="p-4 bg-destructive/5 border border-destructive/10 rounded-lg">
-                                    <p className="text-xs text-destructive leading-relaxed font-medium">
-                                      This action cannot be undone. This will permanently delete the valuation report and remove all technical history from our servers.
+                                <AlertDialogDescription className="space-y-4" asChild>
+                                  <div className="space-y-4">
+                                    <p className="font-bold text-foreground">
+                                      Are you absolutely sure you want to delete report <span className="font-mono text-primary">{report.vehicleId}</span>?
                                     </p>
+                                    <div className="p-4 bg-destructive/5 border border-destructive/10 rounded-lg">
+                                      <p className="text-xs text-destructive leading-relaxed font-medium">
+                                        This action cannot be undone. This will permanently delete the valuation report and remove all technical history from our servers.
+                                      </p>
+                                    </div>
                                   </div>
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
