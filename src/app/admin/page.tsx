@@ -131,7 +131,7 @@ export default function AdminPage() {
 
     return reports.map(r => ({
       ...r,
-      branch: (r as any).branch || emailToBranch[r.userName?.toLowerCase() || ''] || 'Unknown'
+      branch: (r as any).branch || emailToBranch[r.userEmail?.toLowerCase() || r.userName?.toLowerCase() || ''] || 'Unknown'
     }));
   }, [reports, authorizedUsers]);
 
@@ -141,6 +141,34 @@ export default function AdminPage() {
   }, [reportsWithBranch, branchFilter]);
 
   const uniqueReports = useMemo(() => getUniqueReports(filteredReportsByBranch), [filteredReportsByBranch]);
+
+  const userRegistryStats = useMemo(() => {
+    const stats: Record<string, { total: number, today: number }> = {};
+    const today = new Date();
+
+    const emailToKey: Record<string, string> = {};
+    Object.entries(authorizedUsers).forEach(([key, data]) => {
+      emailToKey[data.email.toLowerCase()] = key;
+    });
+
+    reports.forEach(r => {
+      const email = r.userEmail || (r.userName?.includes('@') ? r.userName : null);
+      if (!email) return;
+      
+      const key = emailToKey[email.toLowerCase()];
+      if (!key) return;
+
+      if (!stats[key]) stats[key] = { total: 0, today: 0 };
+      stats[key].total += 1;
+
+      const updateDate = r.updatedAt?.seconds ? new Date(r.updatedAt.seconds * 1000) : null;
+      if (updateDate && isSameDay(updateDate, today)) {
+        stats[key].today += 1;
+      }
+    });
+
+    return stats;
+  }, [reports, authorizedUsers]);
 
   const stats = useMemo(() => {
     const today = new Date();
@@ -531,6 +559,17 @@ export default function AdminPage() {
                             >
                               <Trash2 size={14} />
                             </Button>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-[10px] mt-2 pt-2 border-t border-primary/5">
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground uppercase font-bold text-[8px]">Daily</span>
+                              <span className="font-black text-primary">{userRegistryStats[key]?.today || 0}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground uppercase font-bold text-[8px]">Overall</span>
+                              <span className="font-black text-foreground">{userRegistryStats[key]?.total || 0}</span>
+                            </div>
                           </div>
                         </div>
                       ))}

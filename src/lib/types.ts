@@ -49,6 +49,7 @@ export type Report = {
   reportDate?: string;
   userId: string;
   userName?: string;
+  userEmail?: string;
   reportData: { [key: string]: any };
   createdAt: { seconds: number, nanoseconds: number };
   updatedAt: { seconds: number, nanoseconds: number };

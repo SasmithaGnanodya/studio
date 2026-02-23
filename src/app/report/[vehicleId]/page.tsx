@@ -221,6 +221,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           reportDate: String(dateVal || ''),
           updatedAt: serverTimestamp(),
           userId: user.uid,
+          userEmail: user.email,
           userName: user.displayName || user.email,
         };
 
@@ -332,6 +333,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           reportNumber: finalReportNumber,
           reportDate: String(dateVal || ''),
           userId: user.uid,
+          userEmail: user.email,
           userName: user.displayName || user.email,
           reportData: updatedReportData,
           updatedAt: now,
