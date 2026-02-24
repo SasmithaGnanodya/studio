@@ -19,17 +19,14 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           {/* Brand and Description */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="p-1.5 bg-primary/10 rounded-lg">
-                <Image 
-                  src="https://i.postimg.cc/k5HnDh4Q/care-drive.jpg" 
-                  alt="Drive Care Logo" 
-                  width={32} 
-                  height={32} 
-                  className="rounded-md"
-                />
-              </div>
-              <h2 className="text-xl font-bold tracking-tight">Drive Care Report Gen</h2>
+            <div className="flex items-center">
+              <Image 
+                src="https://i.postimg.cc/k5HnDh4Q/care-drive.jpg" 
+                alt="Drive Care Logo" 
+                width={120} 
+                height={40} 
+                className="rounded-md h-10 w-auto object-contain"
+              />
             </div>
             <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
               Generating professional vehicle valuation reports with industry-leading precision, secure real-time indexing, and layout-aware versioning.

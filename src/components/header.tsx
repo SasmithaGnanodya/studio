@@ -69,17 +69,15 @@ export function Header() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center">
             <Link href="/" passHref>
-              <div className="flex items-center gap-3 cursor-pointer">
+              <div className="flex items-center cursor-pointer">
                 <Image 
                   src="https://i.postimg.cc/k5HnDh4Q/care-drive.jpg" 
                   alt="Drive Care Logo" 
-                  width={40} 
-                  height={40} 
-                  className="rounded-md border border-primary/20 shadow-sm"
+                  width={160} 
+                  height={48} 
+                  className="h-12 w-auto object-contain rounded-md"
+                  priority
                 />
-                <h1 className="text-xl font-bold tracking-tight">
-                  Drive Care Report Gen
-                </h1>
               </div>
             </Link>
             <div className="ml-auto flex items-center gap-2 sm:gap-4">
