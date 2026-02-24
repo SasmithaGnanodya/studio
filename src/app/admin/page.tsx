@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -263,6 +264,18 @@ export default function AdminPage() {
       toast({ variant: "destructive", title: "Action Failed", description: "Could not authorize user." });
     } finally {
       setIsAddingUser(false);
+    }
+  };
+
+  const handleUpdateBranch = async (emailKey: string, branch: string) => {
+    if (!firestore) return;
+    try {
+      await updateDoc(doc(firestore, 'config', 'authorizedUsers'), {
+        [`${emailKey}.branch`]: branch
+      });
+      toast({ title: "Branch Updated", description: `User designated to ${branch === 'CDH' ? 'Head Office' : 'Kadawatha'}.` });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Action Failed", description: "Could not update branch." });
     }
   };
 
@@ -720,10 +733,19 @@ export default function AdminPage() {
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="text-[11px] font-bold truncate text-foreground">{data.email}</span>
-                              <div className="flex items-center gap-1.5">
-                                <Badge variant="outline" className="text-[8px] h-4 border-primary/20 bg-primary/5 text-primary">
-                                  {data.branch}
-                                </Badge>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <Select 
+                                  value={data.branch} 
+                                  onValueChange={(val) => handleUpdateBranch(key, val)}
+                                >
+                                  <SelectTrigger className="h-5 px-1.5 text-[8px] font-black uppercase border-primary/20 bg-primary/5 text-primary w-fit min-w-[55px] gap-1 shadow-none focus:ring-0">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="min-w-[80px]">
+                                    <SelectItem value="CDH" className="text-[10px] font-bold">CDH</SelectItem>
+                                    <SelectItem value="CDK" className="text-[10px] font-bold">CDK</SelectItem>
+                                  </SelectContent>
+                                </Select>
                                 {ADMIN_EMAILS.includes(data.email) && (
                                   <Badge className="text-[8px] h-4 bg-primary/20 text-primary border-0">ADMIN</Badge>
                                 )}
