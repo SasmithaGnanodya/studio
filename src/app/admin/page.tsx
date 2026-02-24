@@ -47,11 +47,15 @@ function getIdentifiers(report: Report) {
   const engine = report.engineNumber || 'N/A';
   const chassis = report.chassisNumber || 'N/A';
 
+  const rawId = (report.vehicleId || '').toUpperCase();
+  const displayId = rawId.startsWith('UR-') ? 'U/R' : rawId;
+
   return {
     engine: String(engine).toUpperCase().trim(),
     chassis: String(chassis).toUpperCase().trim(),
     reportNum: isIssued ? String(reportNum).toUpperCase().trim() : 'DRAFT',
-    date: report.reportDate || 'N/A'
+    date: report.reportDate || 'N/A',
+    displayId
   };
 }
 
@@ -300,10 +304,10 @@ export default function AdminPage() {
     const term = searchTerm.toUpperCase().trim();
     return uniqueReports.filter(report => {
       const ids = getIdentifiers(report);
-      const vid = (report.vehicleId || '').toUpperCase();
+      const vidDisplay = ids.displayId.toUpperCase();
       if (searchCategory === 'all') {
-        return vid.includes(term) || ids.engine.includes(term) || ids.chassis.includes(term) || ids.reportNum.includes(term);
-      } else if (searchCategory === 'vehicleId') return vid.includes(term);
+        return vidDisplay.includes(term) || ids.engine.includes(term) || ids.chassis.includes(term) || ids.reportNum.includes(term);
+      } else if (searchCategory === 'vehicleId') return vidDisplay.includes(term);
       else if (searchCategory === 'engineNumber') return ids.engine.includes(term);
       else if (searchCategory === 'chassisNumber') return ids.chassis.includes(term);
       else if (searchCategory === 'reportNumber') return ids.reportNum.includes(term);
@@ -544,7 +548,7 @@ export default function AdminPage() {
                       <Card key={report.id} className="group border flex flex-col hover:border-primary transition-all bg-card/40 backdrop-blur-md shadow-md overflow-hidden h-full">
                         <CardHeader className="pb-3 bg-muted/20 border-b">
                           <div className="flex justify-between items-center">
-                            <CardTitle className="font-mono text-primary group-hover:underline text-lg">{report.vehicleId}</CardTitle>
+                            <CardTitle className="font-mono text-primary group-hover:underline text-lg">{ids.displayId}</CardTitle>
                             <Badge variant="outline" className="text-[8px] h-4 border-primary/20 bg-primary/5 text-primary">
                               {ids.date}
                             </Badge>
@@ -603,7 +607,7 @@ export default function AdminPage() {
                                 <AlertDialogDescription className="space-y-4" asChild>
                                   <div className="space-y-4">
                                     <p className="font-bold text-foreground">
-                                      Are you absolutely sure you want to delete report <span className="font-mono text-primary">{report.vehicleId}</span>?
+                                      Are you absolutely sure you want to delete report <span className="font-mono text-primary">{ids.displayId}</span>?
                                     </p>
                                     <div className="p-4 bg-destructive/5 border border-destructive/10 rounded-lg">
                                       <p className="text-xs text-destructive leading-relaxed font-medium">
@@ -623,7 +627,7 @@ export default function AdminPage() {
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter className="mt-6">
-                                <AlertDialogCancel className="font-bold">Cancel</AlertDialogCancel>
+                                <AlertDialogCancel className="font-bold">Cancel Action</AlertDialogCancel>
                                 <AlertDialogAction 
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-black"
                                   disabled={deleteConfirmationText.toLowerCase() !== 'delete report'}

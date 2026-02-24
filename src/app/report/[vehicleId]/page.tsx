@@ -58,6 +58,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const resolvedParams = use(params);
   const rawVehicleId = decodeURIComponent(resolvedParams.vehicleId);
   const vehicleId = rawVehicleId.toUpperCase().trim();
+  const isUnregistered = vehicleId.startsWith('UR-');
+  const displayVehicleId = isUnregistered ? 'U/R' : vehicleId;
 
   const [reportData, setReportData] = useState(initialReportState);
   const [currentLayout, setCurrentLayout] = useState<FieldLayout[]>(fixedLayout);
@@ -95,11 +97,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   useEffect(() => {
     const isIssued = /^[A-Z]{3}\d{9}$/.test(reportData.reportNumber || '');
     if (isIssued) {
-      document.title = `${reportData.reportNumber} - ${vehicleId}`;
+      document.title = `${reportData.reportNumber} - ${displayVehicleId}`;
     } else {
-      document.title = `Draft - ${vehicleId}`;
+      document.title = `Draft - ${displayVehicleId}`;
     }
-  }, [reportData.reportNumber, vehicleId]);
+  }, [reportData.reportNumber, displayVehicleId]);
 
   /**
    * Live update of the report number / valuation code preview.
@@ -205,7 +207,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         setReportData(prev => ({ 
           ...prev, 
           ...report.reportData, 
-          regNumber: vehicleId
+          regNumber: isUnregistered ? 'U/R' : vehicleId
         }));
         
         const layoutToLoad = latestId || report.layoutId;
@@ -217,7 +219,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
             }
         }
       } else {
-        setReportData(prev => ({ ...prev, regNumber: vehicleId }));
+        setReportData(prev => ({ ...prev, regNumber: isUnregistered ? 'U/R' : vehicleId }));
         if (latestId) {
             const latestDoc = await getDoc(doc(firestore, 'layouts', latestId));
             if (latestDoc.exists()) {
@@ -230,7 +232,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     };
 
     fetchData();
-  }, [user, firestore, vehicleId, isAuthorized]);
+  }, [user, firestore, vehicleId, isAuthorized, isUnregistered]);
 
   const findIdentifier = (patterns: string[]) => {
     const direct = patterns.map(p => reportData[p]).find(v => !!v);
@@ -283,7 +285,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         await setDoc(reportRef, {
             ...dataToSync,
             id: vehicleId,
-            reportData: { ...reportData, regNumber: vehicleId }
+            reportData: { ...reportData, regNumber: isUnregistered ? 'U/R' : vehicleId }
         }, { merge: true });
 
       } catch (err) {
@@ -296,7 +298,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     };
-  }, [reportData, firestore, isAuthorized, user, vehicleId, isLoading, currentLayout]);
+  }, [reportData, firestore, isAuthorized, user, vehicleId, isLoading, currentLayout, isUnregistered]);
 
   const handleDataChange = (fieldId: string, value: string | ImageData) => {
     const fieldIdLower = fieldId.toLowerCase();
@@ -514,7 +516,9 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
               <div className="flex items-center gap-6 border-l pl-6">
                 <div className="text-sm font-medium flex flex-col">
                   <span className="text-[10px] uppercase text-muted-foreground font-bold">Vehicle ID</span>
-                  <span className="text-primary font-mono">{vehicleId}</span>
+                  <span className={cn("font-mono", isUnregistered ? "text-primary font-black bg-primary/5 px-2 rounded" : "text-primary")}>
+                    {displayVehicleId}
+                  </span>
                 </div>
                 
                 {isSyncing && (

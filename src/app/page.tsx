@@ -40,11 +40,15 @@ function getIdentifiers(report: Report) {
   let reportNum = report.reportNumber || 'DRAFT';
   const isIssued = /^(CDH|CDK)\d{9}$/.test(reportNum);
 
+  const rawId = (report.vehicleId || '').toUpperCase();
+  const displayId = rawId.startsWith('UR-') ? 'U/R' : rawId;
+
   return {
     engine: String(engine).toUpperCase().trim(),
     chassis: String(chassis).toUpperCase().trim(),
     reportNum: isIssued ? String(reportNum).toUpperCase().trim() : 'DRAFT',
-    date: report.reportDate || data.reportDate || data.date || 'N/A'
+    date: report.reportDate || data.reportDate || data.date || 'N/A',
+    displayId
   };
 }
 
@@ -93,7 +97,7 @@ function ReportCard({ report }: { report: Report }) {
                         <div className="flex items-center gap-2">
                             <Car className="h-4 w-4 text-primary" />
                             <CardTitle className="text-lg font-bold font-mono text-primary group-hover:underline">
-                                {report.vehicleId}
+                                {ids.displayId}
                             </CardTitle>
                         </div>
                         <div className={cn(
@@ -176,7 +180,7 @@ export default function LandingPage() {
     
     return uniqueReports.filter(report => {
       const ids = getIdentifiers(report);
-      const vid = (report.vehicleId || '').toUpperCase();
+      const vid = ids.displayId.toUpperCase();
       const en = ids.engine.toUpperCase();
       const ch = ids.chassis.toUpperCase();
       const rn = ids.reportNum.toUpperCase();
@@ -281,7 +285,17 @@ export default function LandingPage() {
                 <div className="flex flex-col gap-6">
                   <div className="flex flex-col md:flex-row gap-3">
                     <div className="w-full md:w-56 shrink-0">
-                      <Select value={searchCategory} onValueChange={(val) => { setSearchCategory(val); setSearchTerm(''); }}>
+                      <Select 
+                        value={searchCategory} 
+                        onValueChange={(val) => { 
+                          if (val === 'unregistered') {
+                            router.push(`/report/UR-${Date.now()}`);
+                            return;
+                          }
+                          setSearchCategory(val); 
+                          setSearchTerm(''); 
+                        }}
+                      >
                         <SelectTrigger className="h-14 bg-muted/50 font-bold border-primary/20">
                           <Filter className="mr-2 h-4 w-4 text-primary" /><SelectValue placeholder="Category" />
                         </SelectTrigger>
@@ -292,6 +306,12 @@ export default function LandingPage() {
                           <SelectItem value="chassisNumber">Chassis No</SelectItem>
                           <SelectItem value="reportNumber">Report No</SelectItem>
                           <SelectItem value="reportDate">Report Date</SelectItem>
+                          <SelectItem value="unregistered" className="font-black text-primary border-t border-dashed mt-2 pt-2 cursor-pointer bg-primary/5 focus:bg-primary/10">
+                            <div className="flex items-center gap-2">
+                              <PlusCircle className="h-4 w-4" />
+                              <span>New Unregistered Vehicle</span>
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
