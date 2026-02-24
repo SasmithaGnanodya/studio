@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -361,171 +360,182 @@ export default function AdminPage() {
                   </TabsList>
               </Tabs>
 
-              <Sheet open={isRegistryOpen} onOpenChange={setIsRegistryOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 gap-2 border-primary/20 bg-background/50 font-bold text-xs">
-                    <ShieldCheck size={16} className="text-primary" /> Access Registry
-                  </Button>
-                </SheetTrigger>
-                <SheetContent className="w-full sm:max-w-md bg-card border-l-2 flex flex-col p-0 overflow-hidden">
-                  <SheetHeader className="p-6 shrink-0 border-b bg-muted/10">
-                    <SheetTitle className="text-2xl font-black flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck className="text-primary" /> Access Registry
-                      </div>
-                      <Badge variant="secondary" className="text-[10px] font-black">{Object.keys(authorizedUsers).length} USERS</Badge>
-                    </SheetTitle>
-                    <SheetDescription>Managed list of authorized system users and their metrics.</SheetDescription>
-                  </SheetHeader>
-                  
-                  <div className="flex-1 overflow-hidden flex flex-col">
-                    <ScrollArea className="flex-1 px-6 py-6">
-                      <div className="space-y-4">
-                        {Object.entries(authorizedUsers).map(([key, data]) => (
-                          <div key={key} className="bg-muted/20 p-4 rounded-xl border border-primary/5 group hover:border-primary/20 transition-all flex flex-col shadow-sm">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex flex-col min-w-0">
-                                <span className="text-[13px] font-black truncate text-foreground leading-tight">{data.email}</span>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Select 
-                                    value={data.branch} 
-                                    onValueChange={(val) => {
-                                      if (val !== data.branch) {
-                                        setPendingBranchChange({ key, branch: val, email: data.email });
-                                      }
-                                    }}
-                                  >
-                                    <SelectTrigger className="h-6 px-2 text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary w-fit min-w-[65px] gap-1 shadow-none focus:ring-0">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="min-w-[100px]">
-                                      <SelectItem value="CDH" className="text-[11px] font-bold">CDH - HEAD</SelectItem>
-                                      <SelectItem value="CDK" className="text-[11px] font-bold">CDK - KADA</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  {ADMIN_EMAILS.includes(data.email) && (
-                                    <Badge className="text-[8px] h-4 bg-primary/20 text-primary border-0 font-black">ADMIN</Badge>
-                                  )}
-                                </div>
-                              </div>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
-                                onClick={() => handleRemoveUser(key)}
-                                disabled={ADMIN_EMAILS.includes(data.email)}
-                              >
-                                <Trash2 size={16} />
-                              </Button>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4 text-[10px] mt-4 pt-4 border-t border-primary/5">
-                              <div className="flex flex-col">
-                                <span className="text-muted-foreground uppercase font-black text-[8px] flex items-center gap-1">
-                                  <Zap size={10} className="text-primary" /> Today
-                                </span>
-                                <span className="text-lg font-black text-primary">{userRegistryStats[key]?.today || 0}</span>
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-muted-foreground uppercase font-black text-[8px] flex items-center gap-1">
-                                  <Activity size={10} className="text-primary" /> Overall
-                                </span>
-                                <span className="text-lg font-black text-foreground">{userRegistryStats[key]?.total || 0}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        {Object.keys(authorizedUsers).length === 0 && (
-                          <div className="text-center py-20 opacity-30 italic text-sm">
-                            No authorized users found.
-                          </div>
-                        )}
-                      </div>
-                    </ScrollArea>
-                  </div>
-
-                  <CardFooter className="p-6 border-t bg-muted/10 shrink-0">
-                    <div className="text-[10px] text-muted-foreground flex items-center gap-2 italic font-medium leading-relaxed">
-                      <ShieldAlert size={12} className="text-primary shrink-0" />
-                      Personnel listed here are permitted to generate and save valuation reports.
-                    </div>
-                  </CardFooter>
-                </SheetContent>
-              </Sheet>
-
               <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="sm" className="h-9 gap-2 border-primary/20 bg-background/50 font-bold text-xs">
                     <Settings size={16} className="text-primary" /> System Settings
                   </Button>
                 </SheetTrigger>
-                <SheetContent className="w-full sm:max-w-md bg-card border-l-2">
-                  <SheetHeader className="mb-8">
+                <SheetContent className="w-full sm:max-w-md bg-card border-l-2 flex flex-col p-0 overflow-hidden">
+                  <SheetHeader className="p-6 shrink-0 border-b bg-muted/10">
                     <SheetTitle className="text-2xl font-black flex items-center gap-2">
                       <Settings className="text-primary" /> Admin Controls
                     </SheetTitle>
-                    <SheetDescription>Manage system access and layout templates.</SheetDescription>
+                    <SheetDescription>Manage system access, user registry, and layout templates.</SheetDescription>
                   </SheetHeader>
                   
-                  <div className="space-y-10">
-                    <section className="space-y-4">
-                      <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                        <UserPlus size={14} /> Grant Access
-                      </h3>
-                      <Card className="border-primary/10 bg-muted/20 shadow-none">
-                        <CardContent className="pt-6 space-y-4">
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Authorized Email</Label>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input 
-                                placeholder="e.g. user@caredrive.lk" 
-                                value={newEmail} 
-                                onChange={(e) => setNewEmail(e.target.value)} 
-                                className="pl-10 h-10 bg-background/50 border-primary/20"
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Branch Designation</Label>
-                            <Select value={newBranch} onValueChange={setNewBranch}>
-                              <SelectTrigger className="bg-background/50 border-primary/20 h-10">
+                  <ScrollArea className="flex-1 px-6 py-6">
+                    <div className="space-y-10">
+                      <section className="space-y-4">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                          <ShieldCheck size={14} /> User Registry
+                        </h3>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                          View and manage authorized personnel and their reporting metrics.
+                        </p>
+                        
+                        <Sheet open={isRegistryOpen} onOpenChange={setIsRegistryOpen}>
+                          <SheetTrigger asChild>
+                            <Button variant="outline" className="w-full h-12 bg-background/50 border-primary/20 font-bold gap-2">
+                              <ShieldCheck size={18} className="text-primary" /> Open Access Registry
+                            </Button>
+                          </SheetTrigger>
+                          <SheetContent className="w-full sm:max-w-md bg-card border-l-2 flex flex-col p-0 overflow-hidden">
+                            <SheetHeader className="p-6 shrink-0 border-b bg-muted/10">
+                              <SheetTitle className="text-2xl font-black flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  <Building2 size={16} className="text-primary" />
-                                  <SelectValue placeholder="Select Branch" />
+                                  <ShieldCheck className="text-primary" /> Access Registry
                                 </div>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="CDH">CDH - Head Office</SelectItem>
-                                <SelectItem value="CDK">CDK - Kadawatha Branch</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <Button 
-                            onClick={handleAddUser} 
-                            disabled={isAddingUser} 
-                            className="w-full bg-primary font-bold shadow-lg"
-                          >
-                            {isAddingUser ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Authorizing...</> : "Authorize User"}
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </section>
+                                <Badge variant="secondary" className="text-[10px] font-black">{Object.keys(authorizedUsers).length} USERS</Badge>
+                              </SheetTitle>
+                              <SheetDescription>Managed list of authorized system users and their metrics.</SheetDescription>
+                            </SheetHeader>
+                            
+                            <div className="flex-1 overflow-hidden flex flex-col">
+                              <ScrollArea className="flex-1 px-6 py-6">
+                                <div className="space-y-4">
+                                  {Object.entries(authorizedUsers).map(([key, data]) => (
+                                    <div key={key} className="bg-muted/20 p-4 rounded-xl border border-primary/5 group hover:border-primary/20 transition-all flex flex-col shadow-sm">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <div className="flex flex-col min-w-0">
+                                          <span className="text-[13px] font-black truncate text-foreground leading-tight">{data.email}</span>
+                                          <div className="flex items-center gap-2 mt-2">
+                                            <Select 
+                                              value={data.branch} 
+                                              onValueChange={(val) => {
+                                                if (val !== data.branch) {
+                                                  setPendingBranchChange({ key, branch: val, email: data.email });
+                                                }
+                                              }}
+                                            >
+                                              <SelectTrigger className="h-6 px-2 text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary w-fit min-w-[65px] gap-1 shadow-none focus:ring-0">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent className="min-w-[100px]">
+                                                <SelectItem value="CDH" className="text-[11px] font-bold">CDH - HEAD</SelectItem>
+                                                <SelectItem value="CDK" className="text-[11px] font-bold">CDK - KADA</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                            {ADMIN_EMAILS.includes(data.email) && (
+                                              <Badge className="text-[8px] h-4 bg-primary/20 text-primary border-0 font-black">ADMIN</Badge>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                                          onClick={() => handleRemoveUser(key)}
+                                          disabled={ADMIN_EMAILS.includes(data.email)}
+                                        >
+                                          <Trash2 size={16} />
+                                        </Button>
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-2 gap-4 text-[10px] mt-4 pt-4 border-t border-primary/5">
+                                        <div className="flex flex-col">
+                                          <span className="text-muted-foreground uppercase font-black text-[8px] flex items-center gap-1">
+                                            <Zap size={10} className="text-primary" /> Today
+                                          </span>
+                                          <span className="text-lg font-black text-primary">{userRegistryStats[key]?.today || 0}</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                          <span className="text-muted-foreground uppercase font-black text-[8px] flex items-center gap-1">
+                                            <Activity size={10} className="text-primary" /> Overall
+                                          </span>
+                                          <span className="text-lg font-black text-foreground">{userRegistryStats[key]?.total || 0}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {Object.keys(authorizedUsers).length === 0 && (
+                                    <div className="text-center py-20 opacity-30 italic text-sm">
+                                      No authorized users found.
+                                    </div>
+                                  )}
+                                </div>
+                              </ScrollArea>
+                            </div>
 
-                    <section className="space-y-4">
-                      <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                        <LayoutTemplate size={14} /> Template Management
-                      </h3>
-                      <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                        Access the master visual editor to modify the pre-printed layout dimensions and field mappings.
-                      </p>
-                      <Link href="/editor" passHref className="block">
-                        <Button className="w-full h-12 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 font-black shadow-inner gap-2">
-                          <LayoutTemplate size={18} /> Open Master Layout Editor
-                        </Button>
-                      </Link>
-                    </section>
-                  </div>
+                            <CardFooter className="p-6 border-t bg-muted/10 shrink-0">
+                              <div className="text-[10px] text-muted-foreground flex items-center gap-2 italic font-medium leading-relaxed">
+                                <ShieldAlert size={12} className="text-primary shrink-0" />
+                                Personnel listed here are permitted to generate and save valuation reports.
+                              </div>
+                            </CardFooter>
+                          </SheetContent>
+                        </Sheet>
+                      </section>
+
+                      <section className="space-y-4">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                          <UserPlus size={14} /> Grant Access
+                        </h3>
+                        <Card className="border-primary/10 bg-muted/20 shadow-none">
+                          <CardContent className="pt-6 space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Authorized Email</Label>
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                  placeholder="e.g. user@caredrive.lk" 
+                                  value={newEmail} 
+                                  onChange={(e) => setNewEmail(e.target.value)} 
+                                  className="pl-10 h-10 bg-background/50 border-primary/20"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Branch Designation</Label>
+                              <Select value={newBranch} onValueChange={setNewBranch}>
+                                <SelectTrigger className="bg-background/50 border-primary/20 h-10">
+                                  <div className="flex items-center gap-2">
+                                    <Building2 size={16} className="text-primary" />
+                                    <SelectValue placeholder="Select Branch" />
+                                  </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="CDH">CDH - Head Office</SelectItem>
+                                  <SelectItem value="CDK">CDK - Kadawatha Branch</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <Button 
+                              onClick={handleAddUser} 
+                              disabled={isAddingUser} 
+                              className="w-full bg-primary font-bold shadow-lg"
+                            >
+                              {isAddingUser ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Authorizing...</> : "Authorize User"}
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </section>
+
+                      <section className="space-y-4">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                          <LayoutTemplate size={14} /> Template Management
+                        </h3>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                          Access the master visual editor to modify the pre-printed layout dimensions and field mappings.
+                        </p>
+                        <Link href="/editor" passHref className="block">
+                          <Button className="w-full h-12 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 font-black shadow-inner gap-2">
+                            <LayoutTemplate size={18} /> Open Master Layout Editor
+                          </Button>
+                        </Link>
+                      </section>
+                    </div>
+                  </ScrollArea>
                 </SheetContent>
               </Sheet>
            </div>
