@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -88,7 +89,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     const weight = scoringField?.value?.optionWeights?.[selectedOption];
     
     if (weight !== undefined && weight !== null) {
-      // Use the first digit of the weight as requested
       return String(weight).charAt(0);
     }
     return '5'; // Default technical grade
@@ -310,12 +310,34 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       fieldIdLower.includes('reportnum')
     ) return; 
 
+    let finalValue = value;
+    if (typeof value === 'string') {
+      const isNumericField = 
+        fieldIdLower.includes('value') || 
+        fieldIdLower.includes('amount') || 
+        fieldIdLower.includes('price') || 
+        fieldIdLower.includes('rs') ||
+        fieldIdLower.startsWith('val') ||
+        currentLayout.some(l => l.autoFillSource === fieldId);
+
+      if (isNumericField) {
+        // Keep only digits and one decimal point
+        const clean = value.replace(/[^\d.]/g, '');
+        const parts = clean.split('.');
+        // Format integer part with commas (starting from right)
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        // Reconstruct (only allow one decimal point)
+        finalValue = parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
+      }
+    }
+
     setReportData(prev => {
-      const updated = { ...prev, [fieldId]: value };
+      const updated = { ...prev, [fieldId]: finalValue };
 
       currentLayout.forEach(layoutField => {
-        if (layoutField.autoFillType === 'numberToWords' && layoutField.autoFillSource === fieldId && typeof value === 'string') {
-          const cleanVal = value.replace(/[^\d.]/g, ''); 
+        if (layoutField.autoFillType === 'numberToWords' && layoutField.autoFillSource === fieldId && typeof finalValue === 'string') {
+          // Remove commas for clean parsing in word converter
+          const cleanVal = finalValue.replace(/[^\d.]/g, ''); 
           const num = parseFloat(cleanVal);
           
           if (!isNaN(num)) {
