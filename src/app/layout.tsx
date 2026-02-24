@@ -6,6 +6,9 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 export const metadata: Metadata = {
   title: 'Drive Care Report Gen',
   description: 'Generate professional vehicle valuation reports with precision.',
+  icons: {
+    icon: 'https://i.postimg.cc/k5HnDh4Q/care-drive.jpg',
+  },
 };
 
 export default function RootLayout({

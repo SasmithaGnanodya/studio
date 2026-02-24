@@ -69,7 +69,7 @@ export function Header() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center">
             <Link href="/" passHref>
-              <div className="flex items-center cursor-pointer">
+              <h1 className="flex items-center cursor-pointer">
                 <Image 
                   src="https://i.postimg.cc/k5HnDh4Q/care-drive.jpg" 
                   alt="Drive Care Logo" 
@@ -78,7 +78,7 @@ export function Header() {
                   className="h-12 w-auto object-contain rounded-md"
                   priority
                 />
-              </div>
+              </h1>
             </Link>
             <div className="ml-auto flex items-center gap-2 sm:gap-4">
               <Link href="/about" passHref>
