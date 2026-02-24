@@ -1,12 +1,13 @@
 'use client';
 
-import { FileText, Shield, Moon, Sun, Info } from 'lucide-react';
+import { Shield, Moon, Sun, Info } from 'lucide-react';
 import Link from 'next/link';
 import { UserNav } from './UserNav';
 import { useFirebase } from '@/firebase';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
+import Image from 'next/image';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
@@ -69,7 +70,13 @@ export function Header() {
           <div className="flex h-16 items-center">
             <Link href="/" passHref>
               <div className="flex items-center gap-3 cursor-pointer">
-                <FileText className="h-7 w-7 text-primary" />
+                <Image 
+                  src="https://i.postimg.cc/k5HnDh4Q/care-drive.jpg" 
+                  alt="Drive Care Logo" 
+                  width={40} 
+                  height={40} 
+                  className="rounded-md border border-primary/20 shadow-sm"
+                />
                 <h1 className="text-xl font-bold tracking-tight">
                   Drive Care Report Gen
                 </h1>

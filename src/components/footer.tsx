@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FileText, ShieldCheck, Info, CheckCircle2, Lock, Database, Zap } from 'lucide-react';
+import { ShieldCheck, Info, CheckCircle2, Lock, Database, Zap } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export function Footer() {
   const [year, setYear] = useState<number>(new Date().getFullYear());
@@ -19,8 +20,14 @@ export function Footer() {
           {/* Brand and Description */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <FileText className="h-6 w-6 text-primary" />
+              <div className="p-1.5 bg-primary/10 rounded-lg">
+                <Image 
+                  src="https://i.postimg.cc/k5HnDh4Q/care-drive.jpg" 
+                  alt="Drive Care Logo" 
+                  width={32} 
+                  height={32} 
+                  className="rounded-md"
+                />
               </div>
               <h2 className="text-xl font-bold tracking-tight">Drive Care Report Gen</h2>
             </div>
@@ -111,7 +118,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-muted-foreground/10 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="mt-12 pt-8 border-t border-muted-foreground/10 flex flex-col md:grid-cols-2 justify-between items-center gap-4">
           <p className="text-xs text-muted-foreground font-medium">
             &copy; {year} Drive Care Valuation Services. All Rights Reserved.
           </p>
