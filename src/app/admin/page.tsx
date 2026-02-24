@@ -89,7 +89,10 @@ export default function AdminPage() {
   const [newBranch, setNewBranch] = useState('CDH');
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isRegistryOpen, setIsRegistryOpen] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+  
+  const [pendingBranchChange, setPendingBranchChange] = useState<{ key: string, branch: string, email: string } | null>(null);
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -276,6 +279,8 @@ export default function AdminPage() {
       toast({ title: "Branch Updated", description: `User designated to ${branch === 'CDH' ? 'Head Office' : 'Kadawatha'}.` });
     } catch (err) {
       toast({ variant: "destructive", title: "Action Failed", description: "Could not update branch." });
+    } finally {
+      setPendingBranchChange(null);
     }
   };
 
@@ -347,7 +352,7 @@ export default function AdminPage() {
               <Globe className="h-4 w-4 text-primary" />
               <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">System Overview</span>
            </div>
-           <div className="flex items-center gap-4">
+           <div className="flex items-center gap-2">
               <Tabs value={branchFilter} onValueChange={(v) => setBranchFilter(v as any)} className="h-9">
                   <TabsList className="bg-background/50 h-9 p-1">
                     <TabsTrigger value="all" className="text-[10px] px-4 h-7 uppercase font-black">Global View</TabsTrigger>
@@ -355,6 +360,98 @@ export default function AdminPage() {
                     <TabsTrigger value="CDK" className="text-[10px] px-4 h-7 uppercase font-black">Kadawatha</TabsTrigger>
                   </TabsList>
               </Tabs>
+
+              <Sheet open={isRegistryOpen} onOpenChange={setIsRegistryOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-2 border-primary/20 bg-background/50 font-bold text-xs">
+                    <ShieldCheck size={16} className="text-primary" /> Access Registry
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="w-full sm:max-w-md bg-card border-l-2 flex flex-col p-0 overflow-hidden">
+                  <SheetHeader className="p-6 shrink-0 border-b bg-muted/10">
+                    <SheetTitle className="text-2xl font-black flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="text-primary" /> Access Registry
+                      </div>
+                      <Badge variant="secondary" className="text-[10px] font-black">{Object.keys(authorizedUsers).length} USERS</Badge>
+                    </SheetTitle>
+                    <SheetDescription>Managed list of authorized system users and their metrics.</SheetDescription>
+                  </SheetHeader>
+                  
+                  <div className="flex-1 overflow-hidden flex flex-col">
+                    <ScrollArea className="flex-1 px-6 py-6">
+                      <div className="space-y-4">
+                        {Object.entries(authorizedUsers).map(([key, data]) => (
+                          <div key={key} className="bg-muted/20 p-4 rounded-xl border border-primary/5 group hover:border-primary/20 transition-all flex flex-col shadow-sm">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-[13px] font-black truncate text-foreground leading-tight">{data.email}</span>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Select 
+                                    value={data.branch} 
+                                    onValueChange={(val) => {
+                                      if (val !== data.branch) {
+                                        setPendingBranchChange({ key, branch: val, email: data.email });
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-6 px-2 text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary w-fit min-w-[65px] gap-1 shadow-none focus:ring-0">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="min-w-[100px]">
+                                      <SelectItem value="CDH" className="text-[11px] font-bold">CDH - HEAD</SelectItem>
+                                      <SelectItem value="CDK" className="text-[11px] font-bold">CDK - KADA</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {ADMIN_EMAILS.includes(data.email) && (
+                                    <Badge className="text-[8px] h-4 bg-primary/20 text-primary border-0 font-black">ADMIN</Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                                onClick={() => handleRemoveUser(key)}
+                                disabled={ADMIN_EMAILS.includes(data.email)}
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 text-[10px] mt-4 pt-4 border-t border-primary/5">
+                              <div className="flex flex-col">
+                                <span className="text-muted-foreground uppercase font-black text-[8px] flex items-center gap-1">
+                                  <Zap size={10} className="text-primary" /> Today
+                                </span>
+                                <span className="text-lg font-black text-primary">{userRegistryStats[key]?.today || 0}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-muted-foreground uppercase font-black text-[8px] flex items-center gap-1">
+                                  <Activity size={10} className="text-primary" /> Overall
+                                </span>
+                                <span className="text-lg font-black text-foreground">{userRegistryStats[key]?.total || 0}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {Object.keys(authorizedUsers).length === 0 && (
+                          <div className="text-center py-20 opacity-30 italic text-sm">
+                            No authorized users found.
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+
+                  <CardFooter className="p-6 border-t bg-muted/10 shrink-0">
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-2 italic font-medium leading-relaxed">
+                      <ShieldAlert size={12} className="text-primary shrink-0" />
+                      Personnel listed here are permitted to generate and save valuation reports.
+                    </div>
+                  </CardFooter>
+                </SheetContent>
+              </Sheet>
 
               <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                 <SheetTrigger asChild>
@@ -504,8 +601,8 @@ export default function AdminPage() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 relative z-20">
-          <div className="xl:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 gap-6 relative z-20">
+          <div className="space-y-6">
             <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-xl overflow-visible">
               <CardHeader>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -552,7 +649,7 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {filteredReportsList.slice(0, visibleReportsCount).map(report => {
                     const ids = getIdentifiers(report);
                     const isIssued = ids.reportNum !== 'DRAFT';
@@ -713,87 +810,40 @@ export default function AdminPage() {
               </CardFooter>
             </Card>
           </div>
-
-          <div className="space-y-6">
-            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-md flex flex-col h-full min-h-[600px]">
-                <CardHeader className="shrink-0 border-b bg-muted/10">
-                    <CardTitle className="text-sm font-bold flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <ShieldCheck className="h-4 w-4 text-primary" /> Access Registry
-                        </div>
-                        <Badge variant="secondary" className="text-[8px] font-black">{Object.keys(authorizedUsers).length} USERS</Badge>
-                    </CardTitle>
-                    <CardDescription className="text-[10px]">Managed list of authorized system users and their metrics.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0 flex-grow">
-                  <ScrollArea className="h-full px-4 pt-4 pb-4">
-                    <div className="space-y-3">
-                      {Object.entries(authorizedUsers).map(([key, data]) => (
-                        <div key={key} className="bg-muted/20 p-3 rounded-lg border border-primary/5 group hover:border-primary/20 transition-all flex flex-col">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-[11px] font-bold truncate text-foreground">{data.email}</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <Select 
-                                  value={data.branch} 
-                                  onValueChange={(val) => handleUpdateBranch(key, val)}
-                                >
-                                  <SelectTrigger className="h-5 px-1.5 text-[8px] font-black uppercase border-primary/20 bg-primary/5 text-primary w-fit min-w-[55px] gap-1 shadow-none focus:ring-0">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="min-w-[80px]">
-                                    <SelectItem value="CDH" className="text-[10px] font-bold">CDH</SelectItem>
-                                    <SelectItem value="CDK" className="text-[10px] font-bold">CDK</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                {ADMIN_EMAILS.includes(data.email) && (
-                                  <Badge className="text-[8px] h-4 bg-primary/20 text-primary border-0">ADMIN</Badge>
-                                )}
-                              </div>
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
-                              onClick={() => handleRemoveUser(key)}
-                              disabled={ADMIN_EMAILS.includes(data.email)}
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4 text-[10px] mt-3 pt-3 border-t border-primary/5">
-                            <div className="flex flex-col">
-                              <span className="text-muted-foreground uppercase font-black text-[8px] flex items-center gap-1">
-                                <Zap size={10} className="text-primary" /> Daily
-                              </span>
-                              <span className="text-base font-black text-primary">{userRegistryStats[key]?.today || 0}</span>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-muted-foreground uppercase font-black text-[8px] flex items-center gap-1">
-                                <Activity size={10} className="text-primary" /> Overall
-                              </span>
-                              <span className="text-base font-black text-foreground">{userRegistryStats[key]?.total || 0}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                      {Object.keys(authorizedUsers).length === 0 && (
-                        <div className="text-center py-10 opacity-30 italic text-[10px]">
-                          No authorized users found.
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-                <CardFooter className="p-4 border-t bg-muted/10 shrink-0">
-                  <div className="text-[9px] text-muted-foreground flex items-center gap-1.5 italic font-medium">
-                    <ShieldAlert size={10} className="text-primary" /> System administrators are protected from deletion.
-                  </div>
-                </CardFooter>
-            </Card>
-          </div>
         </div>
+
+        <AlertDialog 
+          open={!!pendingBranchChange} 
+          onOpenChange={(open) => { if (!open) setPendingBranchChange(null); }}
+        >
+          <AlertDialogContent className="border-2 border-primary/20 shadow-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-primary flex items-center gap-2">
+                <Building2 className="h-5 w-5" /> Confirm Branch Transfer
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-4">
+                <p className="font-bold text-foreground">
+                  Are you sure you want to move user <span className="text-primary">{pendingBranchChange?.email}</span> to the <span className="text-primary font-black">{pendingBranchChange?.branch === 'CDH' ? 'Head Office' : 'Kadawatha Branch'}</span>?
+                </p>
+                <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    This will change their default report numbering prefix and branch designation for all future synchronizations.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-6">
+              <AlertDialogCancel className="font-bold">Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-black"
+                onClick={() => pendingBranchChange && handleUpdateBranch(pendingBranchChange.key, pendingBranchChange.branch)}
+              >
+                Confirm Transfer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
       </main>
     </div>
   );
