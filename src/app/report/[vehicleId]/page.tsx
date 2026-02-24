@@ -13,7 +13,7 @@ import { useFirebase } from '@/firebase';
 import { doc, getDoc, getDocs, collection, query, where, serverTimestamp, runTransaction, setDoc, onSnapshot } from 'firebase/firestore';
 import type { ImageData, Report, FieldLayout } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { numberToWords, getDayOfYear } from '@/lib/utils';
+import { numberToWords, getDayOfYear, cn } from '@/lib/utils';
 import Link from 'next/link';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
@@ -88,6 +88,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     const weight = scoringField?.value?.optionWeights?.[selectedOption];
     
     if (weight !== undefined && weight !== null) {
+      // Use the first digit of the weight as requested
       return String(weight).charAt(0);
     }
     return '5'; // Default technical grade
@@ -342,7 +343,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
     if (isMoneyField && value.trim() !== '') {
       const trimmed = value.trim().replace(/,/g, '');
-      // If it's a number and doesn't have decimals, or is a whole number, format it
       if (/^\d+$/.test(trimmed)) {
         handleDataChange(fieldId, `${trimmed}.00`);
       } else {
@@ -550,7 +550,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         </Card>
 
         <div className="flex-1 w-full overflow-auto pb-20 pt-4 flex justify-start md:justify-center">
-          <div className="min-w-fit px-4">
+          <div className="min-w-fit px-4 h-fit">
             {isLoading ? (
               <div className="animate-pulse bg-white w-[210mm] h-[297mm] shadow-2xl rounded-lg" />
             ) : (
