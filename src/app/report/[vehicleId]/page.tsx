@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -36,16 +37,13 @@ import {
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
 const VEHICLE_CLASSES = [
-  "Motor Car",
-  "Motor Cycle",
-  "Dual Purpose Vehicle",
-  "Three Wheeler",
-  "Light Lorry",
-  "Heavy Lorry",
-  "Bus",
-  "Tractor",
-  "Trailer",
-  "Construction Machine"
+  "MOTOR CAR",
+  "MOTOR LORRY",
+  "DUAL PURPOSE",
+  "MOTOR CYCLE",
+  "MOTOR TRICYCLE",
+  "SPECIAL PURPOSE",
+  "LAND VEHICLE"
 ];
 
 function UnauthorizedAccess() {
@@ -371,6 +369,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     setReportData(prev => {
       const updated = { ...prev, [fieldId]: finalValue };
 
+      // If the value updated matches a vehicle classification, ensure reportData.vehicleClass is updated
+      if (typeof finalValue === 'string' && VEHICLE_CLASSES.includes(finalValue.toUpperCase())) {
+        updated.vehicleClass = finalValue.toUpperCase();
+      }
+
       currentLayout.forEach(layoutField => {
         if (layoutField.autoFillType === 'numberToWords' && layoutField.autoFillSource === fieldId && typeof finalValue === 'string') {
           const cleanVal = finalValue.replace(/[^\d.]/g, ''); 
@@ -420,7 +423,13 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const handleSave = async () => {
     if (!user || !firestore) return;
 
-    const finalClass = reportData.vehicleClass || 'Motor Car';
+    // Resolve final class from reportData.vehicleClass or search within reportData for a match
+    let finalClass = reportData.vehicleClass;
+    if (!finalClass || !VEHICLE_CLASSES.includes(finalClass.toUpperCase())) {
+      const foundMatch = Object.values(reportData).find(v => typeof v === 'string' && VEHICLE_CLASSES.includes(v.toUpperCase()));
+      finalClass = foundMatch ? String(foundMatch).toUpperCase() : 'MOTOR CAR';
+    }
+
     const conditionValue = reportData['conditionScore'];
     
     if (!conditionValue || String(conditionValue).trim() === '') {
@@ -630,6 +639,14 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     return { staticLabels: labels, dynamicValues: values, imageValues: images };
   }, [reportData, currentLayout]);
 
+  const currentDisplayClass = useMemo(() => {
+    if (reportData.vehicleClass && VEHICLE_CLASSES.includes(reportData.vehicleClass.toUpperCase())) {
+      return reportData.vehicleClass.toUpperCase();
+    }
+    const foundMatch = Object.values(reportData).find(v => typeof v === 'string' && VEHICLE_CLASSES.includes(v.toUpperCase()));
+    return foundMatch ? String(foundMatch).toUpperCase() : 'NOT SELECTED';
+  }, [reportData]);
+
   if (isAuthorized === false) return <UnauthorizedAccess />;
   if (isAuthorized === null) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
@@ -737,16 +754,16 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                         <div className="space-y-3 pt-2">
                           <p className="font-bold text-foreground">Double Check Required</p>
                           <p className="text-xs leading-relaxed text-muted-foreground">
-                            Please <strong>Double Check</strong> the "Class of Vehicle" field. If this is incorrect, the <strong>Report Number</strong> cannot be updated correctly today.
+                            Please verify the vehicle classification before finalizing. This value is critical for the <span className="font-bold text-primary italic">Valuation Code</span> sequence indexing.
                           </p>
                         </div>
                       </DialogDescription>
                     </DialogHeader>
                     <div className="py-6 space-y-6">
                       <div className="space-y-2 p-4 bg-muted/30 rounded-xl border-2 border-dashed border-primary/20">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Report Selected Classification</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Verified Vehicle Classification</Label>
                         <div className="text-2xl font-black text-primary tracking-tight font-mono">
-                          {reportData.vehicleClass || 'NOT SELECTED'}
+                          {currentDisplayClass}
                         </div>
                       </div>
                       
