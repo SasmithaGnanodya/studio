@@ -351,32 +351,32 @@ export default function AdminPage() {
       <Header />
       <main className="flex-1 p-6 space-y-6">
         
-        <div className="flex items-center justify-between gap-4 bg-card/30 backdrop-blur-sm border border-primary/10 p-2 rounded-xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/30 backdrop-blur-sm border border-primary/10 p-3 rounded-xl">
            <div className="flex items-center gap-3 pl-2">
               <Globe className="h-4 w-4 text-primary" />
-              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">System Overview</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground whitespace-nowrap">System Overview</span>
            </div>
-           <div className="flex items-center gap-2">
+           <div className="flex flex-wrap items-center gap-2">
               {isSuperAdmin && (
-                <Link href="/super-admin" passHref>
-                  <Button variant="outline" size="sm" className="h-9 gap-2 border-primary/20 bg-primary/5 font-black text-[10px] uppercase text-primary">
+                <Link href="/super-admin" passHref className="w-full sm:w-auto">
+                  <Button variant="outline" size="sm" className="h-9 w-full sm:w-auto gap-2 border-primary/20 bg-primary/5 font-black text-[10px] uppercase text-primary">
                     <Shield size={14} /> Open Command Center
                   </Button>
                 </Link>
               )}
 
-              <Tabs value={branchFilter} onValueChange={(v) => setBranchFilter(v as any)} className="h-9">
-                  <TabsList className="bg-background/50 h-9 p-1">
-                    <TabsTrigger value="all" className="text-[10px] px-4 h-7 uppercase font-black">Global View</TabsTrigger>
-                    <TabsTrigger value="CDH" className="text-[10px] px-4 h-7 uppercase font-black">Head Office</TabsTrigger>
-                    <TabsTrigger value="CDK" className="text-[10px] px-4 h-7 uppercase font-black">Kadawatha</TabsTrigger>
+              <Tabs value={branchFilter} onValueChange={(v) => setBranchFilter(v as any)} className="h-9 w-full sm:w-auto">
+                  <TabsList className="bg-background/50 h-9 p-1 w-full sm:w-auto">
+                    <TabsTrigger value="all" className="flex-1 sm:flex-none text-[10px] px-4 h-7 uppercase font-black">Global</TabsTrigger>
+                    <TabsTrigger value="CDH" className="flex-1 sm:flex-none text-[10px] px-4 h-7 uppercase font-black">Head</TabsTrigger>
+                    <TabsTrigger value="CDK" className="flex-1 sm:flex-none text-[10px] px-4 h-7 uppercase font-black">Kada</TabsTrigger>
                   </TabsList>
               </Tabs>
 
               <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 gap-2 border-primary/20 bg-background/50 font-bold text-xs">
-                    <Settings size={16} className="text-primary" /> System Settings
+                  <Button variant="outline" size="sm" className="h-9 w-full sm:w-auto gap-2 border-primary/20 bg-background/50 font-bold text-xs">
+                    <Settings size={16} className="text-primary" /> Settings
                   </Button>
                 </SheetTrigger>
                 <SheetContent className="w-full sm:max-w-md bg-card border-l-2 flex flex-col p-0 overflow-hidden">
