@@ -25,13 +25,6 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
@@ -105,6 +98,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   // Cloning State
   const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
+  const [isCloneErrorOpen, setIsCloneErrorOpen] = useState(false);
   const [cloneSearchTerm, setCloneSearchTerm] = useState('');
   const [isCloning, setIsCloning] = useState(false);
 
@@ -351,16 +345,13 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       const isPrice = layoutField?.value?.isPriceFormat;
 
       if (isPrice) {
-        // If it already has a dot (coming from blur), allow it but format the part before the dot
         if (value.includes('.')) {
           const [intPart, decPart] = value.split('.');
           const cleanInt = intPart.replace(/[^\d]/g, '');
           const formattedInt = cleanInt.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
           finalValue = `${formattedInt}.${decPart}`;
         } else {
-          // While typing: Strictly integer input
           const clean = value.replace(/[^\d]/g, '');
-          // Comma separation
           finalValue = clean.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         }
       } else {
@@ -385,7 +376,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     setReportData(prev => {
       const updated = { ...prev, [fieldId]: finalValue };
 
-      // Ensure vehicleClass is updated if a matching selection is made
       if (typeof finalValue === 'string' && VEHICLE_CLASSES.includes(finalValue.toUpperCase())) {
         updated.vehicleClass = finalValue.toUpperCase();
       }
@@ -449,7 +439,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const handleSave = async () => {
     if (!user || !firestore) return;
 
-    // Resolve final class
     let finalClass = reportData.vehicleClass;
     if (!finalClass || !VEHICLE_CLASSES.includes(finalClass.toUpperCase())) {
       const foundMatch = Object.values(reportData).find(v => typeof v === 'string' && VEHICLE_CLASSES.includes(v.toUpperCase()));
@@ -566,7 +555,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const sourceData = sourceSnap.data() as Report;
         const clonedReportData = { ...sourceData.reportData };
         
-        // Automated technical exclusion for unique identifiers
         const uniqueFieldIdsFromLayout = currentLayout
           .filter(f => f.fieldType === 'text' && f.label?.text)
           .filter(f => {
@@ -628,11 +616,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         setIsCloneDialogOpen(false);
         setCloneSearchTerm('');
       } else {
-        toast({
-          variant: "destructive",
-          title: "Record Not Found",
-          description: `No existing report found for: ${sourceVehicleId}.`,
-        });
+        setIsCloneDialogOpen(false);
+        setIsCloneErrorOpen(true);
       }
     } catch (err) {
       console.error("Cloning failed:", err);
@@ -733,8 +718,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                       <Search className="h-5 w-5" /> Import Vehicle Specs
                     </DialogTitle>
                     <DialogDescription asChild>
-                      <div className="space-y-2">
-                        <p>Enter a registration number to copy technical details. Unique IDs (Chassis, Engine, Class) will be cleared.</p>
+                      <div className="space-y-4 pt-2">
+                        <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+                          <p className="text-sm font-black text-primary uppercase tracking-tight">Only Search Via Reg.Number.</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Unique IDs (Chassis, Engine, Class) will be cleared automatically.</p>
                       </div>
                     </DialogDescription>
                   </DialogHeader>
@@ -757,6 +745,33 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                   </div>
                   <DialogFooter className="sm:justify-start">
                     <Button type="button" variant="ghost" onClick={() => setIsCloneDialogOpen(false)}>Cancel</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isCloneErrorOpen} onOpenChange={setIsCloneErrorOpen}>
+                <DialogContent className="sm:max-w-md border-2 border-destructive/20 shadow-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-destructive font-black">
+                      <AlertTriangle className="h-5 w-5" /> Record Not Found
+                    </DialogTitle>
+                    <DialogDescription className="font-bold text-foreground">
+                      Try with another Vehicle Reg.Number.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      We could not find any existing report matching registration <span className="font-mono text-destructive font-black">"{cloneSearchTerm}"</span> in the database.
+                    </p>
+                  </div>
+                  <DialogFooter className="gap-2 sm:gap-0">
+                    <Button variant="ghost" onClick={() => setIsCloneErrorOpen(false)}>Close</Button>
+                    <Button 
+                      onClick={() => { setIsCloneErrorOpen(false); setIsCloneDialogOpen(true); }} 
+                      className="bg-primary font-black px-8"
+                    >
+                      Try Again
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
