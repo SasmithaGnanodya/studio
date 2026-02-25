@@ -54,29 +54,63 @@ function getUniqueReports(reports: Report[]) {
 }
 
 /**
- * Transforms plain text containing URLs into a React fragment with interactive links.
+ * Transforms plain text into a React fragment.
+ * Supports:
+ * 1. [Link Text](https://url.com) - Markdown style links
+ * 2. https://url.com - Auto-linking plain URLs
  */
 const renderLinkedText = (text: string) => {
   if (!text) return null;
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlRegex);
   
-  return parts.map((part, i) => {
-    if (part.match(urlRegex)) {
-      return (
+  // Combined regex: [text](url) OR standard URL
+  const combinedRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s]+)/g;
+  
+  const parts: (string | React.ReactNode)[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = combinedRegex.exec(text)) !== null) {
+    // Add text before the match
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+
+    if (match[1] && match[2]) {
+      // Scenario 1: [Link Text](URL)
+      parts.push(
         <a 
-          key={i} 
-          href={part} 
+          key={match.index} 
+          href={match[2]} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="underline decoration-2 underline-offset-2 hover:text-white transition-all font-black mx-1 inline-flex items-center gap-1 text-primary"
+        >
+          {match[1]} <ExternalLink size={10} />
+        </a>
+      );
+    } else if (match[3]) {
+      // Scenario 2: Plain URL
+      parts.push(
+        <a 
+          key={match.index} 
+          href={match[3]} 
           target="_blank" 
           rel="noopener noreferrer" 
           className="underline decoration-2 underline-offset-2 hover:text-white transition-all font-black mx-1 inline-flex items-center gap-1"
         >
-          {part.replace(/^https?:\/\//, '')} <ExternalLink size={10} />
+          {match[3].replace(/^https?:\/\//, '')} <ExternalLink size={10} />
         </a>
       );
     }
-    return part;
-  });
+    lastIndex = combinedRegex.lastIndex;
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+  
+  return parts;
 };
 
 export default function LandingPage() {

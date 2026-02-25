@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { ShieldCheck, Megaphone, Lock, Unlock, Loader2, Save, AlertTriangle, Activity, Globe, Shield, Sparkles } from 'lucide-react';
+import { ShieldCheck, Megaphone, Lock, Unlock, Loader2, Save, AlertTriangle, Activity, Globe, Shield, Sparkles, Link as LinkIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -143,19 +143,32 @@ export default function SuperAdminPage() {
                   onCheckedChange={(val) => setAnnouncement(prev => ({ ...prev, isActive: val }))}
                 />
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-black uppercase text-muted-foreground">Message Content</Label>
-                  <span className="text-[10px] text-primary font-bold italic flex items-center gap-1">
-                    <Sparkles size={10} /> Tip: Paste full URLs (http://...) to create clickable links.
-                  </span>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-black uppercase text-muted-foreground">Message Content</Label>
+                    <span className="text-[10px] text-primary font-bold italic flex items-center gap-1">
+                      <Sparkles size={10} /> Pro Tip: Embed links inside words!
+                    </span>
+                  </div>
+                  <Textarea 
+                    value={announcement.message} 
+                    onChange={(e) => setAnnouncement(prev => ({ ...prev, message: e.target.value }))}
+                    placeholder="Example: Welcome to the safe zone! Visit [our website](https://www.ceylonar.com/) for more."
+                    className="min-h-[120px] bg-background font-medium text-sm leading-relaxed border-primary/20 focus:border-primary shadow-inner"
+                  />
                 </div>
-                <Textarea 
-                  value={announcement.message} 
-                  onChange={(e) => setAnnouncement(prev => ({ ...prev, message: e.target.value }))}
-                  placeholder="Example: Welcome to the new reporting cycle! 🚀 Check our updated guidelines at https://caredrive.lk/updates for technical details."
-                  className="min-h-[120px] bg-background font-medium text-sm leading-relaxed border-primary/20 focus:border-primary shadow-inner"
-                />
+
+                <div className="bg-primary/5 border border-primary/10 p-3 rounded-lg space-y-2">
+                  <h4 className="text-[10px] font-black uppercase text-primary flex items-center gap-1.5">
+                    <LinkIcon size={12} /> Link Creation Tip
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground leading-tight">
+                    To hide a link in a word, use the format: <code className="bg-primary/10 px-1 rounded text-primary font-bold">[Word to click](https://link.com)</code>. 
+                    Standard URLs (starting with http) will still be automatically linked.
+                  </p>
+                </div>
               </div>
             </CardContent>
             <CardFooter className="bg-muted/10 border-t py-4">
