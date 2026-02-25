@@ -737,11 +737,13 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                       <DialogTitle className="flex items-center gap-2 text-primary font-black">
                         <CheckCircle2 className="h-5 w-5" /> Save Verification
                       </DialogTitle>
-                      <DialogDescription className="space-y-3 pt-2">
-                        <p className="font-bold text-foreground">Double Check Required</p>
-                        <p className="text-xs leading-relaxed text-muted-foreground">
-                          Please verify the vehicle classification before finalizing. This value is critical for the <span className="font-bold text-primary italic">Valuation Code</span> sequence indexing.
-                        </p>
+                      <DialogDescription className="space-y-3 pt-2" asChild>
+                        <div className="space-y-3">
+                          <p className="font-bold text-foreground">Double Check Required</p>
+                          <p className="text-xs leading-relaxed text-muted-foreground">
+                            Please <strong>Double Check</strong> the "Class of Vehicle" field. If this is incorrect, the <strong>Report Number</strong> cannot be updated correctly today.
+                          </p>
+                        </div>
                       </DialogDescription>
                     </DialogHeader>
                     <div className="py-6 space-y-4">
