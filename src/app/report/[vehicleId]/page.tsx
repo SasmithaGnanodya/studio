@@ -549,24 +549,27 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const sourceData = sourceSnap.data() as Report;
         const clonedReportData = { ...sourceData.reportData };
         
-        // Strictly exclude unique and system identifiers from being cloned
-        const excludedKeys = [
-          'regNumber', 
-          'reportNumber', 
-          'valuationCode', 
-          'date', 
-          'image1', 
-          'vehicleId', 
-          'inspectionLocation',
-          'chassisNumber',
-          'engineNumber',
-          'vehicleClass',
-          'text_1767985277711',
-          'text_1767985345109'
-        ];
-        
-        excludedKeys.forEach(key => {
-          if (clonedReportData[key]) {
+        // Comprehensive exclusion for unique, system, and requested identifiers
+        // Use fuzzy matching to ensure custom field mappings are also cleared
+        Object.keys(clonedReportData).forEach(key => {
+          const k = key.toLowerCase();
+          const isUniqueOrSensitive = 
+            k.includes('engine') || 
+            k.includes('chassis') || 
+            k.includes('vin') || 
+            k.includes('serial') || 
+            k.includes('reportnum') || 
+            k.includes('regnumber') || 
+            k.includes('valuation') || 
+            k.includes('vehicleid') || 
+            k.includes('vehicleclass') || 
+            k.includes('image1') || 
+            k === 'date' || 
+            k === 'id' || 
+            k === 'text_1767985277711' || 
+            k === 'text_1767985345109';
+
+          if (isUniqueOrSensitive) {
             delete clonedReportData[key];
           }
         });
@@ -574,9 +577,9 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         setReportData(prev => ({
           ...prev,
           ...clonedReportData,
-          // Preserve essential current session markers and specifically clear unique ones as requested
+          // Preserve essential session markers and reset unique ones to empty strings explicitly
           regNumber: isUnregistered ? 'U/R' : vehicleId,
-          date: prev.date, // Keep current date
+          date: prev.date, // Keep current session date
           chassisNumber: "",
           engineNumber: "",
           reportNumber: "V-PENDING",
@@ -588,7 +591,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
         toast({
           title: "Technical Data Imported",
-          description: `Specifications from ${sourceVehicleId} have been loaded. Unique technical IDs have been cleared.`,
+          description: `Specifications from ${sourceVehicleId} loaded. Unique identifiers (Chassis, Engine, Class) have been cleared.`,
         });
         setIsCloneDialogOpen(false);
         setCloneSearchTerm('');
