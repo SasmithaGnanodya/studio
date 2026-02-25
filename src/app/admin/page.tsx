@@ -96,6 +96,7 @@ export default function AdminPage() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '1y'>('7d');
   const [branchFilter, setBranchFilter] = useState<'all' | 'CDH' | 'CDK'>('all');
   const [storageUsage, setStorageUsage] = useState<number | null>(null);
+  const [billingInfo, setBillingInfo] = useState({ isPending: true, deadline: 'Feb 28', benefit: 'Unlocks 3-Month Extended Access' });
 
   const [authorizedUsers, setAuthorizedUsers] = useState<Record<string, { branch: string, email: string }>>({});
   const [newEmail, setNewEmail] = useState('');
@@ -139,6 +140,13 @@ export default function AdminPage() {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: authRef.path, operation: 'get' }));
       });
 
+      const billRef = doc(firestore, 'config', 'billing');
+      const unsubscribeBill = onSnapshot(billRef, (snap) => {
+        if (snap.exists()) {
+          setBillingInfo(snap.data() as any);
+        }
+      });
+
       if (storage) {
         const fetchStorageUsage = async () => {
           try {
@@ -161,6 +169,7 @@ export default function AdminPage() {
       return () => {
         unsubscribeReports();
         unsubscribeAuth();
+        unsubscribeBill();
       };
     }
   }, [user, firestore, storage, isUserLoading, router]);
@@ -636,8 +645,8 @@ export default function AdminPage() {
             </div>
             <CardHeader className="pb-2">
               <CardDescription className="text-[10px] font-bold uppercase tracking-wider">Cloud Storage</CardDescription>
-              <CardTitle className="text-2xl font-black text-primary">
-                {storageUsage !== null ? formatBytes(storageUsage) : <Loader2 className="h-4 w-4 animate-spin" />}
+              <CardTitle className="text-xl font-black text-primary truncate">
+                {storageUsage !== null ? `${formatBytes(storageUsage)} / 15 GB` : <Loader2 className="h-4 w-4 animate-spin" />}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -647,20 +656,37 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-destructive/20 bg-destructive/5 backdrop-blur-sm shadow-lg overflow-hidden relative min-h-[140px] border-l-4 border-l-destructive">
+          <Card className={cn(
+            "backdrop-blur-sm shadow-lg overflow-hidden relative min-h-[140px] border-l-4 transition-all duration-500",
+            billingInfo.isPending 
+              ? "border-destructive/20 bg-destructive/5 border-l-destructive" 
+              : "border-primary/20 bg-primary/5 border-l-primary"
+          )}>
             <div className="absolute top-0 right-0 p-3 opacity-10">
-              <CreditCard size={48} className="text-destructive" />
+              <CreditCard size={48} className={billingInfo.isPending ? "text-destructive" : "text-primary"} />
             </div>
             <CardHeader className="pb-2">
-              <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-destructive flex items-center gap-1">
-                <AlertTriangle size={10} /> Billing Cycle
+              <CardDescription className={cn(
+                "text-[10px] font-bold uppercase tracking-wider flex items-center gap-1",
+                billingInfo.isPending ? "text-destructive" : "text-primary"
+              )}>
+                {billingInfo.isPending ? <AlertTriangle size={10} /> : <FileCheck size={10} />} Billing Cycle
               </CardDescription>
-              <CardTitle className="text-xl font-black text-destructive uppercase tracking-tighter">Payment Pending</CardTitle>
+              <CardTitle className={cn(
+                "text-xl font-black uppercase tracking-tighter",
+                billingInfo.isPending ? "text-destructive" : "text-primary"
+              )}>
+                {billingInfo.isPending ? "Payment Pending" : "Account Active"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
-                Settlement required by <span className="font-bold text-foreground">Feb 28</span>. 
-                <span className="block mt-1 text-primary font-black uppercase text-[8px]">Unlocks 3-Month Extended Access</span>
+                {billingInfo.isPending ? (
+                  <>Settlement required by <span className="font-bold text-foreground">{billingInfo.deadline}</span>.</>
+                ) : (
+                  <>Next renewal audit on <span className="font-bold text-foreground">{billingInfo.deadline}</span>.</>
+                )}
+                <span className="block mt-1 text-primary font-black uppercase text-[8px]">{billingInfo.benefit}</span>
               </p>
             </CardContent>
           </Card>

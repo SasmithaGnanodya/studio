@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { ShieldCheck, Megaphone, Lock, Unlock, Loader2, Save, AlertTriangle, Activity, Globe, Shield, Sparkles, Link as LinkIcon } from 'lucide-react';
+import { ShieldCheck, Megaphone, Lock, Unlock, Loader2, Save, AlertTriangle, Activity, Globe, Shield, Sparkles, Link as LinkIcon, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ export default function SuperAdminPage() {
 
   const [announcement, setAnnouncement] = useState({ message: '', isActive: false });
   const [systemStatus, setSystemStatus] = useState({ isLocked: false, maintenanceMessage: '' });
+  const [billing, setBilling] = useState({ isPending: true, deadline: 'Feb 28', benefit: 'Unlocks 3-Month Extended Access' });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -45,12 +46,18 @@ export default function SuperAdminPage() {
       const sysRef = doc(firestore, 'config', 'system');
       const unsubSys = onSnapshot(sysRef, (snap) => {
         if (snap.exists()) setSystemStatus(snap.data() as any);
+      });
+
+      const billRef = doc(firestore, 'config', 'billing');
+      const unsubBill = onSnapshot(billRef, (snap) => {
+        if (snap.exists()) setBilling(snap.data() as any);
         setIsLoading(false);
       });
 
       return () => {
         unsubAnn();
         unsubSys();
+        unsubBill();
       };
     }
   }, [user, firestore, isUserLoading, router]);
@@ -76,6 +83,22 @@ export default function SuperAdminPage() {
       toast({ 
         title: systemStatus.isLocked ? "System Locked" : "System Restored", 
         description: systemStatus.isLocked ? "Report creation has been disabled site-wide." : "Normal operations have resumed." 
+      });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Update Failed", description: "Check permissions." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveBilling = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'config', 'billing'), billing, { merge: true });
+      toast({ 
+        title: "Billing Synchronized", 
+        description: "Payment details updated on administrative dashboards." 
       });
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed", description: "Check permissions." });
@@ -234,6 +257,60 @@ export default function SuperAdminPage() {
               >
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Update System Status
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Section 3: Billing Management */}
+          <Card className="border-primary/20 shadow-xl overflow-hidden bg-card/50 backdrop-blur-sm">
+            <CardHeader className="bg-muted/30 border-b">
+              <div className="flex items-center gap-2">
+                <CreditCard className="text-primary h-5 w-5" />
+                <CardTitle className="text-lg">Billing Management</CardTitle>
+              </div>
+              <CardDescription>Update payment status and subscription deadlines.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-6">
+              <div className="flex items-center justify-between p-4 bg-muted/20 rounded-xl border border-dashed">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-black uppercase text-muted-foreground">Payment Status</Label>
+                  <p className="text-[10px] text-muted-foreground italic">Toggle the "Payment Pending" warning on the dashboard.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={cn("text-[10px] font-bold uppercase", !billing.isPending ? "text-green-600" : "text-muted-foreground")}>Active</span>
+                  <Switch 
+                    checked={billing.isPending} 
+                    onCheckedChange={(val) => setBilling(prev => ({ ...prev, isPending: val }))}
+                  />
+                  <span className={cn("text-[10px] font-bold uppercase", billing.isPending ? "text-destructive" : "text-muted-foreground")}>Pending</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase text-muted-foreground">Deadline Date</Label>
+                  <Input 
+                    value={billing.deadline} 
+                    onChange={(e) => setBilling(prev => ({ ...prev, deadline: e.target.value }))}
+                    placeholder="e.g. Feb 28"
+                    className="bg-background border-primary/20 font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase text-muted-foreground">Benefit / Note</Label>
+                  <Input 
+                    value={billing.benefit} 
+                    onChange={(e) => setBilling(prev => ({ ...prev, benefit: e.target.value }))}
+                    placeholder="e.g. Unlocks 3-Month Access"
+                    className="bg-background border-primary/20 font-bold"
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="bg-muted/10 border-t py-4">
+              <Button onClick={handleSaveBilling} disabled={isSaving} className="ml-auto font-black px-8 shadow-lg hover:shadow-primary/20 transition-all">
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Update Billing Details
               </Button>
             </CardFooter>
           </Card>
