@@ -104,7 +104,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   // Save Confirmation State
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
-  const [confirmVehicleClass, setConfirmVehicleClass] = useState<string>('');
   const [isFinalSaving, setIsFinalSaving] = useState(false);
 
   // Cloning State
@@ -418,10 +417,10 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     }
   };
 
-  const handleSave = async (verifiedClass?: string) => {
+  const handleSave = async () => {
     if (!user || !firestore) return;
 
-    const finalClass = verifiedClass || reportData.vehicleClass || 'Motor Car';
+    const finalClass = reportData.vehicleClass || 'Motor Car';
     const conditionValue = reportData['conditionScore'];
     
     if (!conditionValue || String(conditionValue).trim() === '') {
@@ -723,10 +722,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                 <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
                   <DialogTrigger asChild>
                     <Button 
-                      onClick={() => {
-                        setConfirmVehicleClass(reportData.vehicleClass || 'Motor Car');
-                        setIsSaveDialogOpen(true);
-                      }} 
+                      onClick={() => setIsSaveDialogOpen(true)} 
                       className="bg-primary hover:bg-primary/90 text-primary-foreground animate-in fade-in zoom-in duration-300"
                     >
                         <Save className="mr-2 h-4 w-4" /> Save Report
@@ -737,8 +733,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                       <DialogTitle className="flex items-center gap-2 text-primary font-black">
                         <CheckCircle2 className="h-5 w-5" /> Save Verification
                       </DialogTitle>
-                      <DialogDescription className="space-y-3 pt-2" asChild>
-                        <div className="space-y-3">
+                      <DialogDescription asChild>
+                        <div className="space-y-3 pt-2">
                           <p className="font-bold text-foreground">Double Check Required</p>
                           <p className="text-xs leading-relaxed text-muted-foreground">
                             Please <strong>Double Check</strong> the "Class of Vehicle" field. If this is incorrect, the <strong>Report Number</strong> cannot be updated correctly today.
@@ -746,25 +742,18 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                         </div>
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="py-6 space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Vehicle Classification</Label>
-                        <Select value={confirmVehicleClass} onValueChange={setConfirmVehicleClass}>
-                          <SelectTrigger className="h-12 bg-muted/20 border-primary/20 font-bold text-lg">
-                            <SelectValue placeholder="Select Class" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-64">
-                            {VEHICLE_CLASSES.map(v => (
-                              <SelectItem key={v} value={v} className="font-bold">{v}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                    <div className="py-6 space-y-6">
+                      <div className="space-y-2 p-4 bg-muted/30 rounded-xl border-2 border-dashed border-primary/20">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Report Selected Classification</Label>
+                        <div className="text-2xl font-black text-primary tracking-tight font-mono">
+                          {reportData.vehicleClass || 'NOT SELECTED'}
+                        </div>
                       </div>
                       
-                      <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                        <div className="text-[10px] leading-relaxed text-muted-foreground italic">
-                          Confirming will generate the next sequential identifier for <span className="text-primary font-bold">{confirmVehicleClass}</span> in today's audit log.
+                      <div className="p-4 bg-destructive/10 rounded-xl border-2 border-destructive/30 flex items-start gap-3 animate-pulse">
+                        <AlertTriangle className="h-6 w-6 text-destructive shrink-0 mt-0.5" />
+                        <div className="text-xs leading-relaxed text-destructive font-black uppercase tracking-tight">
+                          IMPORTANT: If this classification is wrong, the "Report Number" cannot be updated correctly today. Please verify on the form first if incorrect.
                         </div>
                       </div>
                     </div>
@@ -773,9 +762,9 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                         Cancel
                       </Button>
                       <Button 
-                        onClick={() => handleSave(confirmVehicleClass)} 
+                        onClick={() => handleSave()} 
                         className="bg-primary font-black px-8 shadow-lg"
-                        disabled={isFinalSaving || !confirmVehicleClass}
+                        disabled={isFinalSaving}
                       >
                         {isFinalSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Committing...</> : "Confirm & Save"}
                       </Button>
