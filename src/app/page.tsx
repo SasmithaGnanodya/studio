@@ -11,7 +11,7 @@ import {
   Search, PlusCircle, Car, FileText, Shield, Filter, 
   Clock, ChevronRight, BarChart3, ShieldCheck, Zap, 
   Megaphone, X, Lock, Info, BookOpen, Fingerprint, 
-  LayoutTemplate, Database, AlertCircle
+  LayoutTemplate, Database, AlertCircle, Sparkles
 } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { collection, onSnapshot, orderBy, query, doc } from 'firebase/firestore';
@@ -107,6 +107,13 @@ export default function LandingPage() {
     }
   };
 
+  const handleCreateUnregistered = () => {
+    if (!systemStatus.isLocked) {
+      const tempId = `UR-${Date.now()}`;
+      router.push(`/report/${tempId}`);
+    }
+  };
+
   if (isUserLoading) return <div className="min-h-screen bg-muted/10"><Header /><main className="p-4 flex justify-center"><Skeleton className="h-64 w-full max-w-4xl" /></main></div>;
 
   if (!user) return (
@@ -195,11 +202,27 @@ export default function LandingPage() {
                 </div>
               </div>
               
-              {searchTerm && !uniqueReports.some(r => r.vehicleId.toUpperCase() === searchTerm.trim()) && !systemStatus.isLocked && (
-                <Button onClick={handleCreateNew} size="lg" className="w-full h-14 text-lg font-black shadow-xl hover:shadow-primary/20 transition-all animate-in zoom-in-95">
-                  <PlusCircle className="mr-2" /> Create New Report: "{searchTerm}"
-                </Button>
-              )}
+              <div className="flex flex-col sm:flex-row gap-3">
+                {searchTerm && !uniqueReports.some(r => r.vehicleId.toUpperCase() === searchTerm.trim()) && !systemStatus.isLocked && (
+                  <Button onClick={handleCreateNew} size="lg" className="flex-1 h-14 text-lg font-black shadow-xl hover:shadow-primary/20 transition-all animate-in zoom-in-95">
+                    <PlusCircle className="mr-2" /> Create: "{searchTerm}"
+                  </Button>
+                )}
+                
+                {!systemStatus.isLocked && (
+                  <Button 
+                    onClick={handleCreateUnregistered} 
+                    variant="outline" 
+                    size="lg" 
+                    className={cn(
+                      "h-14 text-sm font-black border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all",
+                      searchTerm ? "sm:w-auto px-8" : "w-full"
+                    )}
+                  >
+                    <Sparkles className="mr-2 h-5 w-5" /> New Unregistered Vehicle
+                  </Button>
+                )}
+              </div>
 
               {searchTerm && (
                 <div className="pt-8 border-t border-muted">
