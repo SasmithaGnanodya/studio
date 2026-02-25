@@ -8,7 +8,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck, Activity, Settings, AlertTriangle, Megaphone, Shield, Database, HardDrive } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck, Activity, Settings, AlertTriangle, Megaphone, Shield, Database, HardDrive, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -584,7 +584,7 @@ export default function AdminPage() {
            </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 relative z-10">
           <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative min-h-[140px]">
             <div className="absolute top-0 right-0 p-3 opacity-10">
               <Car size={48} className="text-primary" />
@@ -643,6 +643,24 @@ export default function AdminPage() {
             <CardContent>
               <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-1 font-medium">
                 <HardDrive size={10} className="text-primary" /> Technical Assets
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-destructive/20 bg-destructive/5 backdrop-blur-sm shadow-lg overflow-hidden relative min-h-[140px] border-l-4 border-l-destructive">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <CreditCard size={48} className="text-destructive" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-destructive flex items-center gap-1">
+                <AlertTriangle size={10} /> Billing Cycle
+              </CardDescription>
+              <CardTitle className="text-xl font-black text-destructive uppercase tracking-tighter">Payment Pending</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
+                Settlement required by <span className="font-bold text-foreground">Feb 28</span>. 
+                <span className="block mt-1 text-primary font-black uppercase text-[8px]">Unlocks 3-Month Extended Access</span>
               </p>
             </CardContent>
           </Card>
