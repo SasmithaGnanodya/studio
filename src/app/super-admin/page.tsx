@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useFirebase } from '@/firebase';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection, query, deleteDoc, getDocs, where } from 'firebase/firestore';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,11 +10,12 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { ShieldCheck, Megaphone, Lock, Unlock, Loader2, Save, AlertTriangle, Activity, Globe, Shield, Sparkles, Link as LinkIcon, CreditCard } from 'lucide-react';
+import { ShieldCheck, Megaphone, Lock, Unlock, Loader2, Save, AlertTriangle, Activity, Globe, Shield, Sparkles, Link as LinkIcon, CreditCard, UserPlus, Users, Trash2, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -28,8 +29,13 @@ export default function SuperAdminPage() {
   const [announcement, setAnnouncement] = useState({ message: '', isActive: false });
   const [systemStatus, setSystemStatus] = useState({ isLocked: false, maintenanceMessage: '' });
   const [billing, setBilling] = useState({ isPending: true, deadline: 'Feb 28', benefit: 'Unlocks 3-Month Extended Access' });
+  
+  const [admins, setAdmins] = useState<{ id: string, email: string }[]>([]);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAddingAdmin, setIsAddingAdmin] = useState(false);
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -52,6 +58,13 @@ export default function SuperAdminPage() {
       const billRef = doc(firestore, 'config', 'billing');
       const unsubBill = onSnapshot(billRef, (snap) => {
         if (snap.exists()) setBilling(snap.data() as any);
+      });
+
+      const adminsRef = collection(firestore, 'admins');
+      const unsubAdmins = onSnapshot(adminsRef, (snap) => {
+        const fetched: { id: string, email: string }[] = [];
+        snap.forEach(doc => fetched.push({ id: doc.id, email: doc.data().email }));
+        setAdmins(fetched);
         setIsLoading(false);
       });
 
@@ -59,9 +72,46 @@ export default function SuperAdminPage() {
         unsubAnn();
         unsubSys();
         unsubBill();
+        unsubAdmins();
       };
     }
   }, [user, firestore, isUserLoading, router]);
+
+  const handleAddAdmin = async () => {
+    if (!firestore || !newAdminEmail.includes('@')) {
+      toast({ variant: "destructive", title: "Invalid Email", description: "Please enter a valid administrator email." });
+      return;
+    }
+    
+    setIsAddingAdmin(true);
+    try {
+      // In a real app, you might need to resolve UID from email via a function,
+      // but here we'll use a placeholder doc or assume they sign in.
+      // For this prototype, we'll store by emailKey to match rule logic or a simple collection.
+      const id = newAdminEmail.toLowerCase().trim();
+      await setDoc(doc(firestore, 'admins', id), {
+        email: id,
+        assignedAt: new Date().toISOString(),
+        assignedBy: user?.email
+      });
+      setNewAdminEmail('');
+      toast({ title: "Admin Added", description: `${id} now has administrative privileges.` });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Failed", description: "Could not update administrator registry." });
+    } finally {
+      setIsAddingAdmin(false);
+    }
+  };
+
+  const handleRemoveAdmin = async (id: string) => {
+    if (!firestore) return;
+    try {
+      await deleteDoc(doc(firestore, 'admins', id));
+      toast({ title: "Access Revoked", description: "User has been removed from the admin registry." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Failed", description: "Could not revoke access." });
+    }
+  };
 
   const handleSaveAnnouncement = async () => {
     if (!firestore) return;
@@ -144,6 +194,68 @@ export default function SuperAdminPage() {
         </div>
 
         <div className="grid gap-8">
+          {/* Admin Management Section */}
+          <Card className="border-primary/20 shadow-xl overflow-hidden bg-card/50 backdrop-blur-sm">
+            <CardHeader className="bg-muted/30 border-b">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="text-primary h-5 w-5" />
+                  <CardTitle className="text-lg">Administrative Registry</CardTitle>
+                </div>
+                <Badge variant="secondary" className="font-black">{admins.length} ACTIVE ADMINS</Badge>
+              </div>
+              <CardDescription>Grant or revoke system-wide administrative privileges.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-6">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Enter email address..." 
+                    value={newAdminEmail} 
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                    className="pl-10 h-11 bg-background border-primary/20"
+                  />
+                </div>
+                <Button onClick={handleAddAdmin} disabled={isAddingAdmin} className="h-11 px-6 font-bold shadow-lg">
+                  {isAddingAdmin ? <Loader2 className="animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                  Add Admin
+                </Button>
+              </div>
+
+              <div className="border rounded-xl bg-background/50 overflow-hidden">
+                <ScrollArea className="h-[200px]">
+                  <div className="p-1 space-y-1">
+                    {admins.map((adm) => (
+                      <div key={adm.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-primary/5 transition-all group border-b last:border-0 border-primary/5">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs uppercase">
+                            {adm.email[0]}
+                          </div>
+                          <span className="text-sm font-bold text-foreground">{adm.email}</span>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleRemoveAdmin(adm.id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    ))}
+                    {admins.length === 0 && (
+                      <div className="flex flex-col items-center justify-center h-[180px] opacity-30 text-center space-y-2">
+                        <Users size={48} />
+                        <p className="text-sm font-bold uppercase tracking-widest">No Dynamic Admins Found</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Section 1: Announcement Manager */}
           <Card className="border-primary/20 shadow-xl overflow-hidden bg-card/50 backdrop-blur-sm">
             <CardHeader className="bg-muted/30 border-b">

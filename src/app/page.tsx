@@ -53,63 +53,31 @@ function getUniqueReports(reports: Report[]) {
   });
 }
 
-/**
- * Transforms plain text into a React fragment.
- * Supports:
- * 1. [Link Text](https://url.com) - Markdown style links
- * 2. https://url.com - Auto-linking plain URLs
- */
 const renderLinkedText = (text: string) => {
   if (!text) return null;
-  
-  // Combined regex: [text](url) OR standard URL
   const combinedRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s]+)/g;
-  
   const parts: (string | React.ReactNode)[] = [];
   let lastIndex = 0;
   let match;
 
   while ((match = combinedRegex.exec(text)) !== null) {
-    // Add text before the match
-    if (match.index > lastIndex) {
-      parts.push(text.substring(lastIndex, match.index));
-    }
-
+    if (match.index > lastIndex) parts.push(text.substring(lastIndex, match.index));
     if (match[1] && match[2]) {
-      // Scenario 1: [Link Text](URL)
       parts.push(
-        <a 
-          key={match.index} 
-          href={match[2]} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="underline decoration-2 underline-offset-2 hover:text-white transition-all font-black mx-1 inline-flex items-center gap-1 text-primary"
-        >
+        <a key={match.index} href={match[2]} target="_blank" rel="noopener noreferrer" className="underline decoration-2 underline-offset-2 hover:text-white transition-all font-black mx-1 inline-flex items-center gap-1 text-primary">
           {match[1]} <ExternalLink size={10} />
         </a>
       );
     } else if (match[3]) {
-      // Scenario 2: Plain URL
       parts.push(
-        <a 
-          key={match.index} 
-          href={match[3]} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="underline decoration-2 underline-offset-2 hover:text-white transition-all font-black mx-1 inline-flex items-center gap-1"
-        >
+        <a key={match.index} href={match[3]} target="_blank" rel="noopener noreferrer" className="underline decoration-2 underline-offset-2 hover:text-white transition-all font-black mx-1 inline-flex items-center gap-1">
           {match[3].replace(/^https?:\/\//, '')} <ExternalLink size={10} />
         </a>
       );
     }
     lastIndex = combinedRegex.lastIndex;
   }
-
-  // Add remaining text
-  if (lastIndex < text.length) {
-    parts.push(text.substring(lastIndex));
-  }
-  
+  if (lastIndex < text.length) parts.push(text.substring(lastIndex));
   return parts;
 };
 
@@ -119,6 +87,7 @@ export default function LandingPage() {
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [isLoadingReports, setIsLoadingReports] = useState(true);
   const [visibleReportsCount, setVisibleReportsCount] = useState(6);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   const [announcement, setAnnouncement] = useState<{ message: string, isActive: boolean } | null>(null);
   const [systemStatus, setSystemStatus] = useState({ isLocked: false, maintenanceMessage: '' });
@@ -128,28 +97,53 @@ export default function LandingPage() {
   const { firestore, user, isUserLoading } = useFirebase();
 
   useEffect(() => {
-    if (user && firestore) {
+    if (!firestore || !user) {
+      if (!user) { setIsAuthorized(false); setIsLoadingReports(false); }
+      return;
+    }
+
+    // Subscribe to access check first to avoid listing permission errors
+    const authRef = doc(firestore, 'config', 'authorizedUsers');
+    const unsubAuth = onSnapshot(authRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        const emailKey = user.email?.toLowerCase().replace(/[.@]/g, '_') || '';
+        setIsAuthorized(!!data[emailKey]);
+      } else {
+        setIsAuthorized(false);
+      }
+    });
+
+    const unsubAnn = onSnapshot(doc(firestore, 'config', 'announcement'), (snap) => {
+      if (snap.exists()) setAnnouncement(snap.data() as any);
+    });
+
+    const unsubSys = onSnapshot(doc(firestore, 'config', 'system'), (snap) => {
+      if (snap.exists()) setSystemStatus(snap.data() as any);
+    });
+
+    return () => { unsubAuth(); unsubAnn(); unsubSys(); };
+  }, [user, firestore]);
+
+  useEffect(() => {
+    if (user && firestore && isAuthorized === true) {
       setIsLoadingReports(true);
       const unsubReports = onSnapshot(query(collection(firestore, 'reports'), orderBy('updatedAt', 'desc')), (snap) => {
         const fetched: Report[] = [];
         snap.forEach((doc) => fetched.push({ id: doc.id, ...(doc.data() as Omit<Report, 'id'>) }));
         setAllReports(fetched);
         setIsLoadingReports(false);
+      }, (err) => {
+        // If snapshot fails due to permissions, silently clear
+        console.warn("Report stream restricted:", err.message);
+        setAllReports([]);
+        setIsLoadingReports(false);
       });
-
-      const unsubAnn = onSnapshot(doc(firestore, 'config', 'announcement'), (snap) => {
-        if (snap.exists()) setAnnouncement(snap.data() as any);
-      });
-
-      const unsubSys = onSnapshot(doc(firestore, 'config', 'system'), (snap) => {
-        if (snap.exists()) setSystemStatus(snap.data() as any);
-      });
-
-      return () => { unsubReports(); unsubAnn(); unsubSys(); };
-    } else if (!isUserLoading) {
-        setAllReports([]); setIsLoadingReports(false);
+      return () => unsubReports();
+    } else if (isAuthorized === false) {
+      setAllReports([]); setIsLoadingReports(false);
     }
-  }, [user, firestore, isUserLoading]);
+  }, [user, firestore, isAuthorized]);
 
   const uniqueReports = useMemo(() => getUniqueReports(allReports), [allReports]);
 
@@ -169,9 +163,7 @@ export default function LandingPage() {
   }, [uniqueReports, searchTerm, searchCategory]);
 
   const handleCreateNew = () => {
-    if (searchTerm && !systemStatus.isLocked) {
-      router.push(`/report/${searchTerm.toUpperCase().trim()}`);
-    }
+    if (searchTerm && !systemStatus.isLocked) router.push(`/report/${searchTerm.toUpperCase().trim()}`);
   };
 
   const handleCreateUnregistered = () => {
@@ -292,7 +284,7 @@ export default function LandingPage() {
                 </div>
               </div>
               
-              {searchTerm && !uniqueReports.some(r => r.vehicleId.toUpperCase() === searchTerm.trim()) && !systemStatus.isLocked && (
+              {searchTerm && !uniqueReports.some(r => r.vehicleId.toUpperCase() === searchTerm.trim()) && !systemStatus.isLocked && isAuthorized === true && (
                 <div className="animate-in slide-in-from-top-2 duration-300">
                   <Button onClick={handleCreateNew} size="lg" className="w-full h-14 text-lg font-black shadow-xl hover:shadow-primary/20 transition-all border-2 border-primary">
                     <PlusCircle className="mr-2" /> Create New Report: "{searchTerm}"
@@ -492,7 +484,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {!searchTerm && (
+        {isAuthorized === true && !searchTerm && (
           <div className="max-w-5xl mx-auto space-y-8">
             <div className="flex items-end justify-between border-b pb-6 border-primary/20">
               <h2 className="text-3xl font-black tracking-tight flex items-center gap-4">
@@ -566,6 +558,16 @@ export default function LandingPage() {
                 </Button>
               </div>
             )}
+          </div>
+        )}
+
+        {isAuthorized === false && !isUserLoading && (
+          <div className="max-w-5xl mx-auto py-12 text-center space-y-4 bg-destructive/5 border-2 border-dashed border-destructive/20 rounded-3xl">
+            <Lock className="mx-auto h-12 w-12 text-destructive opacity-50" />
+            <h3 className="text-xl font-black uppercase tracking-widest text-destructive">Restricted Environment</h3>
+            <p className="text-muted-foreground font-medium max-w-md mx-auto leading-relaxed">
+              Your identity has been verified, but your account is not currently listed in the authorized personnel registry. Contact your branch administrator to enable report generation.
+            </p>
           </div>
         )}
       </main>

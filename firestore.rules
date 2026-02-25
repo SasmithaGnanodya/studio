@@ -3,36 +3,38 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * FIRESTORE SECURITY RULES
-     * 
-     * Core Philosophy: 
-     * 1. Admin Access: Specific users (by email) have full access to all data.
-     * 2. User Ownership: Authorized users can create and manage their own reports.
-     * 3. Access Control: Authorized users can read system configuration to verify access.
+     * FIRESTORE SECURITY RULES - CAREDRIVE V1.3
      */
-
-    // --- Global Helper Functions ---
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the user is a designated administrator. */
+    /** @description Checks if the user is a designated administrator (Hardcoded or Dynamic). */
     function isAdmin() {
+      let bootstrapAdmins = [
+        'sasmithagnanodya@gmail.com',
+        'supundinushaps@gmail.com',
+        'caredrivelk@gmail.com'
+      ];
       return isSignedIn() && (
-        request.auth.token.email == 'sasmithagnanodya@gmail.com' ||
-        request.auth.token.email == 'supundinushaps@gmail.com' ||
-        request.auth.token.email == 'caredrivelk@gmail.com'
+        request.auth.token.email in bootstrapAdmins ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
 
     /** @description Checks if the user's email is authorized in the registry. */
     function isAuthorizedUser() {
-      // Admins are always authorized. Others must be in the registry.
       return isAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/config/authorizedUsers));
     }
 
-    // --- Collection Rules ---
+    // --- Dynamic Admin Registry ---
+    match /admins/{adminId} {
+      // Users can check their own admin status to avoid UI crashes
+      allow get: if isSignedIn() && request.auth.uid == adminId;
+      // Only the Super Admin can manage the registry
+      allow list, write: if isSignedIn() && request.auth.token.email == 'sasmithagnanodya@gmail.com';
+    }
 
     match /reports/{reportId} {
       allow read, create, update: if isAuthorizedUser();
