@@ -21,7 +21,7 @@ export default function AboutPage() {
               Precision Engineering for <span className="text-primary">Vehicle Valuation</span>.
             </h1>
             <p className="text-muted-foreground text-lg leading-relaxed">
-              Drive Care Report Gen is a specialized platform designed to bridge the gap between technical vehicle inspection and professional financial reporting.
+              CareDrive Report Gen is a specialized platform designed to bridge the gap between technical vehicle inspection and professional financial reporting.
             </p>
           </div>
 

@@ -27,7 +27,7 @@ export default function TermsPage() {
               </CardHeader>
               <CardContent className="text-sm leading-relaxed text-muted-foreground">
                 <p>
-                  By accessing or using Drive Care Report Gen, you agree to be bound by these Terms of Service. If you do not agree to these terms, you must not use the application. These terms apply to all users, including standard users and administrators.
+                  By accessing or using CareDrive Report Gen, you agree to be bound by these Terms of Service. If you do not agree to these terms, you must not use the application. These terms apply to all users, including standard users and administrators.
                 </p>
               </CardContent>
             </Card>
@@ -60,7 +60,7 @@ export default function TermsPage() {
               </CardHeader>
               <CardContent className="space-y-4 text-sm leading-relaxed text-muted-foreground">
                 <p>
-                  Drive Care Report Gen is a professional tool. Access is granted based on organizational requirements:
+                  CareDrive Report Gen is a professional tool. Access is granted based on organizational requirements:
                 </p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Reports are protected by a global access password to prevent unauthorized external viewing.</li>
@@ -79,7 +79,7 @@ export default function TermsPage() {
               </CardHeader>
               <CardContent className="text-sm leading-relaxed text-muted-foreground">
                 <p>
-                  Drive Care Report Gen provides a platform for generating reports based on user input. We do not guarantee the market accuracy of any valuation generated. The final valuation decision rests solely with the authorized valuer and their organization. We are not liable for any financial losses resulting from data entry errors or valuation discrepancies.
+                  CareDrive Report Gen provides a platform for generating reports based on user input. We do not guarantee the market accuracy of any valuation generated. The final valuation decision rests solely with the authorized valuer and their organization. We are not liable for any financial losses resulting from data entry errors or valuation discrepancies.
                 </p>
               </CardContent>
             </Card>

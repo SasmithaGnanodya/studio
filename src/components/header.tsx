@@ -64,7 +64,7 @@ export function Header() {
               <div className="flex items-center cursor-pointer">
                 <Image 
                   src="https://i.postimg.cc/k5HnDh4Q/care-drive.jpg" 
-                  alt="Drive Care Logo" 
+                  alt="CareDrive Logo" 
                   width={160} 
                   height={48} 
                   className="h-12 w-auto object-contain rounded-md"

@@ -27,7 +27,7 @@ export default function PrivacyPage() {
               </CardHeader>
               <CardContent className="space-y-4 text-sm leading-relaxed text-muted-foreground">
                 <p>
-                  Drive Care Report Gen collects information necessary to provide professional vehicle valuation services. This includes:
+                  CareDrive Report Gen collects information necessary to provide professional vehicle valuation services. This includes:
                 </p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li><strong>User Identity:</strong> Email address, name, and profile picture via Google Authentication.</li>
@@ -85,7 +85,7 @@ export default function PrivacyPage() {
               </CardHeader>
               <CardContent className="space-y-4 text-sm leading-relaxed text-muted-foreground">
                 <p>
-                  As a user of Drive Care Report Gen, you have the right to:
+                  As a user of CareDrive Report Gen, you have the right to:
                 </p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Access and review any reports you have generated.</li>

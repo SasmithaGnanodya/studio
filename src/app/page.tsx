@@ -399,7 +399,7 @@ export default function LandingPage() {
                 </div>
                 <h2 className="text-3xl font-black tracking-tight leading-tight">System Intelligence <span className="text-primary">& Operations</span></h2>
                 <p className="text-muted-foreground text-sm font-medium leading-relaxed">
-                  The Drive Care platform utilizes layout-aware versioning and real-time indexing to ensure technical valuation accuracy.
+                  The CareDrive platform utilizes layout-aware versioning and real-time indexing to ensure technical valuation accuracy.
                 </p>
                 <div className="space-y-4 pt-4">
                   <div className="flex items-center gap-3 text-xs font-bold">

@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'Drive Care Report Gen',
+  title: 'CareDrive Report Gen',
   description: 'Generate professional vehicle valuation reports with precision.',
   icons: {
     icon: 'https://i.postimg.cc/k5HnDh4Q/care-drive.jpg',

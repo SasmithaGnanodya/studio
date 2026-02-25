@@ -22,7 +22,7 @@ export function Footer() {
             <div className="flex items-center">
               <Image 
                 src="https://i.postimg.cc/k5HnDh4Q/care-drive.jpg" 
-                alt="Drive Care Logo" 
+                alt="CareDrive Logo" 
                 width={120} 
                 height={40} 
                 className="rounded-md h-10 w-auto object-contain"
@@ -117,7 +117,7 @@ export function Footer() {
 
         <div className="mt-12 pt-8 border-t border-muted-foreground/10 flex flex-col md:grid-cols-2 justify-between items-center gap-4">
           <p className="text-xs text-muted-foreground font-medium">
-            &copy; {year} Drive Care Valuation Services. All Rights Reserved.
+            &copy; {year} CareDrive Valuation Services. All Rights Reserved.
           </p>
           <div className="flex gap-6 text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">
              <span>System v1.2.4</span>
