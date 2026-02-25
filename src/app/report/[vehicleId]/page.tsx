@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, LogOut, ChevronLeft, Loader2, Copy, Search, X } from 'lucide-react';
+import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, LogOut, ChevronLeft, Loader2, Copy, Search, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
@@ -26,8 +25,28 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
+
+const VEHICLE_CLASSES = [
+  "Motor Car",
+  "Motor Cycle",
+  "Dual Purpose Vehicle",
+  "Three Wheeler",
+  "Light Lorry",
+  "Heavy Lorry",
+  "Bus",
+  "Tractor",
+  "Trailer",
+  "Construction Machine"
+];
 
 function UnauthorizedAccess() {
   const { auth } = useFirebase();
@@ -82,6 +101,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const [userBranch, setUserBranch] = useState<string>('CDH');
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Save Confirmation State
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [confirmVehicleClass, setConfirmVehicleClass] = useState<string>('');
+  const [isFinalSaving, setIsFinalSaving] = useState(false);
 
   // Cloning State
   const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
@@ -394,10 +418,12 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (verifiedClass?: string) => {
     if (!user || !firestore) return;
 
+    const finalClass = verifiedClass || reportData.vehicleClass || 'Motor Car';
     const conditionValue = reportData['conditionScore'];
+    
     if (!conditionValue || String(conditionValue).trim() === '') {
       toast({
         variant: "destructive",
@@ -407,6 +433,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       return;
     }
 
+    setIsFinalSaving(true);
     try {
       const nowObj = new Date();
       const yearYY = nowObj.getFullYear().toString().slice(-2);
@@ -423,12 +450,12 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       if (!isIssued || issuedDateCode !== todayDateCode) {
         const branchCode = userBranch || 'CDH';
         const reportsRef = collection(firestore, 'reports');
-        // Sequence is calculated per branch, per day, AND per vehicle class for auditing precision
+        // Sequence is calculated per branch, per day, AND per verified vehicle class
         const q = query(
           reportsRef, 
           where('branch', '==', branchCode),
           where('reportDate', '==', dateVal),
-          where('reportData.vehicleClass', '==', reportData.vehicleClass || 'Motor Car')
+          where('reportData.vehicleClass', '==', finalClass)
         );
         const daySnap = await getDocs(q);
         const sequenceNum = (daySnap.size + 1).toString().padStart(3, '0');
@@ -441,6 +468,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
       const updatedReportData = {
         ...reportData,
+        vehicleClass: finalClass,
         reportNumber: finalReportNumber,
         valuationCode: finalReportNumber,
         date: dateVal
@@ -493,9 +521,12 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       
       setReportData(updatedReportData);
       toast({ title: "Success", description: `Report saved as ${finalReportNumber}` });
+      setIsSaveDialogOpen(false);
     } catch (e) {
       console.error(e);
       toast({ variant: "destructive", title: "Error", description: "Failed to save report." });
+    } finally {
+      setIsFinalSaving(false);
     }
   };
 
@@ -687,11 +718,70 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                       <LayoutTemplate className="mr-2 h-4 w-4" /> Upgrade Layout
                   </Button>
               )}
+              
               {reportData['conditionScore'] && String(reportData['conditionScore']).trim() !== '' && (
-                <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground animate-in fade-in zoom-in duration-300">
-                    <Save className="mr-2 h-4 w-4" /> Save Report
-                </Button>
+                <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      onClick={() => {
+                        setConfirmVehicleClass(reportData.vehicleClass || 'Motor Car');
+                        setIsSaveDialogOpen(true);
+                      }} 
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground animate-in fade-in zoom-in duration-300"
+                    >
+                        <Save className="mr-2 h-4 w-4" /> Save Report
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md border-2 border-primary/20 shadow-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2 text-primary font-black">
+                        <CheckCircle2 className="h-5 w-5" /> Save Verification
+                      </DialogTitle>
+                      <DialogDescription className="space-y-3 pt-2">
+                        <p className="font-bold text-foreground">Double Check Required</p>
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+                          Please verify the vehicle classification before finalizing. This value is critical for the <span className="font-bold text-primary italic">Valuation Code</span> sequence indexing.
+                        </p>
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-6 space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Vehicle Classification</Label>
+                        <Select value={confirmVehicleClass} onValueChange={setConfirmVehicleClass}>
+                          <SelectTrigger className="h-12 bg-muted/20 border-primary/20 font-bold text-lg">
+                            <SelectValue placeholder="Select Class" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            {VEHICLE_CLASSES.map(v => (
+                              <SelectItem key={v} value={v} className="font-bold">{v}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                        <div className="text-[10px] leading-relaxed text-muted-foreground italic">
+                          Confirming will generate the next sequential identifier for <span className="text-primary font-bold">{confirmVehicleClass}</span> in today's audit log.
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                      <Button variant="ghost" onClick={() => setIsSaveDialogOpen(false)} disabled={isFinalSaving}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={() => handleSave(confirmVehicleClass)} 
+                        className="bg-primary font-black px-8 shadow-lg"
+                        disabled={isFinalSaving || !confirmVehicleClass}
+                      >
+                        {isFinalSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Committing...</> : "Confirm & Save"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               )}
+
               <Button variant="outline" onClick={() => window.print()}>
                   <Printer className="mr-2 h-4 w-4" /> Print
               </Button>
