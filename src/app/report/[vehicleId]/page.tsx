@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, LogOut, ChevronLeft, Loader2, Copy, Search, X, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, LogOut, ChevronLeft, Loader2, Copy, Search, X, CheckCircle2, AlertTriangle, Activity } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
@@ -25,6 +25,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
@@ -91,6 +92,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const [userBranch, setUserBranch] = useState<string>('CDH');
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [systemIsLocked, setSystemIsLocked] = useState(false);
+  const [lockMessage, setLockMessage] = useState('');
 
   // Save Confirmation State
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -110,7 +113,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
   /**
    * Technical mapping for the 9th digit of the Valuation Code.
-   * Strictly applies the numeric weight from the layout configuration.
    */
   const getScoreDigit = (score: string, layout: FieldLayout[]) => {
     const scoringField = layout.find(f => f.fieldId === 'conditionScore');
@@ -123,7 +125,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     return '5'; // Default technical grade
   };
 
-  // Synchronize browser title
   useEffect(() => {
     const isIssued = /^[A-Z]{3}\d{9}$/.test(reportData.reportNumber || '');
     if (isIssued) {
@@ -133,10 +134,19 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     }
   }, [reportData.reportNumber, displayVehicleId]);
 
-  /**
-   * Live update of the report number / valuation code preview.
-   * Ensures the 9th digit strictly responds to the conditionScore selection.
-   */
+  useEffect(() => {
+    if (!firestore) return;
+    const sysRef = doc(firestore, 'config', 'system');
+    const unsub = onSnapshot(sysRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setSystemIsLocked(data.isLocked || false);
+        setLockMessage(data.maintenanceMessage || 'Creation is temporarily disabled.');
+      }
+    });
+    return () => unsub();
+  }, [firestore]);
+
   useEffect(() => {
     if (!isAuthorized || isLoading) return;
 
@@ -267,25 +277,14 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const findIdentifier = (patterns: string[]) => {
     const direct = patterns.map(p => reportData[p]).find(v => !!v);
     if (direct) return direct;
-    
-    const layoutField = currentLayout.find(f => 
-      f.fieldType === 'text' && 
-      f.label && 
-      f.label.text && 
-      patterns.some(p => f.label.text.toLowerCase().includes(p.toLowerCase()))
-    );
-    if (layoutField && reportData[layoutField.fieldId]) {
-      return reportData[layoutField.fieldId];
-    }
-
-    const entry = Object.entries(reportData).find(([key, val]) => 
-      val && patterns.some(p => key.toLowerCase().includes(p.toLowerCase()))
-    );
+    const layoutField = currentLayout.find(f => f.fieldType === 'text' && f.label && f.label.text && patterns.some(p => f.label.text.toLowerCase().includes(p.toLowerCase())));
+    if (layoutField && reportData[layoutField.fieldId]) return reportData[layoutField.fieldId];
+    const entry = Object.entries(reportData).find(([key, val]) => val && patterns.some(p => key.toLowerCase().includes(p.toLowerCase())));
     return entry ? entry[1] : '';
   };
 
   useEffect(() => {
-    if (!firestore || isAuthorized !== true || !user || isLoading) return;
+    if (!firestore || isAuthorized !== true || !user || isLoading || systemIsLocked) return;
 
     const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor', 'engnum', 'eng']);
     const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial', 'vin', 'chas']);
@@ -328,116 +327,49 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     };
-  }, [reportData, firestore, isAuthorized, user, vehicleId, isLoading, currentLayout, isUnregistered]);
+  }, [reportData, firestore, isAuthorized, user, vehicleId, isLoading, currentLayout, isUnregistered, systemIsLocked]);
 
   const handleDataChange = (fieldId: string, value: string | ImageData) => {
     const fieldIdLower = fieldId.toLowerCase();
-    if (
-      fieldIdLower === 'reportnumber' || 
-      fieldIdLower === 'regnumber' || 
-      fieldIdLower === 'valuationcode' ||
-      fieldIdLower.includes('reportnum')
-    ) return; 
+    if (fieldIdLower === 'reportnumber' || fieldIdLower === 'regnumber' || fieldIdLower === 'valuationcode' || fieldIdLower.includes('reportnum')) return; 
 
     let finalValue = value;
     if (typeof value === 'string') {
       const layoutField = currentLayout.find(f => f.fieldId === fieldId);
-      const isPrice = layoutField?.value?.isPriceFormat;
-
-      if (isPrice) {
-        if (value.includes('.')) {
-          const [intPart, decPart] = value.split('.');
-          const cleanInt = intPart.replace(/[^\d]/g, '');
-          const formattedInt = cleanInt.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-          finalValue = `${formattedInt}.${decPart}`;
-        } else {
-          const clean = value.replace(/[^\d]/g, '');
-          finalValue = clean.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        }
-      } else {
-        const isNumericField = 
-          (fieldIdLower.includes('marketvalue') || 
-           fieldIdLower.includes('forcedsale') || 
-           fieldIdLower.includes('amount') || 
-           fieldIdLower.endsWith('_rs') ||
-           fieldIdLower === 'rs' ||
-           currentLayout.some(l => l.autoFillSource === fieldId)) &&
-          !['text_1767984953326', 'text_1767988846387'].includes(fieldId); 
-
-        if (isNumericField) {
-          const clean = value.replace(/[^\d.]/g, '');
-          const parts = clean.split('.');
-          parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-          finalValue = parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
-        }
+      if (layoutField?.value?.isPriceFormat) {
+        const clean = value.replace(/[^\d.]/g, '');
+        const parts = clean.split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        finalValue = parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
       }
     }
 
     setReportData(prev => {
       const updated = { ...prev, [fieldId]: finalValue };
-
-      if (typeof finalValue === 'string' && VEHICLE_CLASSES.includes(finalValue.toUpperCase())) {
-        updated.vehicleClass = finalValue.toUpperCase();
-      }
-
+      if (typeof finalValue === 'string' && VEHICLE_CLASSES.includes(finalValue.toUpperCase())) updated.vehicleClass = finalValue.toUpperCase();
       currentLayout.forEach(layoutField => {
         if (layoutField.autoFillType === 'numberToWords' && layoutField.autoFillSource === fieldId && typeof finalValue === 'string') {
           const cleanVal = finalValue.replace(/[^\d.]/g, ''); 
           const num = parseFloat(cleanVal);
-          
-          if (!isNaN(num)) {
-            updated[layoutField.fieldId] = numberToWords(num);
-          } else if (cleanVal === '') {
-            updated[layoutField.fieldId] = '';
-          }
+          if (!isNaN(num)) updated[layoutField.fieldId] = numberToWords(num);
+          else if (cleanVal === '') updated[layoutField.fieldId] = '';
         }
       });
-
       return updated;
     });
   };
 
   const handleBlur = (fieldId: string, value: string) => {
     if (typeof value !== 'string') return;
-    
-    const fieldIdLower = fieldId.toLowerCase();
     const layoutField = currentLayout.find(f => f.fieldId === fieldId);
-    
     if (layoutField?.value?.isPriceFormat && value.trim() !== '') {
       const clean = value.replace(/,/g, '');
-      if (clean !== '' && !clean.includes('.')) {
-        handleDataChange(fieldId, `${clean}.00`);
-      }
-      return;
-    }
-
-    const isMoneyField = 
-      (fieldIdLower.includes('marketvalue') || 
-       fieldIdLower.includes('forcedsale') || 
-       fieldIdLower.includes('amount') || 
-       fieldIdLower.endsWith('_rs') || 
-       fieldIdLower === 'rs' ||
-       currentLayout.some(l => l.autoFillSource === fieldId)) &&
-      !['text_1767984953326', 'text_1767988846387'].includes(fieldId);
-
-    if (isMoneyField && value.trim() !== '') {
-      const trimmed = value.trim().replace(/,/g, '');
-      if (/^\d+$/.test(trimmed)) {
-        handleDataChange(fieldId, `${trimmed}.00`);
-      } else {
-        const num = parseFloat(trimmed);
-        if (!isNaN(num)) {
-          const formatted = num.toFixed(2);
-          if (formatted !== trimmed) {
-            handleDataChange(fieldId, formatted);
-          }
-        }
-      }
+      if (clean !== '' && !clean.includes('.')) handleDataChange(fieldId, `${clean}.00`);
     }
   };
 
   const handleSave = async () => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || systemIsLocked) return;
 
     let finalClass = reportData.vehicleClass;
     if (!finalClass || !VEHICLE_CLASSES.includes(finalClass.toUpperCase())) {
@@ -447,11 +379,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
     const conditionValue = reportData['conditionScore'];
     if (!conditionValue || String(conditionValue).trim() === '') {
-      toast({
-        variant: "destructive",
-        title: "Input Required",
-        description: "Condition Score is essential for Valuation Code logic.",
-      });
+      toast({ variant: "destructive", title: "Input Required", description: "Condition Score is essential." });
       return;
     }
 
@@ -462,7 +390,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       const dayOfYear = getDayOfYear(nowObj);
       const todayDateCode = `${yearYY}${dayOfYear}`;
       const dateVal = nowObj.toLocaleDateString('en-CA');
-
       const scoreDigit = getScoreDigit(String(reportData['conditionScore']), currentLayout);
 
       let finalReportNumber = reportData.reportNumber;
@@ -471,65 +398,32 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
       if (!isIssued || issuedDateCode !== todayDateCode) {
         const branchCode = userBranch || 'CDH';
-        const reportsRef = collection(firestore, 'reports');
-        const q = query(
-          reportsRef, 
-          where('branch', '==', branchCode),
-          where('reportDate', '==', dateVal),
-          where('reportData.vehicleClass', '==', finalClass)
-        );
-        const daySnap = await getDocs(q);
-        const sequenceNum = (daySnap.size + 1).toString().padStart(3, '0');
-        finalReportNumber = `${branchCode}${todayDateCode}${scoreDigit}${sequenceNum}`;
+        const daySnap = await getDocs(query(collection(firestore, 'reports'), where('branch', '==', branchCode), where('reportDate', '==', dateVal), where('reportData.vehicleClass', '==', finalClass)));
+        finalReportNumber = `${branchCode}${todayDateCode}${scoreDigit}${(daySnap.size + 1).toString().padStart(3, '0')}`;
       } else if (isIssued && issuedDateCode === todayDateCode) {
-        const prefix = finalReportNumber.substring(0, 8);
-        const suffix = finalReportNumber.substring(9);
-        finalReportNumber = `${prefix}${scoreDigit}${suffix}`;
+        finalReportNumber = `${finalReportNumber.substring(0, 8)}${scoreDigit}${finalReportNumber.substring(9)}`;
       }
 
-      const updatedReportData = {
-        ...reportData,
-        vehicleClass: finalClass,
-        reportNumber: finalReportNumber,
-        valuationCode: finalReportNumber,
-        date: dateVal
-      };
+      const updatedReportData = { ...reportData, vehicleClass: finalClass, reportNumber: finalReportNumber, valuationCode: finalReportNumber, date: dateVal };
 
       await runTransaction(firestore, async (transaction) => {
         const now = serverTimestamp();
-        const configRef = doc(firestore, 'layouts', 'config');
-        const configSnap = await transaction.get(configRef);
-        const activeLayoutId = configSnap.exists() ? configSnap.data().currentId : null;
-
+        const activeLayoutId = (await transaction.get(doc(firestore, 'layouts', 'config'))).data()?.currentId;
         const engineVal = findIdentifier(['engineNumber', 'engineNo', 'engine', 'motor', 'engnum', 'eng']);
         const chassisVal = findIdentifier(['chassisNumber', 'chassisNo', 'chassis', 'serial', 'vin', 'chas']);
 
         const reportHeaderData = {
-          vehicleId: vehicleId,
-          branch: userBranch || 'CDH',
-          engineNumber: String(engineVal || '').toUpperCase().trim(),
-          chassisNumber: String(chassisVal || '').toUpperCase().trim(),
-          reportNumber: finalReportNumber,
-          reportDate: dateVal,
-          userId: user.uid,
-          userEmail: user.email,
-          userName: user.displayName || user.email,
-          reportData: updatedReportData,
-          updatedAt: now,
-          layoutId: activeLayoutId
+          vehicleId, branch: userBranch || 'CDH', engineNumber: String(engineVal || '').toUpperCase().trim(),
+          chassisNumber: String(chassisVal || '').toUpperCase().trim(), reportNumber: finalReportNumber, reportDate: dateVal,
+          userId: user.uid, userEmail: user.email, userName: user.displayName || user.email, reportData: updatedReportData,
+          updatedAt: now, layoutId: activeLayoutId
         };
 
         const reportRef = doc(firestore, 'reports', vehicleId);
         const docSnap = await transaction.get(reportRef);
-
-        if (docSnap.exists()) {
-          transaction.update(reportRef, reportHeaderData);
-        } else {
-          transaction.set(reportRef, { ...reportHeaderData, id: vehicleId, createdAt: now });
-        }
-        
-        const historyRef = doc(collection(firestore, 'reports', vehicleId, 'history'));
-        transaction.set(historyRef, { ...reportHeaderData, reportId: vehicleId, savedAt: now });
+        if (docSnap.exists()) transaction.update(reportRef, reportHeaderData);
+        else transaction.set(reportRef, { ...reportHeaderData, id: vehicleId, createdAt: now });
+        transaction.set(doc(collection(firestore, 'reports', vehicleId, 'history')), { ...reportHeaderData, reportId: vehicleId, savedAt: now });
       });
       
       setReportData(updatedReportData);
@@ -543,133 +437,52 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     }
   };
 
-  const handleCloneData = async (sourceVehicleId: string) => {
-    if (!firestore || !sourceVehicleId) return;
-    
+  const handleCloneData = async (sourceId: string) => {
+    if (!firestore || !sourceId) return;
     setIsCloning(true);
     try {
-      const sourceRef = doc(firestore, 'reports', sourceVehicleId.toUpperCase().trim());
-      const sourceSnap = await getDoc(sourceRef);
-      
-      if (sourceSnap.exists()) {
-        const sourceData = sourceSnap.data() as Report;
-        const clonedReportData = { ...sourceData.reportData };
-        
-        const uniqueFieldIdsFromLayout = currentLayout
-          .filter(f => f.fieldType === 'text' && f.label?.text)
-          .filter(f => {
-            const label = f.label.text.toLowerCase();
-            return label.includes('engine') || 
-                   label.includes('chassis') || 
-                   label.includes('reg') || 
-                   label.includes('report') ||
-                   label.includes('vin') ||
-                   label.includes('serial') ||
-                   label.includes('motor');
-          })
-          .map(f => f.fieldId);
-
-        Object.keys(clonedReportData).forEach(key => {
-          const k = key.toLowerCase();
-          const isUniqueOrSensitive = 
-            k.includes('engine') || 
-            k.includes('chassis') || 
-            k.includes('vin') || 
-            k.includes('serial') || 
-            k.includes('reportnum') || 
-            k.includes('regnumber') || 
-            k.includes('valuation') || 
-            k.includes('vehicleid') || 
-            k.includes('vehicleclass') || 
-            k.includes('image1') || 
-            k === 'date' || 
-            k === 'id' || 
-            k === 'text_1767985277711' || 
-            k === 'text_1767985345109' ||
-            k === 'text_1767995825656' ||
-            uniqueFieldIdsFromLayout.includes(key);
-
-          if (isUniqueOrSensitive) {
-            delete clonedReportData[key];
-          }
+      const snap = await getDoc(doc(firestore, 'reports', sourceId.toUpperCase().trim()));
+      if (snap.exists()) {
+        const source = snap.data() as Report;
+        const cloned = { ...source.reportData };
+        const technicalIds = currentLayout.filter(f => f.fieldType === 'text' && f.label?.text && ['engine', 'chassis', 'reg', 'report', 'vin', 'serial', 'motor'].some(p => f.label.text.toLowerCase().includes(p))).map(f => f.fieldId);
+        Object.keys(cloned).forEach(k => {
+          const kl = k.toLowerCase();
+          if (['engine', 'chassis', 'vin', 'serial', 'reportnum', 'regnumber', 'valuation', 'vehicleid', 'vehicleclass', 'image1', 'date', 'id'].some(p => kl.includes(p)) || technicalIds.includes(k)) delete cloned[k];
         });
-
-        setReportData(prev => ({
-          ...prev,
-          ...clonedReportData,
-          regNumber: isUnregistered ? 'U/R' : vehicleId,
-          date: prev.date,
-          chassisNumber: "",
-          engineNumber: "",
-          reportNumber: "V-PENDING",
-          valuationCode: "V-PENDING",
-          vehicleClass: "",
-          text_1767985277711: "",
-          text_1767985345109: "",
-          text_1767995825656: ""
-        }));
-
-        toast({
-          title: "Data Imported",
-          description: `Specifications from ${sourceVehicleId} loaded. Unique technical IDs cleared.`,
-        });
-        setIsCloneDialogOpen(false);
-        setCloneSearchTerm('');
+        setReportData(prev => ({ ...prev, ...cloned, regNumber: isUnregistered ? 'U/R' : vehicleId, date: prev.date, chassisNumber: "", engineNumber: "", reportNumber: "V-PENDING", valuationCode: "V-PENDING", vehicleClass: "" }));
+        toast({ title: "Data Imported", description: `Specs from ${sourceId} loaded.` });
+        setIsCloneDialogOpen(false); setCloneSearchTerm('');
       } else {
-        setIsCloneDialogOpen(false);
-        setIsCloneErrorOpen(true);
+        setIsCloneDialogOpen(false); setIsCloneErrorOpen(true);
       }
     } catch (err) {
-      console.error("Cloning failed:", err);
+      console.error(err);
       toast({ variant: "destructive", title: "Import Error", description: "Failed to retrieve source data." });
-    } finally {
-      setIsCloning(false);
-    }
+    } finally { setIsCloning(false); }
   };
 
   const upgradeLayout = async () => {
       if (!latestLayoutId || !firestore) return;
       setIsLoading(true);
-      const latestDoc = await getDoc(doc(firestore, 'layouts', latestLayoutId));
-      if (latestDoc.exists()) {
-          setCurrentLayout(latestDoc.data().fields);
-          setLayoutVersion(latestDoc.data().version);
-          toast({ title: "Layout Upgraded", description: "Using latest template version." });
+      const snap = await getDoc(doc(firestore, 'layouts', latestLayoutId));
+      if (snap.exists()) {
+          setCurrentLayout(snap.data().fields);
+          setLayoutVersion(snap.data().version);
+          toast({ title: "Layout Upgraded", description: "Using latest version." });
       }
       setIsLoading(false);
   }
 
   const { staticLabels, dynamicValues, imageValues } = useMemo(() => {
-    const labels = currentLayout.filter(f => f.fieldType === 'staticText' || f.fieldType === 'text').map(f => ({
-      ...f.label,
-      id: `l-${f.id}`,
-      fieldId: f.fieldId,
-      value: f.label.text
-    }));
-
-    const values = currentLayout.filter(f => f.fieldType === 'text').map(f => ({
-      ...f.value,
-      id: `v-${f.id}`,
-      fieldId: f.fieldId,
-      value: String(reportData[f.fieldId] || ''),
-      inputType: f.value.inputType,
-      options: f.value.options
-    }));
-
-    const images = currentLayout.filter(f => f.fieldType === 'image').map(f => ({
-      ...f.placeholder!,
-      id: `i-${f.id}`,
-      fieldId: f.fieldId,
-      value: reportData[f.fieldId] || { url: '', scale: 1, x: 0, y: 0 }
-    }));
-
+    const labels = currentLayout.filter(f => f.fieldType === 'staticText' || f.fieldType === 'text').map(f => ({ ...f.label, id: `l-${f.id}`, fieldId: f.fieldId, value: f.label.text }));
+    const values = currentLayout.filter(f => f.fieldType === 'text').map(f => ({ ...f.value, id: `v-${f.id}`, fieldId: f.fieldId, value: String(reportData[f.fieldId] || ''), inputType: f.value.inputType, options: f.value.options }));
+    const images = currentLayout.filter(f => f.fieldType === 'image').map(f => ({ ...f.placeholder!, id: `i-${f.id}`, fieldId: f.fieldId, value: reportData[f.fieldId] || { url: '', scale: 1, x: 0, y: 0 } }));
     return { staticLabels: labels, dynamicValues: values, imageValues: images };
   }, [reportData, currentLayout]);
 
   const currentDisplayClass = useMemo(() => {
-    if (reportData.vehicleClass && VEHICLE_CLASSES.includes(reportData.vehicleClass.toUpperCase())) {
-      return reportData.vehicleClass.toUpperCase();
-    }
+    if (reportData.vehicleClass && VEHICLE_CLASSES.includes(reportData.vehicleClass.toUpperCase())) return reportData.vehicleClass.toUpperCase();
     const foundMatch = Object.values(reportData).find(v => typeof v === 'string' && VEHICLE_CLASSES.includes(v.toUpperCase()));
     return foundMatch ? String(foundMatch).toUpperCase() : 'NOT SELECTED';
   }, [reportData]);
@@ -681,6 +494,15 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     <div className="flex min-h-screen flex-col bg-muted/10">
       <Header />
       <main className="flex-1 flex flex-col p-4 no-print overflow-hidden">
+        
+        {systemIsLocked && (
+          <Alert variant="destructive" className="mb-6 border-2 bg-destructive/5 animate-pulse">
+            <Activity className="h-5 w-5" />
+            <AlertTitle className="font-black uppercase tracking-widest text-[10px]">Site-Wide Lock Active</AlertTitle>
+            <AlertDescription className="font-bold text-sm">{lockMessage}</AlertDescription>
+          </Alert>
+        )}
+
         <Card className="mb-6 border-primary/20 shadow-sm shrink-0">
           <CardContent className="pt-6 flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-6">
@@ -715,114 +537,62 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                 <DialogContent className="sm:max-w-md border-2 border-primary/20 shadow-2xl">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-primary font-black">
-                      <Search className="h-5 w-5" /> Import Vehicle Specs
+                      <Search className="h-5 w-5" /> Only Search Via Reg.Number.
                     </DialogTitle>
-                    <DialogDescription asChild>
-                      <div className="space-y-4 pt-2">
-                        <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
-                          <p className="text-sm font-black text-primary uppercase tracking-tight">Only Search Via Reg.Number.</p>
-                        </div>
-                        <p className="text-xs text-muted-foreground">Unique IDs (Chassis, Engine, Class) will be cleared automatically.</p>
-                      </div>
-                    </DialogDescription>
+                    <DialogDescription>Unique IDs will be cleared. Imported specs only.</DialogDescription>
                   </DialogHeader>
                   <div className="flex items-center space-x-2 py-4">
                     <Input
-                      placeholder="e.g. WP CAA-1234"
-                      value={cloneSearchTerm}
-                      onChange={(e) => setCloneSearchTerm(e.target.value.toUpperCase())}
-                      onKeyDown={(e) => e.key === 'Enter' && handleCloneData(cloneSearchTerm)}
-                      className="h-12 text-lg font-mono tracking-widest border-primary/30"
+                      placeholder="e.g. WP CAA-1234" value={cloneSearchTerm} onChange={(e) => setCloneSearchTerm(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => e.key === 'Enter' && handleCloneData(cloneSearchTerm)} className="h-12 text-lg font-mono tracking-widest border-primary/30"
                     />
-                    <Button 
-                      size="icon" 
-                      className="h-12 w-12 shrink-0 bg-primary"
-                      onClick={() => handleCloneData(cloneSearchTerm)}
-                      disabled={!cloneSearchTerm || isCloning}
-                    >
+                    <Button size="icon" className="h-12 w-12 shrink-0 bg-primary" onClick={() => handleCloneData(cloneSearchTerm)} disabled={!cloneSearchTerm || isCloning}>
                       {isCloning ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
                     </Button>
                   </div>
-                  <DialogFooter className="sm:justify-start">
-                    <Button type="button" variant="ghost" onClick={() => setIsCloneDialogOpen(false)}>Cancel</Button>
-                  </DialogFooter>
                 </DialogContent>
               </Dialog>
 
               <Dialog open={isCloneErrorOpen} onOpenChange={setIsCloneErrorOpen}>
                 <DialogContent className="sm:max-w-md border-2 border-destructive/20 shadow-2xl">
                   <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-destructive font-black">
-                      <AlertTriangle className="h-5 w-5" /> Record Not Found
-                    </DialogTitle>
-                    <DialogDescription className="font-bold text-foreground">
-                      Try with another Vehicle Reg.Number.
-                    </DialogDescription>
+                    <DialogTitle className="flex items-center gap-2 text-destructive font-black"><AlertTriangle /> Record Not Found</DialogTitle>
+                    <DialogDescription className="font-bold">Try with another Vehicle Reg.Number.</DialogDescription>
                   </DialogHeader>
-                  <div className="py-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      We could not find any existing report matching registration <span className="font-mono text-destructive font-black">"{cloneSearchTerm}"</span> in the database.
-                    </p>
-                  </div>
-                  <DialogFooter className="gap-2 sm:gap-0">
+                  <DialogFooter>
                     <Button variant="ghost" onClick={() => setIsCloneErrorOpen(false)}>Close</Button>
-                    <Button 
-                      onClick={() => { setIsCloneErrorOpen(false); setIsCloneDialogOpen(true); }} 
-                      className="bg-primary font-black px-8"
-                    >
-                      Try Again
-                    </Button>
+                    <Button onClick={() => { setIsCloneErrorOpen(false); setIsCloneDialogOpen(true); }} className="bg-primary font-black">Try Again</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
 
-              {isAdmin && latestLayoutId && (
-                  <Button variant="outline" size="sm" onClick={upgradeLayout}>
-                      <LayoutTemplate className="mr-2 h-4 w-4" /> Upgrade Layout
-                  </Button>
-              )}
+              {isAdmin && latestLayoutId && <Button variant="outline" size="sm" onClick={upgradeLayout}><LayoutTemplate className="mr-2 h-4 w-4" /> Upgrade Layout</Button>}
               
-              {reportData['conditionScore'] && String(reportData['conditionScore']).trim() !== '' && (
-                <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground animate-in fade-in zoom-in duration-300">
-                        <Save className="mr-2 h-4 w-4" /> Save Report
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md border-2 border-primary/20 shadow-2xl">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2 text-primary font-black">
-                        <CheckCircle2 className="h-5 w-5" /> Save Verification
-                      </DialogTitle>
-                      <DialogDescription asChild>
-                        <div className="space-y-3 pt-2">
-                          <p className="font-bold text-foreground">Double Check Required</p>
-                          <p className="text-xs leading-relaxed text-muted-foreground">
-                            Verify classification before finalizing. It is critical for the <span className="font-bold text-primary italic">Valuation Code</span> sequence.
-                          </p>
+              {!systemIsLocked ? (
+                reportData['conditionScore'] && String(reportData['conditionScore']).trim() !== '' && (
+                  <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                    <DialogTrigger asChild><Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-black shadow-lg"><Save className="mr-2 h-4 w-4" /> Save Report</Button></DialogTrigger>
+                    <DialogContent className="sm:max-w-md border-2 border-primary/20 shadow-2xl">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-primary font-black"><CheckCircle2 /> Save Verification</DialogTitle>
+                        <DialogDescription className="font-bold text-foreground">Double check classification before finalizing.</DialogDescription>
+                      </DialogHeader>
+                      <div className="py-6 space-y-6">
+                        <div className="space-y-2 p-4 bg-muted/30 rounded-xl border-2 border-dashed border-primary/20">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground">Verified Classification</Label>
+                          <div className="text-2xl font-black text-primary font-mono">{currentDisplayClass}</div>
                         </div>
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-6 space-y-6">
-                      <div className="space-y-2 p-4 bg-muted/30 rounded-xl border-2 border-dashed border-primary/20">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Verified Classification</Label>
-                        <div className="text-2xl font-black text-primary tracking-tight font-mono">{currentDisplayClass}</div>
+                        <Alert variant="destructive" className="border-2 animate-pulse"><AlertTriangle /><AlertDescription className="font-black text-xs uppercase">IMPORTANT: Incorrect classification breaks sequential Valuation Code numbering.</AlertDescription></Alert>
                       </div>
-                      <div className="p-4 bg-destructive/10 rounded-xl border-2 border-destructive/30 flex items-start gap-3 animate-pulse">
-                        <AlertTriangle className="h-6 w-6 text-destructive shrink-0 mt-0.5" />
-                        <div className="text-xs leading-relaxed text-destructive font-black uppercase tracking-tight">
-                          IMPORTANT: If classification is wrong, Report Number cannot update correctly today.
-                        </div>
-                      </div>
-                    </div>
-                    <DialogFooter className="gap-2 sm:gap-0">
-                      <Button variant="ghost" onClick={() => setIsSaveDialogOpen(false)} disabled={isFinalSaving}>Cancel</Button>
-                      <Button onClick={() => handleSave()} className="bg-primary font-black px-8 shadow-lg" disabled={isFinalSaving}>
-                        {isFinalSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Committing...</> : "Confirm & Save"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                      <DialogFooter className="gap-2">
+                        <Button variant="ghost" onClick={() => setIsSaveDialogOpen(false)} disabled={isFinalSaving}>Cancel</Button>
+                        <Button onClick={() => handleSave()} className="bg-primary font-black px-8" disabled={isFinalSaving}>{isFinalSaving ? "Committing..." : "Confirm & Save"}</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )
+              ) : (
+                <Button variant="outline" disabled className="bg-muted cursor-not-allowed border-destructive/20 text-destructive font-black opacity-50"><Lock size={14} className="mr-2" /> System Locked</Button>
               )}
 
               <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" /> Print</Button>
@@ -832,26 +602,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
         <div className="flex-1 w-full overflow-auto pb-20 pt-4 flex justify-start md:justify-center">
           <div className="min-w-fit px-4 h-fit">
-            {isLoading ? (
-              <div className="animate-pulse bg-white w-[210mm] h-[297mm] shadow-2xl rounded-lg" />
-            ) : (
-              <div className={isFilling ? "preview-mode" : ""}>
-                <ReportPage 
-                  staticLabels={staticLabels} 
-                  dynamicValues={dynamicValues}
-                  imageValues={imageValues}
-                  isEditable={isFilling}
-                  onValueChange={handleDataChange}
-                  onBlur={handleBlur}
-                />
-              </div>
-            )}
+            {isLoading ? <div className="animate-pulse bg-white w-[210mm] h-[297mm] shadow-2xl rounded-lg" /> : <div className={isFilling ? "preview-mode" : ""}><ReportPage staticLabels={staticLabels} dynamicValues={dynamicValues} imageValues={imageValues} isEditable={isFilling} onValueChange={handleDataChange} onBlur={handleBlur} /></div>}
           </div>
         </div>
       </main>
-      <div className="hidden print-view">
-        <ReportPage staticLabels={staticLabels} dynamicValues={dynamicValues} imageValues={imageValues} />
-      </div>
+      <div className="hidden print-view"><ReportPage staticLabels={staticLabels} dynamicValues={dynamicValues} imageValues={imageValues} /></div>
     </div>
   );
 }

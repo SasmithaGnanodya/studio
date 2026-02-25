@@ -1,6 +1,6 @@
 'use client';
 
-import { Shield, Moon, Sun, Info } from 'lucide-react';
+import { Shield, Moon, Sun, Info, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { UserNav } from './UserNav';
 import { useFirebase } from '@/firebase';
@@ -10,16 +10,17 @@ import { Button } from './ui/button';
 import Image from 'next/image';
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
+const SUPER_ADMIN_EMAIL = 'sasmithagnanodya@gmail.com';
 
 export function Header() {
   const { user } = useFirebase();
   const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
+  const isSuperAdmin = user?.email === SUPER_ADMIN_EMAIL;
   
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
-  // Load theme from localStorage on mount
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
     if (savedTheme) {
@@ -41,19 +42,10 @@ export function Header() {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
-      // If scrolling down and past a threshold (100px), hide the header
-      if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        setIsVisible(false);
-      } 
-      // If scrolling up, show the header
-      else if (currentScrollY < lastScrollY) {
-        setIsVisible(true);
-      }
-      
+      if (currentScrollY > lastScrollY && currentScrollY > 100) setIsVisible(false);
+      else if (currentScrollY < lastScrollY) setIsVisible(true);
       setLastScrollY(currentScrollY);
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
@@ -98,7 +90,16 @@ export function Header() {
                 {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
               </Button>
 
-              {isAdmin && (
+              {isSuperAdmin && (
+                <Link href="/super-admin" passHref>
+                  <Button variant="ghost" size="sm" className="flex items-center gap-2 text-primary font-black text-[10px] uppercase hover:bg-primary/5 transition-colors">
+                    <ShieldCheck size={18} />
+                    <span className="hidden sm:inline">Super Admin</span>
+                  </Button>
+                </Link>
+              )}
+
+              {isAdmin && !isSuperAdmin && (
                  <Link href="/admin" passHref>
                     <div className="flex items-center gap-2 cursor-pointer text-sm font-medium text-muted-foreground hover:text-primary transition-colors pr-2">
                       <Shield size={18} />
@@ -111,7 +112,6 @@ export function Header() {
           </div>
         </div>
       </header>
-      {/* Spacer to prevent layout jump as the header is fixed */}
       <div className="h-16 w-full no-print" />
     </>
   );
