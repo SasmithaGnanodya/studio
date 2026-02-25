@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 const SUPER_ADMIN_EMAIL = 'sasmithagnanodya@gmail.com';
 
@@ -133,11 +134,13 @@ export default function SuperAdminPage() {
                   <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Master Identity: {user?.email}</p>
               </div>
            </div>
-           <Link href="/admin" passHref>
-              <Button variant="outline" size="sm" className="h-9 gap-2 border-primary/20 bg-background/50 font-black text-[10px] uppercase text-muted-foreground hover:text-primary transition-all">
-                <Shield size={14} /> Open Standard Admin Panel
-              </Button>
-           </Link>
+           <div className="flex items-center gap-2">
+             <Link href="/admin" passHref>
+                <Button variant="outline" size="sm" className="h-9 gap-2 border-primary/20 bg-background/50 font-black text-[10px] uppercase text-muted-foreground hover:text-primary transition-all">
+                  <Shield size={14} /> Admin Panel
+                </Button>
+             </Link>
+           </div>
         </div>
 
         <div className="grid gap-8">
