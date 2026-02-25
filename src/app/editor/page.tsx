@@ -38,6 +38,7 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
       options: [],
       optionWeights: {},
       objectFit: 'cover',
+      isPriceFormat: false,
     };
   
     if (typeof part !== 'object' || part === null) {
@@ -58,6 +59,7 @@ const validateAndCleanFieldPart = (part: any): FieldPart => {
       options: Array.isArray(part.options) ? part.options : defaults.options,
       optionWeights: part.optionWeights ?? defaults.optionWeights,
       objectFit: part.objectFit ?? defaults.objectFit,
+      isPriceFormat: part.isPriceFormat ?? defaults.isPriceFormat,
     };
 };
 
@@ -227,7 +229,7 @@ export default function EditorPage() {
         fieldId: baseFieldId,
         fieldType: 'text',
         label: { text: 'Amount Rs:', x: 10, y: 30, width: 35, height: 5, isBold: true, color: '#000000', fontSize: 9, textAlign: 'center' },
-        value: { text: baseFieldId, x: 45, y: 30, width: 50, height: 8, isBold: true, color: '#DC2626', inputType: 'text', options: [], fontSize: 12, textAlign: 'center' },
+        value: { text: baseFieldId, x: 45, y: 30, width: 50, height: 8, isBold: true, color: '#DC2626', inputType: 'text', options: [], fontSize: 12, textAlign: 'center', isPriceFormat: true },
       };
 
       const wordField: FieldLayout = {

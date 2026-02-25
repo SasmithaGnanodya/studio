@@ -348,20 +348,30 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
     let finalValue = value;
     if (typeof value === 'string') {
-      const isNumericField = 
-        (fieldIdLower.includes('marketvalue') || 
-         fieldIdLower.includes('forcedsale') || 
-         fieldIdLower.includes('amount') || 
-         fieldIdLower.endsWith('_rs') ||
-         fieldIdLower === 'rs' ||
-         currentLayout.some(l => l.autoFillSource === fieldId)) &&
-        !['text_1767984953326', 'text_1767988846387'].includes(fieldId); 
+      const layoutField = currentLayout.find(f => f.fieldId === fieldId);
+      const isPrice = layoutField?.value?.isPriceFormat;
 
-      if (isNumericField) {
-        const clean = value.replace(/[^\d.]/g, '');
-        const parts = clean.split('.');
-        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        finalValue = parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
+      if (isPrice) {
+        // Strictly integer input as requested
+        const clean = value.replace(/[^\d]/g, '');
+        // Comma separation
+        finalValue = clean.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      } else {
+        const isNumericField = 
+          (fieldIdLower.includes('marketvalue') || 
+           fieldIdLower.includes('forcedsale') || 
+           fieldIdLower.includes('amount') || 
+           fieldIdLower.endsWith('_rs') ||
+           fieldIdLower === 'rs' ||
+           currentLayout.some(l => l.autoFillSource === fieldId)) &&
+          !['text_1767984953326', 'text_1767988846387'].includes(fieldId); 
+
+        if (isNumericField) {
+          const clean = value.replace(/[^\d.]/g, '');
+          const parts = clean.split('.');
+          parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+          finalValue = parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
+        }
       }
     }
 
@@ -394,6 +404,16 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     if (typeof value !== 'string') return;
     
     const fieldIdLower = fieldId.toLowerCase();
+    const layoutField = currentLayout.find(f => f.fieldId === fieldId);
+    
+    if (layoutField?.value?.isPriceFormat && value.trim() !== '') {
+      const clean = value.replace(/,/g, '');
+      if (clean !== '' && !clean.includes('.')) {
+        handleDataChange(fieldId, `${clean}.00`);
+      }
+      return;
+    }
+
     const isMoneyField = 
       (fieldIdLower.includes('marketvalue') || 
        fieldIdLower.includes('forcedsale') || 

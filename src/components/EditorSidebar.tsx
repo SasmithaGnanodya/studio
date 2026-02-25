@@ -314,6 +314,15 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                       <Label htmlFor='type-combobox' className='font-bold text-xs cursor-pointer'>Suggestions</Label>
                   </div>
               </RadioGroup>
+              
+              <div className="flex items-center space-x-2 pt-2 border-t mt-2">
+                <Checkbox 
+                  id={`${field.id}-price-format`}
+                  checked={data.isPriceFormat || false}
+                  onCheckedChange={(checked) => handlePartChange(part, 'isPriceFormat', checked as boolean)}
+                />
+                <Label htmlFor={`${field.id}-price-format`} className="text-xs font-bold cursor-pointer">Price Format (1,000.00)</Label>
+              </div>
             </div>
 
             {(data.inputType === 'dropdown' || data.inputType === 'combobox') && (
