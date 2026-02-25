@@ -241,22 +241,47 @@ export default function LandingPage() {
                     <div className="py-10 text-center font-bold text-muted-foreground animate-pulse">SYNCHRONIZING WITH CLOUD...</div>
                   ) : searchResults.length > 0 ? (
                     <div className="grid gap-3">
-                      {searchResults.map(r => (
-                        <Link key={r.id} href={`/report/${r.vehicleId}`} className="block">
-                          <Card className="hover:border-primary hover:bg-primary/5 transition-all bg-muted/5 border-primary/5 p-4 flex items-center justify-between group">
-                            <div className="flex items-center gap-4">
-                              <div className="p-2 bg-background rounded-lg border border-primary/10 group-hover:scale-110 transition-transform">
-                                <Car className="text-primary h-5 w-5" />
+                      {searchResults.map(r => {
+                        const ids = getIdentifiers(r);
+                        return (
+                          <Link key={r.id} href={`/report/${r.vehicleId}`} className="block">
+                            <Card className="hover:border-primary hover:bg-primary/5 transition-all bg-card border-primary/5 p-4 flex flex-col group shadow-sm">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 bg-primary/5 rounded-lg border border-primary/10 group-hover:scale-110 transition-transform">
+                                    <Car className="text-primary h-5 w-5" />
+                                  </div>
+                                  <div className="font-mono font-black text-lg group-hover:underline text-primary">{ids.displayId}</div>
+                                </div>
+                                <Badge variant="outline" className="text-[9px] font-black border-primary/20 bg-background">
+                                  {ids.reportNum === 'DRAFT' ? 'PENDING' : ids.reportNum}
+                                </Badge>
                               </div>
-                              <div>
-                                <div className="font-mono font-black text-lg group-hover:underline text-foreground">{getIdentifiers(r).displayId}</div>
-                                <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{getIdentifiers(r).reportNum}</div>
+                              
+                              <div className="grid grid-cols-3 gap-4 text-[10px] font-medium text-muted-foreground">
+                                <div className="flex flex-col gap-1">
+                                  <span className="uppercase font-black text-[8px] flex items-center gap-1">
+                                    <Fingerprint size={10} className="text-primary" /> Engine No
+                                  </span>
+                                  <span className="text-foreground font-bold truncate">{ids.engine}</span>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <span className="uppercase font-black text-[8px] flex items-center gap-1">
+                                    <Lock size={10} className="text-primary" /> Chassis No
+                                  </span>
+                                  <span className="text-foreground font-bold truncate">{ids.chassis}</span>
+                                </div>
+                                <div className="flex flex-col gap-1 text-right">
+                                  <span className="uppercase font-black text-[8px] flex items-center gap-1 justify-end">
+                                    <Clock size={10} className="text-primary" /> Sync Date
+                                  </span>
+                                  <span className="text-foreground font-bold">{ids.date}</span>
+                                </div>
                               </div>
-                            </div>
-                            <ChevronRight className="opacity-0 group-hover:opacity-100 transition-all text-primary" />
-                          </Card>
-                        </Link>
-                      ))}
+                            </Card>
+                          </Link>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="py-12 text-center border-2 border-dashed rounded-3xl bg-muted/20 text-muted-foreground font-medium italic">
