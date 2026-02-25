@@ -313,12 +313,13 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     let finalValue = value;
     if (typeof value === 'string') {
       const isNumericField = 
-        fieldIdLower.includes('value') || 
-        fieldIdLower.includes('amount') || 
-        fieldIdLower.includes('price') || 
-        fieldIdLower.includes('rs') ||
-        fieldIdLower.startsWith('val') ||
-        currentLayout.some(l => l.autoFillSource === fieldId);
+        (fieldIdLower.includes('marketvalue') || 
+         fieldIdLower.includes('forcedsale') || 
+         fieldIdLower.includes('amount') || 
+         fieldIdLower.endsWith('_rs') ||
+         fieldIdLower === 'rs' ||
+         currentLayout.some(l => l.autoFillSource === fieldId)) &&
+        fieldId !== 'text_1767984953326'; // Explicitly exempt requested field from formatting
 
       if (isNumericField) {
         // Keep only digits and one decimal point
@@ -357,11 +358,13 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     
     const fieldIdLower = fieldId.toLowerCase();
     const isMoneyField = 
-      fieldIdLower.includes('value') || 
-      fieldIdLower.includes('amount') || 
-      fieldIdLower.includes('price') || 
-      fieldIdLower.includes('rs') ||
-      currentLayout.some(l => l.autoFillSource === fieldId);
+      (fieldIdLower.includes('marketvalue') || 
+       fieldIdLower.includes('forcedsale') || 
+       fieldIdLower.includes('amount') || 
+       fieldIdLower.endsWith('_rs') || 
+       fieldIdLower === 'rs' ||
+       currentLayout.some(l => l.autoFillSource === fieldId)) &&
+      fieldId !== 'text_1767984953326'; // Explicitly exempt requested field from formatting
 
     if (isMoneyField && value.trim() !== '') {
       const trimmed = value.trim().replace(/,/g, '');
