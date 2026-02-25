@@ -7,7 +7,7 @@ import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck, Activity, Settings, AlertTriangle } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck, Activity, Settings, AlertTriangle, Megaphone } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +25,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
+const SUPER_ADMIN_EMAIL = 'sasmithagnanodya@gmail.com';
 const INITIAL_VISIBLE_REPORTS = 4;
 
 function getIdentifiers(report: Report) {
@@ -93,6 +96,12 @@ export default function AdminPage() {
   
   const [pendingBranchChange, setPendingBranchChange] = useState<{ key: string, branch: string, email: string } | null>(null);
 
+  // Announcement State
+  const [announcement, setAnnouncement] = useState({ message: '', isActive: false });
+  const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false);
+
+  const isSuperAdmin = user?.email === SUPER_ADMIN_EMAIL;
+
   useEffect(() => {
     if (isUserLoading) return;
     if (!user || !user.email || !ADMIN_EMAILS.includes(user.email)) {
@@ -123,9 +132,18 @@ export default function AdminPage() {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: authRef.path, operation: 'get' }));
       });
 
+      // Announcement Sync
+      const annRef = doc(firestore, 'config', 'announcement');
+      const unsubscribeAnn = onSnapshot(annRef, (snap) => {
+        if (snap.exists()) {
+          setAnnouncement(snap.data() as any);
+        }
+      });
+
       return () => {
         unsubscribeReports();
         unsubscribeAuth();
+        unsubscribeAnn();
       };
     }
   }, [user, firestore, isUserLoading, router]);
@@ -316,6 +334,19 @@ export default function AdminPage() {
     }
   };
 
+  const handleSaveAnnouncement = async (data: { message: string, isActive: boolean }) => {
+    if (!firestore) return;
+    setIsSavingAnnouncement(true);
+    try {
+      await setDoc(doc(firestore, 'config', 'announcement'), data, { merge: true });
+      toast({ title: "Broadcast Updated", description: "Global welcome message has been synchronized." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Action Failed", description: "Could not update broadcast." });
+    } finally {
+      setIsSavingAnnouncement(false);
+    }
+  };
+
   const filteredReportsList = useMemo(() => {
     if (!searchTerm || searchTerm.trim().length === 0) return uniqueReports;
     const term = searchTerm.toUpperCase().trim();
@@ -376,6 +407,47 @@ export default function AdminPage() {
                   
                   <ScrollArea className="flex-1 px-6 py-6">
                     <div className="space-y-10">
+                      {/* Super Admin Announcement Section */}
+                      {isSuperAdmin && (
+                        <section className="space-y-4">
+                          <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                            <Megaphone size={14} /> Super Admin: Welcome Message
+                          </h3>
+                          <Card className="border-primary/10 bg-muted/20 shadow-none overflow-hidden">
+                            <CardContent className="pt-6 space-y-4">
+                              <div className="flex items-center justify-between bg-background/50 p-3 rounded-lg border border-primary/5">
+                                <div className="space-y-0.5">
+                                  <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">Broadcast Status</Label>
+                                  <p className="text-[9px] text-muted-foreground italic">Toggle welcome message visibility</p>
+                                </div>
+                                <Switch 
+                                  checked={announcement.isActive} 
+                                  onCheckedChange={(val) => handleSaveAnnouncement({ ...announcement, isActive: val })} 
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">Message Content</Label>
+                                <Textarea 
+                                  value={announcement.message} 
+                                  onChange={(e) => setAnnouncement({ ...announcement, message: e.target.value })}
+                                  className="min-h-[100px] text-sm bg-background/50 border-primary/20 font-medium"
+                                  placeholder="e.g. Welcome to the new Drive Care Report Generator. Please verify classification before saving."
+                                />
+                              </div>
+                              <Button 
+                                onClick={() => handleSaveAnnouncement(announcement)} 
+                                disabled={isSavingAnnouncement}
+                                className="w-full bg-primary font-bold shadow-lg h-10"
+                              >
+                                {isSavingAnnouncement ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Megaphone className="mr-2 h-4 w-4" />}
+                                Update Welcome Message
+                              </Button>
+                            </CardContent>
+                          </Card>
+                          <Separator className="opacity-50" />
+                        </section>
+                      )}
+
                       <section className="space-y-4">
                         <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
                           <ShieldCheck size={14} /> User Registry

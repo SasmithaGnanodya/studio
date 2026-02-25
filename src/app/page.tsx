@@ -7,9 +7,9 @@ import { Footer } from '@/components/footer';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter, Calendar as CalendarIcon, Hash, Fingerprint, Clock, ChevronRight, BarChart3, TrendingUp, ShieldCheck, Zap } from 'lucide-react';
+import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter, Calendar as CalendarIcon, Hash, Fingerprint, Clock, ChevronRight, BarChart3, TrendingUp, ShieldCheck, Zap, Megaphone, X } from 'lucide-react';
 import { useFirebase } from '@/firebase';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, doc } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 function getIdentifiers(report: Report) {
   const data = report.reportData || {};
@@ -144,6 +145,9 @@ export default function LandingPage() {
   const [isLoadingReports, setIsLoadingReports] = useState(true);
   const [visibleReportsCount, setVisibleReportsCount] = useState(6);
 
+  const [announcement, setAnnouncement] = useState<{ message: string, isActive: boolean } | null>(null);
+  const [showAnnouncement, setShowAnnouncement] = useState(true);
+
   const router = useRouter();
   const { firestore, user, isUserLoading } = useFirebase();
 
@@ -165,7 +169,18 @@ export default function LandingPage() {
         setIsLoadingReports(false);
       });
 
-      return () => unsubscribe();
+      // Announcement Listener
+      const annRef = doc(firestore, 'config', 'announcement');
+      const unsubscribeAnn = onSnapshot(annRef, (snap) => {
+        if (snap.exists()) {
+          setAnnouncement(snap.data() as any);
+        }
+      });
+
+      return () => {
+        unsubscribe();
+        unsubscribeAnn();
+      };
     } else if (!isUserLoading) {
         setAllReports([]);
         setIsLoadingReports(false);
@@ -271,6 +286,32 @@ export default function LandingPage() {
     <div className="flex min-h-screen flex-col bg-muted/10">
       <Header />
       <main className="flex-1 flex flex-col items-center p-4 sm:p-6 lg:p-8 space-y-12">
+        {/* Welcome Announcement Alert */}
+        {announcement?.isActive && showAnnouncement && (
+          <div className="w-full max-w-5xl animate-in fade-in slide-in-from-top-4 duration-500">
+            <Alert className="bg-primary/10 border-primary/20 text-primary relative overflow-hidden group shadow-md py-4">
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
+              <Megaphone className="h-5 w-5 text-primary shrink-0" />
+              <div className="flex-1 ml-3">
+                <AlertTitle className="font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 mb-1">
+                  Global Broadcast
+                </AlertTitle>
+                <AlertDescription className="text-sm font-bold leading-relaxed text-foreground/80 pr-10">
+                  {announcement.message}
+                </AlertDescription>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute top-2 right-2 h-8 w-8 opacity-40 hover:opacity-100 hover:bg-primary/5 transition-all" 
+                onClick={() => setShowAnnouncement(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </Alert>
+          </div>
+        )}
+
         {/* Search & Statistics Hero */}
         <div className="w-full max-w-5xl grid gap-8 lg:grid-cols-3 items-start">
           <div className="lg:col-span-2 space-y-6">
