@@ -561,7 +561,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           'chassisNumber',
           'engineNumber',
           'vehicleClass',
-          'text_1767985277711'
+          'text_1767985277711',
+          'text_1767985345109'
         ];
         
         excludedKeys.forEach(key => {
@@ -581,7 +582,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           reportNumber: "V-PENDING",
           valuationCode: "V-PENDING",
           vehicleClass: "",
-          text_1767985277711: ""
+          text_1767985277711: "",
+          text_1767985345109: ""
         }));
 
         toast({
