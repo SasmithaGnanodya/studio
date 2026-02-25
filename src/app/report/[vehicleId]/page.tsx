@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -561,7 +560,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           'inspectionLocation',
           'chassisNumber',
           'engineNumber',
-          'vehicleClass'
+          'vehicleClass',
+          'text_1767985277711'
         ];
         
         excludedKeys.forEach(key => {
@@ -580,7 +580,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           engineNumber: "",
           reportNumber: "V-PENDING",
           valuationCode: "V-PENDING",
-          vehicleClass: ""
+          vehicleClass: "",
+          text_1767985277711: ""
         }));
 
         toast({
