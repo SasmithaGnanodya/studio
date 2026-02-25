@@ -63,7 +63,7 @@ export default function SuperAdminPage() {
       const adminsRef = collection(firestore, 'admins');
       const unsubAdmins = onSnapshot(adminsRef, (snap) => {
         const fetched: { id: string, email: string }[] = [];
-        snap.forEach(doc => fetched.push({ id: doc.id, email: doc.data().email }));
+        snap.forEach(doc => fetched.push({ id: doc.id, email: doc.data().email || '' }));
         setAdmins(fetched);
         setIsLoading(false);
       });
@@ -85,9 +85,6 @@ export default function SuperAdminPage() {
     
     setIsAddingAdmin(true);
     try {
-      // In a real app, you might need to resolve UID from email via a function,
-      // but here we'll use a placeholder doc or assume they sign in.
-      // For this prototype, we'll store by emailKey to match rule logic or a simple collection.
       const id = newAdminEmail.toLowerCase().trim();
       await setDoc(doc(firestore, 'admins', id), {
         email: id,
@@ -194,7 +191,6 @@ export default function SuperAdminPage() {
         </div>
 
         <div className="grid gap-8">
-          {/* Admin Management Section */}
           <Card className="border-primary/20 shadow-xl overflow-hidden bg-card/50 backdrop-blur-sm">
             <CardHeader className="bg-muted/30 border-b">
               <div className="flex items-center justify-between">
@@ -230,9 +226,9 @@ export default function SuperAdminPage() {
                       <div key={adm.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-primary/5 transition-all group border-b last:border-0 border-primary/5">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs uppercase">
-                            {adm.email[0]}
+                            {adm.email?.[0] || '?'}
                           </div>
-                          <span className="text-sm font-bold text-foreground">{adm.email}</span>
+                          <span className="text-sm font-bold text-foreground">{adm.email || 'Unknown Admin'}</span>
                         </div>
                         <Button 
                           variant="ghost" 
@@ -256,7 +252,6 @@ export default function SuperAdminPage() {
             </CardContent>
           </Card>
 
-          {/* Section 1: Announcement Manager */}
           <Card className="border-primary/20 shadow-xl overflow-hidden bg-card/50 backdrop-blur-sm">
             <CardHeader className="bg-muted/30 border-b">
               <div className="flex items-center justify-between">
@@ -317,7 +312,6 @@ export default function SuperAdminPage() {
             </CardFooter>
           </Card>
 
-          {/* Section 2: Operational Status (Kill Switch) */}
           <Card className="border-destructive/20 shadow-xl overflow-hidden bg-card/50 backdrop-blur-sm">
             <CardHeader className="bg-destructive/5 border-b">
               <div className="flex items-center justify-between">
@@ -376,12 +370,14 @@ export default function SuperAdminPage() {
             </CardFooter>
           </Card>
 
-          {/* Section 3: Billing Management */}
           <Card className="border-primary/20 shadow-xl overflow-hidden bg-card/50 backdrop-blur-sm">
             <CardHeader className="bg-muted/30 border-b">
-              <div className="flex items-center gap-2">
-                <CreditCard className="text-primary h-5 w-5" />
-                <CardTitle className="text-lg">Billing Management</CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="text-primary h-5 w-5" />
+                  <CardTitle className="text-lg">Billing Management</CardTitle>
+                </div>
+                <Badge variant="secondary">CONFIG</Badge>
               </div>
               <CardDescription>Update payment status and subscription deadlines.</CardDescription>
             </CardHeader>

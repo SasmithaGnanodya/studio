@@ -177,7 +177,7 @@ export default function AdminPage() {
   const reportsWithBranch = useMemo(() => {
     const emailToBranch: Record<string, string> = {};
     Object.values(authorizedUsers).forEach(u => {
-      emailToBranch[u.email.toLowerCase()] = u.branch;
+      if (u?.email) emailToBranch[u.email.toLowerCase()] = u.branch;
     });
 
     return reports.map(r => ({
@@ -200,6 +200,7 @@ export default function AdminPage() {
 
     const emailToKey: Record<string, string> = {};
     Object.entries(authorizedUsers).forEach(([key, data]) => {
+      if (!data?.email) return;
       emailToKey[data.email.toLowerCase()] = key;
       stats[key] = { 
         total: 0, 
@@ -215,6 +216,7 @@ export default function AdminPage() {
       const key = emailToKey[email.toLowerCase()];
       if (!key) return;
 
+      if (!stats[key]) return;
       stats[key].total += 1;
 
       const updateDate = r.updatedAt?.seconds ? new Date(r.updatedAt.seconds * 1000) : null;
@@ -237,8 +239,9 @@ export default function AdminPage() {
   const histogramData = useMemo(() => {
     return Object.entries(authorizedUsers).map(([key, data]) => {
       const stats = userRegistryStats[key];
+      const email = data?.email || 'unknown';
       return {
-        name: data.email.split('@')[0],
+        name: email.split('@')[0],
         total: stats?.total || 0,
         today: stats?.today || 0,
       };
@@ -460,13 +463,13 @@ export default function AdminPage() {
                                     <div key={key} className="bg-muted/20 p-4 rounded-xl border border-primary/5 group hover:border-primary/20 transition-all flex flex-col shadow-sm">
                                       <div className="flex items-center justify-between gap-2">
                                         <div className="flex flex-col min-w-0">
-                                          <span className="text-[13px] font-black truncate text-foreground leading-tight">{data.email}</span>
+                                          <span className="text-[13px] font-black truncate text-foreground leading-tight">{data.email || 'Unknown User'}</span>
                                           <div className="flex items-center gap-2 mt-2">
                                             <Select 
                                               value={data.branch} 
                                               onValueChange={(val) => {
                                                 if (val !== data.branch) {
-                                                  setPendingBranchChange({ key, branch: val, email: data.email });
+                                                  setPendingBranchChange({ key, branch: val, email: data.email || '' });
                                                 }
                                               }}
                                             >
@@ -478,7 +481,7 @@ export default function AdminPage() {
                                                 <SelectItem value="CDK" className="text-[11px] font-bold">CDK - KADA</SelectItem>
                                               </SelectContent>
                                             </Select>
-                                            {ADMIN_EMAILS.includes(data.email) && (
+                                            {data.email && ADMIN_EMAILS.includes(data.email) && (
                                               <Badge className="text-[8px] h-4 bg-primary/20 text-primary border-0 font-black">ADMIN</Badge>
                                             )}
                                           </div>
@@ -488,7 +491,7 @@ export default function AdminPage() {
                                           size="icon" 
                                           className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
                                           onClick={() => handleRemoveUser(key)}
-                                          disabled={ADMIN_EMAILS.includes(data.email)}
+                                          disabled={!!data.email && ADMIN_EMAILS.includes(data.email)}
                                         >
                                           <Trash2 size={16} />
                                         </Button>
