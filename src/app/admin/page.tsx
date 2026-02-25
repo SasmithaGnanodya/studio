@@ -3,11 +3,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, deleteField, updateDoc, deleteDoc } from 'firebase/firestore';
+import { ref, listAll, getMetadata } from 'firebase/storage';
 import type { Report } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck, Activity, Settings, AlertTriangle, Megaphone, Shield } from 'lucide-react';
+import { Filter, LayoutTemplate, Calendar as CalendarIcon, History, Eye, Search, Hash, Fingerprint, Clock, Car, KeyRound, ShieldCheck, Loader2, BarChart3, TrendingUp, Users, Zap, ShieldAlert, UserCheck, Building2, UserPlus, Trash2, Mail, Globe, FileCheck, Activity, Settings, AlertTriangle, Megaphone, Shield, Database, HardDrive } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -73,8 +74,17 @@ function getUniqueReports(reports: Report[]) {
   });
 }
 
+function formatBytes(bytes: number, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
 export default function AdminPage() {
-  const { user, firestore, isUserLoading } = useFirebase();
+  const { user, firestore, storage, isUserLoading } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -85,6 +95,7 @@ export default function AdminPage() {
   const [visibleReportsCount, setVisibleReportsCount] = useState(INITIAL_VISIBLE_REPORTS);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '1y'>('7d');
   const [branchFilter, setBranchFilter] = useState<'all' | 'CDH' | 'CDK'>('all');
+  const [storageUsage, setStorageUsage] = useState<number | null>(null);
 
   const [authorizedUsers, setAuthorizedUsers] = useState<Record<string, { branch: string, email: string }>>({});
   const [newEmail, setNewEmail] = useState('');
@@ -128,12 +139,31 @@ export default function AdminPage() {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: authRef.path, operation: 'get' }));
       });
 
+      if (storage) {
+        const fetchStorageUsage = async () => {
+          try {
+            const storageRef = ref(storage, 'report-images');
+            const res = await listAll(storageRef);
+            let totalSize = 0;
+            const metadataPromises = res.items.map(item => getMetadata(item));
+            const metadatas = await Promise.all(metadataPromises);
+            metadatas.forEach(meta => {
+              totalSize += meta.size;
+            });
+            setStorageUsage(totalSize);
+          } catch (err) {
+            console.error("Storage fetch error:", err);
+          }
+        };
+        fetchStorageUsage();
+      }
+
       return () => {
         unsubscribeReports();
         unsubscribeAuth();
       };
     }
-  }, [user, firestore, isUserLoading, router]);
+  }, [user, firestore, storage, isUserLoading, router]);
 
   const reportsWithBranch = useMemo(() => {
     const emailToBranch: Record<string, string> = {};
@@ -554,7 +584,7 @@ export default function AdminPage() {
            </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 relative z-10">
           <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative min-h-[140px]">
             <div className="absolute top-0 right-0 p-3 opacity-10">
               <Car size={48} className="text-primary" />
@@ -596,6 +626,23 @@ export default function AdminPage() {
             <CardContent>
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <TrendingUp size={10} className="text-primary" /> New Updates
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-lg overflow-hidden relative min-h-[140px]">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <Database size={48} className="text-primary" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-[10px] font-bold uppercase tracking-wider">Cloud Storage</CardDescription>
+              <CardTitle className="text-2xl font-black text-primary">
+                {storageUsage !== null ? formatBytes(storageUsage) : <Loader2 className="h-4 w-4 animate-spin" />}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-1 font-medium">
+                <HardDrive size={10} className="text-primary" /> Technical Assets
               </p>
             </CardContent>
           </Card>
