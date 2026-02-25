@@ -319,7 +319,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
          fieldIdLower.endsWith('_rs') ||
          fieldIdLower === 'rs' ||
          currentLayout.some(l => l.autoFillSource === fieldId)) &&
-        fieldId !== 'text_1767984953326'; // Explicitly exempt requested field from formatting
+        !['text_1767984953326', 'text_1767988846387'].includes(fieldId); // Explicitly exempt requested fields from formatting
 
       if (isNumericField) {
         // Keep only digits and one decimal point
@@ -364,7 +364,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
        fieldIdLower.endsWith('_rs') || 
        fieldIdLower === 'rs' ||
        currentLayout.some(l => l.autoFillSource === fieldId)) &&
-      fieldId !== 'text_1767984953326'; // Explicitly exempt requested field from formatting
+      !['text_1767984953326', 'text_1767988846387'].includes(fieldId); // Explicitly exempt requested fields from formatting
 
     if (isMoneyField && value.trim() !== '') {
       const trimmed = value.trim().replace(/,/g, '');
