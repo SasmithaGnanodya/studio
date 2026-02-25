@@ -7,19 +7,22 @@ import { Footer } from '@/components/footer';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Search, PlusCircle, Car, FileText, Wrench, Shield, Filter, Calendar as CalendarIcon, Hash, Fingerprint, Clock, ChevronRight, BarChart3, TrendingUp, ShieldCheck, Zap, Megaphone, X, Lock } from 'lucide-react';
+import { 
+  Search, PlusCircle, Car, FileText, Shield, Filter, 
+  Clock, ChevronRight, BarChart3, ShieldCheck, Zap, 
+  Megaphone, X, Lock, Info, BookOpen, Fingerprint, 
+  LayoutTemplate, Database, AlertCircle
+} from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { collection, onSnapshot, orderBy, query, doc } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 function getIdentifiers(report: Report) {
   const engine = report.engineNumber || 'N/A';
@@ -150,13 +153,26 @@ export default function LandingPage() {
           </Alert>
         )}
 
+        {/* Global Records & Stats Hub */}
         <div className="max-w-5xl mx-auto grid lg:grid-cols-3 gap-8">
-          <Card className="lg:col-span-2 border-primary/10 shadow-2xl overflow-visible bg-card">
-            <CardHeader><CardTitle className="text-3xl font-black flex items-center gap-3"><Search className="text-primary h-7 w-7" /> Global Records</CardTitle></CardHeader>
+          <Card className="lg:col-span-2 border-primary/10 shadow-2xl overflow-visible bg-card relative">
+            <div className="absolute -top-3 -left-3 bg-primary text-primary-foreground p-2 rounded-xl shadow-lg z-10 hidden sm:block">
+              <Search size={20} />
+            </div>
+            <CardHeader className="pt-8">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-3xl font-black tracking-tight">Search Records</CardTitle>
+                <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10">REAL-TIME</Badge>
+              </div>
+              <CardDescription className="text-muted-foreground font-medium">Scan the global database by Registration, Engine, or Chassis numbers.</CardDescription>
+            </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex flex-col md:flex-row gap-3">
                 <Select value={searchCategory} onValueChange={setSearchCategory}>
-                  <SelectTrigger className="h-14 bg-muted/50 border-primary/20 font-bold"><Filter className="mr-2 h-4 w-4 text-primary" /><SelectValue placeholder="Category" /></SelectTrigger>
+                  <SelectTrigger className="h-14 w-full md:w-[180px] bg-muted/30 border-primary/20 font-bold focus:ring-primary shadow-sm">
+                    <Filter className="mr-2 h-4 w-4 text-primary" />
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Identifiers</SelectItem>
                     <SelectItem value="vehicleId">Registration No</SelectItem>
@@ -166,69 +182,268 @@ export default function LandingPage() {
                     <SelectItem value="reportDate">Report Date</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="relative flex-grow">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
-                  <Input placeholder="Search records..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value.toUpperCase())} className="h-14 pl-12 text-lg font-mono border-primary/20 bg-muted/50 focus:border-primary shadow-inner" />
+                <div className="relative flex-grow group">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+                    <Search className="h-5 w-5" />
+                  </div>
+                  <Input 
+                    placeholder="e.g. WP CAA-1234" 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value.toUpperCase())} 
+                    className="h-14 pl-12 text-lg font-mono border-primary/20 bg-muted/30 focus:border-primary focus:bg-background shadow-inner transition-all" 
+                  />
                 </div>
               </div>
               
               {searchTerm && !uniqueReports.some(r => r.vehicleId.toUpperCase() === searchTerm.trim()) && !systemStatus.isLocked && (
-                <Button onClick={handleCreateNew} size="lg" className="w-full h-14 text-lg font-black shadow-xl animate-in zoom-in-95"><PlusCircle className="mr-2" /> Create Report: "{searchTerm}"</Button>
+                <Button onClick={handleCreateNew} size="lg" className="w-full h-14 text-lg font-black shadow-xl hover:shadow-primary/20 transition-all animate-in zoom-in-95">
+                  <PlusCircle className="mr-2" /> Create New Report: "{searchTerm}"
+                </Button>
               )}
 
               {searchTerm && (
                 <div className="pt-8 border-t border-muted">
-                  <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-4 flex items-center gap-2"><Car size={14} className="text-primary" /> Matching Records</h4>
-                  {isLoadingReports ? <div className="py-10 text-center font-bold text-muted-foreground animate-pulse">SCANNING DATABASE...</div> : searchResults.length > 0 ? (
-                    <div className="space-y-4">{searchResults.map(r => (
-                      <Link key={r.id} href={`/report/${r.vehicleId}`} className="block"><Card className="hover:border-primary transition-all bg-muted/10 border-primary/5 p-4 flex items-center justify-between group">
-                        <div className="flex items-center gap-4"><Car className="text-primary h-5 w-5" /><div className="font-mono font-black text-lg group-hover:underline">{getIdentifiers(r).displayId}</div></div>
-                        <ChevronRight className="opacity-0 group-hover:opacity-100 transition-all text-primary" />
-                      </Card></Link>
-                    ))}</div>
-                  ) : <div className="py-12 text-center border-2 border-dashed rounded-3xl bg-muted/20 text-muted-foreground font-medium italic">No indexed records found matching "{searchTerm}"</div>}
+                  <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-4 flex items-center gap-2">
+                    <Car size={14} className="text-primary" /> Matching Indexed Records
+                  </h4>
+                  {isLoadingReports ? (
+                    <div className="py-10 text-center font-bold text-muted-foreground animate-pulse">SYNCHRONIZING WITH CLOUD...</div>
+                  ) : searchResults.length > 0 ? (
+                    <div className="grid gap-3">
+                      {searchResults.map(r => (
+                        <Link key={r.id} href={`/report/${r.vehicleId}`} className="block">
+                          <Card className="hover:border-primary hover:bg-primary/5 transition-all bg-muted/5 border-primary/5 p-4 flex items-center justify-between group">
+                            <div className="flex items-center gap-4">
+                              <div className="p-2 bg-background rounded-lg border border-primary/10 group-hover:scale-110 transition-transform">
+                                <Car className="text-primary h-5 w-5" />
+                              </div>
+                              <div>
+                                <div className="font-mono font-black text-lg group-hover:underline text-foreground">{getIdentifiers(r).displayId}</div>
+                                <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{getIdentifiers(r).reportNum}</div>
+                              </div>
+                            </div>
+                            <ChevronRight className="opacity-0 group-hover:opacity-100 transition-all text-primary" />
+                          </Card>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center border-2 border-dashed rounded-3xl bg-muted/20 text-muted-foreground font-medium italic">
+                      No indexed records found matching "{searchTerm}"
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
           </Card>
 
           <div className="space-y-6">
-            <Card className="bg-primary/5 border-primary/10 shadow-lg p-6 flex flex-col items-center justify-center text-center space-y-2">
+            <Card className="bg-primary/5 border-primary/10 shadow-lg p-6 flex flex-col items-center justify-center text-center space-y-2 relative overflow-hidden">
+              <div className="absolute -right-4 -bottom-4 opacity-5 rotate-12">
+                <BarChart3 size={120} />
+              </div>
               <BarChart3 className="text-primary h-8 w-8 mb-2" />
-              <div className="text-3xl font-black text-primary">{uniqueReports.length}</div>
+              <div className="text-4xl font-black text-primary tracking-tighter">{uniqueReports.length}</div>
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Unique Vehicle Records</p>
             </Card>
             <Card className="border-primary/10 shadow-lg bg-card/50">
-              <CardHeader><CardTitle className="text-xs font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2"><Shield className="h-4 w-4" /> Platform Integrity</CardTitle></CardHeader>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-xs font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" /> Security Integrity
+                </CardTitle>
+              </CardHeader>
               <CardContent className="text-[11px] font-medium text-muted-foreground space-y-4 leading-relaxed">
-                <div className="p-3 bg-muted/50 rounded-xl border">Engine and Chassis numbers are indexed in real-time for secure discoverability.</div>
-                <div className="p-3 bg-primary/5 rounded-xl border border-primary/10">All synchronization operations are audit-logged with high-resolution timestamps.</div>
+                <div className="p-3 bg-muted/50 rounded-xl border border-border/50 flex gap-3 items-start">
+                  <Fingerprint size={16} className="text-primary shrink-0 mt-0.5" />
+                  <p>Engine and Chassis numbers are indexed in real-time for secure discoverability across the workforce.</p>
+                </div>
+                <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 flex gap-3 items-start">
+                  <Clock size={16} className="text-primary shrink-0 mt-0.5" />
+                  <p>All synchronization operations are audit-logged with high-resolution timestamps and identity tracking.</p>
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
 
+        {/* Instructions & System Guidance Section */}
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-gradient-to-br from-primary/10 via-background to-background border border-primary/10 rounded-3xl p-8 sm:p-12 shadow-xl">
+            <div className="flex flex-col md:flex-row gap-12">
+              <div className="md:w-1/3 space-y-6">
+                <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                  <BookOpen size={14} /> Documentation
+                </div>
+                <h2 className="text-3xl font-black tracking-tight leading-tight">System Intelligence <span className="text-primary">& Operations</span></h2>
+                <p className="text-muted-foreground text-sm font-medium leading-relaxed">
+                  The Drive Care platform utilizes layout-aware versioning and real-time indexing to ensure technical valuation accuracy.
+                </p>
+                <div className="space-y-4 pt-4">
+                  <div className="flex items-center gap-3 text-xs font-bold">
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <span>A4 Precision Canvas</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs font-bold">
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <span>Real-time Cloud Sync</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs font-bold">
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <span>Branch-Specific Logic</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:w-2/3">
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="item-1" className="border-primary/10">
+                    <AccordionTrigger className="hover:no-underline py-4">
+                      <div className="flex items-center gap-4 text-left">
+                        <div className="p-2 bg-primary/5 rounded-lg border border-primary/10 text-primary">
+                          <Search size={18} />
+                        </div>
+                        <div>
+                          <p className="font-black text-sm uppercase tracking-tight">Search & Import Protocol</p>
+                          <p className="text-[10px] text-muted-foreground font-medium">How to find and reuse vehicle data.</p>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-sm text-muted-foreground leading-relaxed pl-14 pb-6">
+                      To ensure data integrity, the system strictly prioritizes search via <strong>Registration Number</strong>. When cloning specifications from an existing report, critical unique identifiers (Engine No, Chassis No, and Valuation Codes) are automatically stripped. This forces a manual verification of the new vehicle's unique IDs to prevent sequence collisions.
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-2" className="border-primary/10">
+                    <AccordionTrigger className="hover:no-underline py-4">
+                      <div className="flex items-center gap-4 text-left">
+                        <div className="p-2 bg-primary/5 rounded-lg border border-primary/10 text-primary">
+                          <LayoutTemplate size={18} />
+                        </div>
+                        <div>
+                          <p className="font-black text-sm uppercase tracking-tight">Layout Integrity (Versioning)</p>
+                          <p className="text-[10px] text-muted-foreground font-medium">Managing technical template changes.</p>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-sm text-muted-foreground leading-relaxed pl-14 pb-6">
+                      Every report is permanently locked to the <strong>Layout Version</strong> it was created with. If the master template is updated by an Admin, existing reports will remain unchanged to preserve their visual audit trail. Users can manually "Upgrade Layout" if a visual realignment is technically required.
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-3" className="border-primary/10">
+                    <AccordionTrigger className="hover:no-underline py-4">
+                      <div className="flex items-center gap-4 text-left">
+                        <div className="p-2 bg-primary/5 rounded-lg border border-primary/10 text-primary">
+                          <Zap size={18} />
+                        </div>
+                        <div>
+                          <p className="font-black text-sm uppercase tracking-tight">Valuation Code Sequence</p>
+                          <p className="text-[10px] text-muted-foreground font-medium">Automatic numbering and classification.</p>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-sm text-muted-foreground leading-relaxed pl-14 pb-6">
+                      The <strong>Valuation Code</strong> is generated based on your Branch (CDH/CDK), the current Date, and the technical condition score. It is critical to select the correct <strong>Class of Vehicle</strong>, as the system maintains separate daily sequences for each classification to meet banking standards.
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-4" className="border-primary/10">
+                    <AccordionTrigger className="hover:no-underline py-4">
+                      <div className="flex items-center gap-4 text-left">
+                        <div className="p-2 bg-primary/5 rounded-lg border border-primary/10 text-primary">
+                          <Database size={18} />
+                        </div>
+                        <div>
+                          <p className="font-black text-sm uppercase tracking-tight">Cloud Indexing & Persistence</p>
+                          <p className="text-[10px] text-muted-foreground font-medium">Data sovereignty and storage.</p>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-sm text-muted-foreground leading-relaxed pl-14 pb-6">
+                      Data is synchronized in 1-second intervals using Firestore optimistic concurrency. High-resolution technical photos are stored in secure buckets linked to the report's UID. All modifications are logged in the <strong>History Audit Trail</strong>, accessible by administrators for compliance review.
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Synchronizations - Show only when not searching */}
         {!searchTerm && (
           <div className="max-w-5xl mx-auto space-y-8">
-            <div className="flex items-end justify-between border-b pb-6 border-primary/20"><h2 className="text-3xl font-black tracking-tight flex items-center gap-4"><Clock className="text-primary" /> Recent Synchronizations</h2><Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest animate-pulse border-primary/30">Live Stream</Badge></div>
-            {isLoadingReports ? <div className="grid md:grid-cols-3 gap-6">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-2xl" />)}</div> : uniqueReports.length > 0 ? (
-              <div className="grid md:grid-cols-3 gap-6">{uniqueReports.slice(0, visibleReportsCount).map(r => {
-                const ids = getIdentifiers(r);
-                return (
-                  <Link key={r.id} href={`/report/${r.vehicleId}`}>
-                    <Card className="group hover:border-primary/50 transition-all cursor-pointer bg-card overflow-hidden shadow-lg h-full border-primary/5">
-                      <div className="bg-muted/30 p-4 border-b flex justify-between items-center"><div className="font-mono font-black text-primary group-hover:underline">{ids.displayId}</div><Badge variant="outline" className="text-[9px] font-black border-primary/20">{ids.reportNum}</Badge></div>
-                      <CardContent className="p-4 grid grid-cols-2 gap-y-4 text-[10px] font-medium text-muted-foreground">
-                        <div><div className="uppercase font-black text-[8px] mb-1">Engine Number</div><div className="text-foreground truncate font-bold">{ids.engine}</div></div>
-                        <div><div className="uppercase font-black text-[8px] mb-1">Chassis Number</div><div className="text-foreground truncate font-bold">{ids.chassis}</div></div>
-                        <div><div className="uppercase font-black text-[8px] mb-1">Report Date</div><div className="text-foreground font-bold">{ids.date}</div></div>
-                        <div className="text-right"><div className="uppercase font-black text-[8px] mb-1">By</div><div className="truncate">{r.userName || 'System'}</div></div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}</div>
-            ) : <div className="py-24 text-center border-2 border-dashed rounded-3xl bg-muted/10 opacity-50"><FileText className="mx-auto h-12 w-12 mb-4" /><p className="font-bold">No Records Available</p></div>}
+            <div className="flex items-end justify-between border-b pb-6 border-primary/20">
+              <h2 className="text-3xl font-black tracking-tight flex items-center gap-4">
+                <Clock className="text-primary" /> Recent Synchronizations
+              </h2>
+              <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest animate-pulse border-primary/30 bg-primary/5">
+                Live Activity
+              </Badge>
+            </div>
+            {isLoadingReports ? (
+              <div className="grid md:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-2xl" />)}
+              </div>
+            ) : uniqueReports.length > 0 ? (
+              <div className="grid md:grid-cols-3 gap-6">
+                {uniqueReports.slice(0, visibleReportsCount).map(r => {
+                  const ids = getIdentifiers(r);
+                  return (
+                    <Link key={r.id} href={`/report/${r.vehicleId}`}>
+                      <Card className="group hover:border-primary/50 hover:shadow-xl transition-all cursor-pointer bg-card overflow-hidden shadow-lg h-full border-primary/5 relative">
+                        <div className="bg-muted/30 p-4 border-b flex justify-between items-center">
+                          <div className="font-mono font-black text-primary group-hover:underline">{ids.displayId}</div>
+                          <Badge variant="outline" className="text-[9px] font-black border-primary/20 bg-background">
+                            {ids.reportNum === 'DRAFT' ? 'PENDING' : ids.reportNum}
+                          </Badge>
+                        </div>
+                        <CardContent className="p-4 grid grid-cols-2 gap-y-4 text-[10px] font-medium text-muted-foreground">
+                          <div>
+                            <div className="uppercase font-black text-[8px] mb-1 flex items-center gap-1">
+                              <Fingerprint size={10} className="text-primary" /> Engine Number
+                            </div>
+                            <div className="text-foreground truncate font-bold">{ids.engine}</div>
+                          </div>
+                          <div>
+                            <div className="uppercase font-black text-[8px] mb-1 flex items-center gap-1">
+                              <Lock size={10} className="text-primary" /> Chassis Number
+                            </div>
+                            <div className="text-foreground truncate font-bold">{ids.chassis}</div>
+                          </div>
+                          <div>
+                            <div className="uppercase font-black text-[8px] mb-1 flex items-center gap-1">
+                              <Clock size={10} className="text-primary" /> Sync Date
+                            </div>
+                            <div className="text-foreground font-bold">{ids.date}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="uppercase font-black text-[8px] mb-1">Assigned To</div>
+                            <div className="truncate font-bold text-foreground/70">{r.userName || 'System'}</div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-24 text-center border-2 border-dashed rounded-3xl bg-muted/10 opacity-50">
+                <FileText className="mx-auto h-12 w-12 mb-4" />
+                <p className="font-bold">No Records Available in Database</p>
+              </div>
+            )}
+            
+            {uniqueReports.length > visibleReportsCount && (
+              <div className="text-center pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setVisibleReportsCount(prev => prev + 6)}
+                  className="font-bold border-primary/20 hover:bg-primary/5 text-primary"
+                >
+                  Load More History
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </main>
