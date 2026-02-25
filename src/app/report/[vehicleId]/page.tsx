@@ -122,6 +122,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   /**
    * Live update of the report number / valuation code preview.
    * Ensures the 9th digit strictly responds to the conditionScore selection.
+   * Also reacts to classification changes to ensure logical separation.
    */
   useEffect(() => {
     if (!isAuthorized || isLoading) return;
@@ -157,7 +158,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         valuationCode: nextNum 
       }));
     }
-  }, [reportData.conditionScore, userBranch, isAuthorized, isLoading, currentLayout]);
+  }, [reportData.conditionScore, reportData.vehicleClass, userBranch, isAuthorized, isLoading, currentLayout]);
 
   useEffect(() => {
     if (!user || !firestore) {
@@ -422,10 +423,12 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       if (!isIssued || issuedDateCode !== todayDateCode) {
         const branchCode = userBranch || 'CDH';
         const reportsRef = collection(firestore, 'reports');
+        // Sequence is calculated per branch, per day, AND per vehicle class for auditing precision
         const q = query(
           reportsRef, 
           where('branch', '==', branchCode),
-          where('reportDate', '==', dateVal)
+          where('reportDate', '==', dateVal),
+          where('reportData.vehicleClass', '==', reportData.vehicleClass || 'Motor Car')
         );
         const daySnap = await getDocs(q);
         const sequenceNum = (daySnap.size + 1).toString().padStart(3, '0');
