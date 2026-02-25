@@ -550,7 +550,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const sourceData = sourceSnap.data() as Report;
         const clonedReportData = { ...sourceData.reportData };
         
-        // Exclude specific unique/system fields from being overwritten
+        // Strictly exclude unique and system identifiers from being cloned
         const excludedKeys = [
           'regNumber', 
           'reportNumber', 
@@ -558,7 +558,10 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           'date', 
           'image1', 
           'vehicleId', 
-          'inspectionLocation'
+          'inspectionLocation',
+          'chassisNumber',
+          'engineNumber',
+          'vehicleClass'
         ];
         
         excludedKeys.forEach(key => {
@@ -570,14 +573,19 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         setReportData(prev => ({
           ...prev,
           ...clonedReportData,
-          // Preserve essential current session markers
+          // Preserve essential current session markers and specifically clear unique ones as requested
           regNumber: isUnregistered ? 'U/R' : vehicleId,
-          date: prev.date // Keep current date
+          date: prev.date, // Keep current date
+          chassisNumber: "",
+          engineNumber: "",
+          reportNumber: "V-PENDING",
+          valuationCode: "V-PENDING",
+          vehicleClass: ""
         }));
 
         toast({
           title: "Technical Data Imported",
-          description: `Specifications from ${sourceVehicleId} have been successfully loaded into the current draft.`,
+          description: `Specifications from ${sourceVehicleId} have been loaded. Unique technical IDs have been cleared.`,
         });
         setIsCloneDialogOpen(false);
         setCloneSearchTerm('');
@@ -691,8 +699,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                     <DialogTitle className="flex items-center gap-2 text-primary font-black">
                       <Search className="h-5 w-5" /> Import Vehicle Specs
                     </DialogTitle>
-                    <DialogDescription>
-                      Enter a vehicle registration number to copy its technical details (Manufacturer, Specs, etc.) into this current report.
+                    <DialogDescription asChild>
+                      <div className="space-y-2">
+                        <p>Enter a vehicle registration number to copy its technical details into this current report.</p>
+                        <p className="text-[10px] text-destructive font-bold uppercase tracking-wider">Note: Chassis, Engine, and Class will be cleared.</p>
+                      </div>
                     </DialogDescription>
                   </DialogHeader>
                   <div className="flex items-center space-x-2 py-4">
@@ -718,8 +729,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                     </Button>
                   </div>
                   <div className="p-3 bg-muted/30 rounded-lg border border-dashed text-[10px] text-muted-foreground leading-relaxed">
-                    <p className="font-bold mb-1 uppercase tracking-tighter">Note:</p>
-                    Unique identifiers like Registration No, Report No, and Photos will NOT be overwritten.
+                    <p className="font-bold mb-1 uppercase tracking-tighter">Information Integrity:</p>
+                    Unique identifiers like Registration No, Report No, Engine No, Chassis No, and Class will NOT be cloned.
                   </div>
                   <DialogFooter className="sm:justify-start">
                     <Button type="button" variant="ghost" onClick={() => setIsCloneDialogOpen(false)}>
