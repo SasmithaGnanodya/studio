@@ -12,7 +12,7 @@ export type FieldPart = {
   options?: string[];
   optionWeights?: Record<string, number>; // Mapping option label to a numeric value for calculations
   objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
-  isPriceFormat?: boolean; // New: Enforce comma-separated currency with .00 suffix
+  isPriceFormat?: boolean; // Enforce comma-separated currency with .00 suffix
 };
 
 export type FieldLayout = {

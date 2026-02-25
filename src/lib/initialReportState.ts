@@ -55,9 +55,10 @@ export const initialReportState: { [key: string]: any } = {
   forcedSaleValue: "",
   conditionScore: "", // Default empty to hide save button until selection is made
   image1: { url: '', scale: 1, x: 0, y: 0 } as ImageData,
-  // Ensure custom identification field IDs are empty by default
+  // Ensure specific technical identification field IDs are empty by default
   text_1767985277711: "",
-  text_1767985345109: ""
+  text_1767985345109: "",
+  text_1767995825656: ""
 };
 
 export const fixedLayout: FieldLayout[] = [

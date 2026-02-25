@@ -142,7 +142,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   /**
    * Live update of the report number / valuation code preview.
    * Ensures the 9th digit strictly responds to the conditionScore selection.
-   * Also reacts to classification changes to ensure logical separation.
    */
   useEffect(() => {
     if (!isAuthorized || isLoading) return;
@@ -352,10 +351,18 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       const isPrice = layoutField?.value?.isPriceFormat;
 
       if (isPrice) {
-        // Strictly integer input as requested
-        const clean = value.replace(/[^\d]/g, '');
-        // Comma separation
-        finalValue = clean.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        // If it already has a dot (coming from blur), allow it but format the part before the dot
+        if (value.includes('.')) {
+          const [intPart, decPart] = value.split('.');
+          const cleanInt = intPart.replace(/[^\d]/g, '');
+          const formattedInt = cleanInt.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+          finalValue = `${formattedInt}.${decPart}`;
+        } else {
+          // While typing: Strictly integer input
+          const clean = value.replace(/[^\d]/g, '');
+          // Comma separation
+          finalValue = clean.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
       } else {
         const isNumericField = 
           (fieldIdLower.includes('marketvalue') || 
@@ -378,7 +385,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     setReportData(prev => {
       const updated = { ...prev, [fieldId]: finalValue };
 
-      // If the value updated matches a vehicle classification, ensure reportData.vehicleClass is updated
+      // Ensure vehicleClass is updated if a matching selection is made
       if (typeof finalValue === 'string' && VEHICLE_CLASSES.includes(finalValue.toUpperCase())) {
         updated.vehicleClass = finalValue.toUpperCase();
       }
@@ -442,7 +449,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const handleSave = async () => {
     if (!user || !firestore) return;
 
-    // Resolve final class from reportData.vehicleClass or search within reportData for a match
+    // Resolve final class
     let finalClass = reportData.vehicleClass;
     if (!finalClass || !VEHICLE_CLASSES.includes(finalClass.toUpperCase())) {
       const foundMatch = Object.values(reportData).find(v => typeof v === 'string' && VEHICLE_CLASSES.includes(v.toUpperCase()));
@@ -450,12 +457,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     }
 
     const conditionValue = reportData['conditionScore'];
-    
     if (!conditionValue || String(conditionValue).trim() === '') {
       toast({
         variant: "destructive",
-        title: "Mandatory Input Required",
-        description: "Condition Score (Technical Grade) field need to be filled. It is essential for the Valuation Code logic.",
+        title: "Input Required",
+        description: "Condition Score is essential for Valuation Code logic.",
       });
       return;
     }
@@ -477,7 +483,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
       if (!isIssued || issuedDateCode !== todayDateCode) {
         const branchCode = userBranch || 'CDH';
         const reportsRef = collection(firestore, 'reports');
-        // Sequence is calculated per branch, per day, AND per verified vehicle class
         const q = query(
           reportsRef, 
           where('branch', '==', branchCode),
@@ -531,19 +536,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         if (docSnap.exists()) {
           transaction.update(reportRef, reportHeaderData);
         } else {
-          transaction.set(reportRef, {
-            ...reportHeaderData,
-            id: vehicleId,
-            createdAt: now
-          });
+          transaction.set(reportRef, { ...reportHeaderData, id: vehicleId, createdAt: now });
         }
         
         const historyRef = doc(collection(firestore, 'reports', vehicleId, 'history'));
-        transaction.set(historyRef, {
-            ...reportHeaderData,
-            reportId: vehicleId,
-            savedAt: now
-        });
+        transaction.set(historyRef, { ...reportHeaderData, reportId: vehicleId, savedAt: now });
       });
       
       setReportData(updatedReportData);
@@ -569,9 +566,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         const sourceData = sourceSnap.data() as Report;
         const clonedReportData = { ...sourceData.reportData };
         
-        // Comprehensive exclusion for unique, system, and requested identifiers
-        // Use fuzzy matching to ensure custom field mappings are also cleared
-        // Also scans the current layout to identify fields labeled as unique identifiers
+        // Automated technical exclusion for unique identifiers
         const uniqueFieldIdsFromLayout = currentLayout
           .filter(f => f.fieldType === 'text' && f.label?.text)
           .filter(f => {
@@ -603,6 +598,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
             k === 'id' || 
             k === 'text_1767985277711' || 
             k === 'text_1767985345109' ||
+            k === 'text_1767995825656' ||
             uniqueFieldIdsFromLayout.includes(key);
 
           if (isUniqueOrSensitive) {
@@ -613,21 +609,21 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         setReportData(prev => ({
           ...prev,
           ...clonedReportData,
-          // Preserve essential session markers and reset unique ones to empty strings explicitly
           regNumber: isUnregistered ? 'U/R' : vehicleId,
-          date: prev.date, // Keep current session date
+          date: prev.date,
           chassisNumber: "",
           engineNumber: "",
           reportNumber: "V-PENDING",
           valuationCode: "V-PENDING",
           vehicleClass: "",
           text_1767985277711: "",
-          text_1767985345109: ""
+          text_1767985345109: "",
+          text_1767995825656: ""
         }));
 
         toast({
-          title: "Technical Data Imported",
-          description: `Specifications from ${sourceVehicleId} loaded. Unique identifiers (Chassis, Engine, Class) have been cleared.`,
+          title: "Data Imported",
+          description: `Specifications from ${sourceVehicleId} loaded. Unique technical IDs cleared.`,
         });
         setIsCloneDialogOpen(false);
         setCloneSearchTerm('');
@@ -635,16 +631,12 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         toast({
           variant: "destructive",
           title: "Record Not Found",
-          description: `No existing report found for vehicle identifier: ${sourceVehicleId}.`,
+          description: `No existing report found for: ${sourceVehicleId}.`,
         });
       }
     } catch (err) {
       console.error("Cloning failed:", err);
-      toast({
-        variant: "destructive",
-        title: "Import Error",
-        description: "Failed to retrieve source vehicle data.",
-      });
+      toast({ variant: "destructive", title: "Import Error", description: "Failed to retrieve source data." });
     } finally {
       setIsCloning(false);
     }
@@ -718,7 +710,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                     {displayVehicleId}
                   </span>
                 </div>
-                
                 {isSyncing && (
                   <div className="flex flex-col justify-center">
                     <span className="flex items-center gap-1.5 text-[10px] text-primary font-bold animate-pulse bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
@@ -743,25 +734,19 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                     </DialogTitle>
                     <DialogDescription asChild>
                       <div className="space-y-2">
-                        <p>Enter a vehicle registration number to copy its technical details into this current report.</p>
-                        <p className="text-[10px] text-destructive font-bold uppercase tracking-wider">Note: Chassis, Engine, and Class will be cleared.</p>
+                        <p>Enter a registration number to copy technical details. Unique IDs (Chassis, Engine, Class) will be cleared.</p>
                       </div>
                     </DialogDescription>
                   </DialogHeader>
                   <div className="flex items-center space-x-2 py-4">
-                    <div className="grid flex-1 gap-2">
-                      <Label htmlFor="vehicle-search" className="sr-only">Registration Number</Label>
-                      <Input
-                        id="vehicle-search"
-                        placeholder="e.g. WP CAA-1234"
-                        value={cloneSearchTerm}
-                        onChange={(e) => setCloneSearchTerm(e.target.value.toUpperCase())}
-                        onKeyDown={(e) => e.key === 'Enter' && handleCloneData(cloneSearchTerm)}
-                        className="h-12 text-lg font-mono tracking-widest border-primary/30"
-                      />
-                    </div>
+                    <Input
+                      placeholder="e.g. WP CAA-1234"
+                      value={cloneSearchTerm}
+                      onChange={(e) => setCloneSearchTerm(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => e.key === 'Enter' && handleCloneData(cloneSearchTerm)}
+                      className="h-12 text-lg font-mono tracking-widest border-primary/30"
+                    />
                     <Button 
-                      type="submit" 
                       size="icon" 
                       className="h-12 w-12 shrink-0 bg-primary"
                       onClick={() => handleCloneData(cloneSearchTerm)}
@@ -770,14 +755,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                       {isCloning ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
                     </Button>
                   </div>
-                  <div className="p-3 bg-muted/30 rounded-lg border border-dashed text-[10px] text-muted-foreground leading-relaxed">
-                    <p className="font-bold mb-1 uppercase tracking-tighter">Information Integrity:</p>
-                    Unique identifiers like Registration No, Report No, Engine No, Chassis No, and Class will NOT be cloned.
-                  </div>
                   <DialogFooter className="sm:justify-start">
-                    <Button type="button" variant="ghost" onClick={() => setIsCloneDialogOpen(false)}>
-                      Cancel
-                    </Button>
+                    <Button type="button" variant="ghost" onClick={() => setIsCloneDialogOpen(false)}>Cancel</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -791,10 +770,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
               {reportData['conditionScore'] && String(reportData['conditionScore']).trim() !== '' && (
                 <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button 
-                      onClick={() => setIsSaveDialogOpen(true)} 
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground animate-in fade-in zoom-in duration-300"
-                    >
+                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground animate-in fade-in zoom-in duration-300">
                         <Save className="mr-2 h-4 w-4" /> Save Report
                     </Button>
                   </DialogTrigger>
@@ -807,35 +783,26 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                         <div className="space-y-3 pt-2">
                           <p className="font-bold text-foreground">Double Check Required</p>
                           <p className="text-xs leading-relaxed text-muted-foreground">
-                            Please verify the vehicle classification before finalizing. This value is critical for the <span className="font-bold text-primary italic">Valuation Code</span> sequence indexing.
+                            Verify classification before finalizing. It is critical for the <span className="font-bold text-primary italic">Valuation Code</span> sequence.
                           </p>
                         </div>
                       </DialogDescription>
                     </DialogHeader>
                     <div className="py-6 space-y-6">
                       <div className="space-y-2 p-4 bg-muted/30 rounded-xl border-2 border-dashed border-primary/20">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Verified Vehicle Classification</Label>
-                        <div className="text-2xl font-black text-primary tracking-tight font-mono">
-                          {currentDisplayClass}
-                        </div>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Verified Classification</Label>
+                        <div className="text-2xl font-black text-primary tracking-tight font-mono">{currentDisplayClass}</div>
                       </div>
-                      
                       <div className="p-4 bg-destructive/10 rounded-xl border-2 border-destructive/30 flex items-start gap-3 animate-pulse">
                         <AlertTriangle className="h-6 w-6 text-destructive shrink-0 mt-0.5" />
                         <div className="text-xs leading-relaxed text-destructive font-black uppercase tracking-tight">
-                          IMPORTANT: If this classification is wrong, the "Report Number" cannot be updated correctly today. Please verify on the form first if incorrect.
+                          IMPORTANT: If classification is wrong, Report Number cannot update correctly today.
                         </div>
                       </div>
                     </div>
                     <DialogFooter className="gap-2 sm:gap-0">
-                      <Button variant="ghost" onClick={() => setIsSaveDialogOpen(false)} disabled={isFinalSaving}>
-                        Cancel
-                      </Button>
-                      <Button 
-                        onClick={() => handleSave()} 
-                        className="bg-primary font-black px-8 shadow-lg"
-                        disabled={isFinalSaving}
-                      >
+                      <Button variant="ghost" onClick={() => setIsSaveDialogOpen(false)} disabled={isFinalSaving}>Cancel</Button>
+                      <Button onClick={() => handleSave()} className="bg-primary font-black px-8 shadow-lg" disabled={isFinalSaving}>
                         {isFinalSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Committing...</> : "Confirm & Save"}
                       </Button>
                     </DialogFooter>
@@ -843,9 +810,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                 </Dialog>
               )}
 
-              <Button variant="outline" onClick={() => window.print()}>
-                  <Printer className="mr-2 h-4 w-4" /> Print
-              </Button>
+              <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" /> Print</Button>
             </div>
           </CardContent>
         </Card>
@@ -869,13 +834,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
           </div>
         </div>
       </main>
-
       <div className="hidden print-view">
-        <ReportPage 
-          staticLabels={staticLabels} 
-          dynamicValues={dynamicValues}
-          imageValues={imageValues}
-        />
+        <ReportPage staticLabels={staticLabels} dynamicValues={dynamicValues} imageValues={imageValues} />
       </div>
     </div>
   );
