@@ -171,25 +171,47 @@ export default function LandingPage() {
                 <CardTitle className="text-3xl font-black tracking-tight">Search Records</CardTitle>
                 <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10">REAL-TIME</Badge>
               </div>
-              <CardDescription className="text-muted-foreground font-medium">Scan the global database by Registration, Engine, or Chassis numbers.</CardDescription>
+              <CardDescription className="text-muted-foreground font-medium space-y-4">
+                <p>Scan the global database by Registration, Engine, or Chassis numbers.</p>
+                <div className="bg-primary/10 p-4 rounded-xl border border-primary/20 text-foreground shadow-inner">
+                  <p className="text-xs font-bold leading-relaxed">
+                    <span className="text-primary uppercase tracking-widest block mb-1">System Instruction:</span> 
+                    To create a <span className="text-primary font-black uppercase">New Report via Reg.Number</span>, simply enter the registration code in the search field below. If no match is found, a <span className="bg-primary text-white px-2 py-0.5 rounded-md inline-flex items-center gap-1 mx-1 shadow-sm font-black uppercase text-[9px]">Create New Report</span> button will automatically appear.
+                  </p>
+                </div>
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex flex-col md:flex-row gap-3">
-                <Select value={searchCategory} onValueChange={setSearchCategory}>
-                  <SelectTrigger className="h-14 w-full md:w-[180px] bg-muted/30 border-primary/20 font-bold focus:ring-primary shadow-sm">
-                    <Filter className="mr-2 h-4 w-4 text-primary" />
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Identifiers</SelectItem>
-                    <SelectItem value="vehicleId">Registration No</SelectItem>
-                    <SelectItem value="engineNumber">Engine No</SelectItem>
-                    <SelectItem value="chassisNumber">Chassis No</SelectItem>
-                    <SelectItem value="reportNumber">Report No</SelectItem>
-                    <SelectItem value="reportDate">Report Date</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="relative flex-grow group">
+                <div className="flex flex-col gap-2 w-full md:w-[180px]">
+                  <Select value={searchCategory} onValueChange={setSearchCategory}>
+                    <SelectTrigger className="h-14 w-full bg-muted/30 border-primary/20 font-bold focus:ring-primary shadow-sm">
+                      <Filter className="mr-2 h-4 w-4 text-primary" />
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Identifiers</SelectItem>
+                      <SelectItem value="vehicleId">Registration No</SelectItem>
+                      <SelectItem value="engineNumber">Engine No</SelectItem>
+                      <SelectItem value="chassisNumber">Chassis No</SelectItem>
+                      <SelectItem value="reportNumber">Report No</SelectItem>
+                      <SelectItem value="reportDate">Report Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {!systemStatus.isLocked && (
+                    <Button 
+                      onClick={handleCreateUnregistered} 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 text-[10px] font-black uppercase tracking-tighter text-primary/60 hover:text-primary hover:bg-primary/5 transition-all"
+                    >
+                      <Sparkles className="mr-1.5 h-3 w-3" /> New Unregistered
+                    </Button>
+                  )}
+                </div>
+
+                <div className="relative flex-grow group h-14">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                     <Search className="h-5 w-5" />
                   </div>
@@ -202,27 +224,13 @@ export default function LandingPage() {
                 </div>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-3">
-                {searchTerm && !uniqueReports.some(r => r.vehicleId.toUpperCase() === searchTerm.trim()) && !systemStatus.isLocked && (
-                  <Button onClick={handleCreateNew} size="lg" className="flex-1 h-14 text-lg font-black shadow-xl hover:shadow-primary/20 transition-all animate-in zoom-in-95">
-                    <PlusCircle className="mr-2" /> Create: "{searchTerm}"
+              {searchTerm && !uniqueReports.some(r => r.vehicleId.toUpperCase() === searchTerm.trim()) && !systemStatus.isLocked && (
+                <div className="animate-in slide-in-from-top-2 duration-300">
+                  <Button onClick={handleCreateNew} size="lg" className="w-full h-14 text-lg font-black shadow-xl hover:shadow-primary/20 transition-all border-2 border-primary">
+                    <PlusCircle className="mr-2" /> Create New Report: "{searchTerm}"
                   </Button>
-                )}
-                
-                {!systemStatus.isLocked && (
-                  <Button 
-                    onClick={handleCreateUnregistered} 
-                    variant="outline" 
-                    size="lg" 
-                    className={cn(
-                      "h-14 text-sm font-black border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all",
-                      searchTerm ? "sm:w-auto px-8" : "w-full"
-                    )}
-                  >
-                    <Sparkles className="mr-2 h-5 w-5" /> New Unregistered Vehicle
-                  </Button>
-                )}
-              </div>
+                </div>
+              )}
 
               {searchTerm && (
                 <div className="pt-8 border-t border-muted">
