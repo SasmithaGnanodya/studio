@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, LogOut, ChevronLeft, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, LogOut, ChevronLeft, Loader2, Copy, Search, X } from 'lucide-react';
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
@@ -16,6 +17,15 @@ import type { ImageData, Report, FieldLayout } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { numberToWords, getDayOfYear, cn } from '@/lib/utils';
 import Link from 'next/link';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const ADMIN_EMAILS = ['sasmithagnanodya@gmail.com', 'supundinushaps@gmail.com', 'caredrivelk@gmail.com'];
 
@@ -72,6 +82,11 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const [userBranch, setUserBranch] = useState<string>('CDH');
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Cloning State
+  const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
+  const [cloneSearchTerm, setCloneSearchTerm] = useState('');
+  const [isCloning, setIsCloning] = useState(false);
 
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
@@ -319,15 +334,12 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
          fieldIdLower.endsWith('_rs') ||
          fieldIdLower === 'rs' ||
          currentLayout.some(l => l.autoFillSource === fieldId)) &&
-        !['text_1767984953326', 'text_1767988846387'].includes(fieldId); // Explicitly exempt requested fields from formatting
+        !['text_1767984953326', 'text_1767988846387'].includes(fieldId); 
 
       if (isNumericField) {
-        // Keep only digits and one decimal point
         const clean = value.replace(/[^\d.]/g, '');
         const parts = clean.split('.');
-        // Format integer part with commas (starting from right)
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        // Reconstruct (only allow one decimal point)
         finalValue = parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
       }
     }
@@ -337,7 +349,6 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
 
       currentLayout.forEach(layoutField => {
         if (layoutField.autoFillType === 'numberToWords' && layoutField.autoFillSource === fieldId && typeof finalValue === 'string') {
-          // Remove commas for clean parsing in word converter
           const cleanVal = finalValue.replace(/[^\d.]/g, ''); 
           const num = parseFloat(cleanVal);
           
@@ -364,7 +375,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
        fieldIdLower.endsWith('_rs') || 
        fieldIdLower === 'rs' ||
        currentLayout.some(l => l.autoFillSource === fieldId)) &&
-      !['text_1767984953326', 'text_1767988846387'].includes(fieldId); // Explicitly exempt requested fields from formatting
+      !['text_1767984953326', 'text_1767988846387'].includes(fieldId);
 
     if (isMoneyField && value.trim() !== '') {
       const trimmed = value.trim().replace(/,/g, '');
@@ -485,6 +496,68 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
     }
   };
 
+  const handleCloneData = async (sourceVehicleId: string) => {
+    if (!firestore || !sourceVehicleId) return;
+    
+    setIsCloning(true);
+    try {
+      const sourceRef = doc(firestore, 'reports', sourceVehicleId.toUpperCase().trim());
+      const sourceSnap = await getDoc(sourceRef);
+      
+      if (sourceSnap.exists()) {
+        const sourceData = sourceSnap.data() as Report;
+        const clonedReportData = { ...sourceData.reportData };
+        
+        // Exclude specific unique/system fields from being overwritten
+        const excludedKeys = [
+          'regNumber', 
+          'reportNumber', 
+          'valuationCode', 
+          'date', 
+          'image1', 
+          'vehicleId', 
+          'inspectionLocation'
+        ];
+        
+        excludedKeys.forEach(key => {
+          if (clonedReportData[key]) {
+            delete clonedReportData[key];
+          }
+        });
+
+        setReportData(prev => ({
+          ...prev,
+          ...clonedReportData,
+          // Preserve essential current session markers
+          regNumber: isUnregistered ? 'U/R' : vehicleId,
+          date: prev.date // Keep current date
+        }));
+
+        toast({
+          title: "Technical Data Imported",
+          description: `Specifications from ${sourceVehicleId} have been successfully loaded into the current draft.`,
+        });
+        setIsCloneDialogOpen(false);
+        setCloneSearchTerm('');
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Record Not Found",
+          description: `No existing report found for vehicle identifier: ${sourceVehicleId}.`,
+        });
+      }
+    } catch (err) {
+      console.error("Cloning failed:", err);
+      toast({
+        variant: "destructive",
+        title: "Import Error",
+        description: "Failed to retrieve source vehicle data.",
+      });
+    } finally {
+      setIsCloning(false);
+    }
+  };
+
   const upgradeLayout = async () => {
       if (!latestLayoutId || !firestore) return;
       setIsLoading(true);
@@ -557,6 +630,55 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
               <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Layout v{layoutVersion}</div>
             </div>
             <div className="flex gap-2">
+              <Dialog open={isCloneDialogOpen} onOpenChange={setIsCloneDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="font-bold border-primary/20 text-primary hover:bg-primary/5">
+                    <Copy className="mr-2 h-4 w-4" /> Clone From Existing
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md border-2 border-primary/20 shadow-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-primary font-black">
+                      <Search className="h-5 w-5" /> Import Vehicle Specs
+                    </DialogTitle>
+                    <DialogDescription>
+                      Enter a vehicle registration number to copy its technical details (Manufacturer, Specs, etc.) into this current report.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex items-center space-x-2 py-4">
+                    <div className="grid flex-1 gap-2">
+                      <Label htmlFor="vehicle-search" className="sr-only">Registration Number</Label>
+                      <Input
+                        id="vehicle-search"
+                        placeholder="e.g. WP CAA-1234"
+                        value={cloneSearchTerm}
+                        onChange={(e) => setCloneSearchTerm(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => e.key === 'Enter' && handleCloneData(cloneSearchTerm)}
+                        className="h-12 text-lg font-mono tracking-widest border-primary/30"
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      size="icon" 
+                      className="h-12 w-12 shrink-0 bg-primary"
+                      onClick={() => handleCloneData(cloneSearchTerm)}
+                      disabled={!cloneSearchTerm || isCloning}
+                    >
+                      {isCloning ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+                    </Button>
+                  </div>
+                  <div className="p-3 bg-muted/30 rounded-lg border border-dashed text-[10px] text-muted-foreground leading-relaxed">
+                    <p className="font-bold mb-1 uppercase tracking-tighter">Note:</p>
+                    Unique identifiers like Registration No, Report No, and Photos will NOT be overwritten.
+                  </div>
+                  <DialogFooter className="sm:justify-start">
+                    <Button type="button" variant="ghost" onClick={() => setIsCloneDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
               {isAdmin && latestLayoutId && (
                   <Button variant="outline" size="sm" onClick={upgradeLayout}>
                       <LayoutTemplate className="mr-2 h-4 w-4" /> Upgrade Layout
