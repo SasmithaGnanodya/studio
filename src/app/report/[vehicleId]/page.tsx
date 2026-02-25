@@ -551,6 +551,21 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
         
         // Comprehensive exclusion for unique, system, and requested identifiers
         // Use fuzzy matching to ensure custom field mappings are also cleared
+        // Also scans the current layout to identify fields labeled as unique identifiers
+        const uniqueFieldIdsFromLayout = currentLayout
+          .filter(f => f.fieldType === 'text' && f.label?.text)
+          .filter(f => {
+            const label = f.label.text.toLowerCase();
+            return label.includes('engine') || 
+                   label.includes('chassis') || 
+                   label.includes('reg') || 
+                   label.includes('report') ||
+                   label.includes('vin') ||
+                   label.includes('serial') ||
+                   label.includes('motor');
+          })
+          .map(f => f.fieldId);
+
         Object.keys(clonedReportData).forEach(key => {
           const k = key.toLowerCase();
           const isUniqueOrSensitive = 
@@ -567,7 +582,8 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
             k === 'date' || 
             k === 'id' || 
             k === 'text_1767985277711' || 
-            k === 'text_1767985345109';
+            k === 'text_1767985345109' ||
+            uniqueFieldIdsFromLayout.includes(key);
 
           if (isUniqueOrSensitive) {
             delete clonedReportData[key];
