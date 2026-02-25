@@ -61,7 +61,7 @@ export function Header() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center">
             <Link href="/" passHref>
-              <h1 className="flex items-center cursor-pointer">
+              <div className="flex items-center cursor-pointer">
                 <Image 
                   src="https://i.postimg.cc/k5HnDh4Q/care-drive.jpg" 
                   alt="Drive Care Logo" 
@@ -70,7 +70,7 @@ export function Header() {
                   className="h-12 w-auto object-contain rounded-md"
                   priority
                 />
-              </h1>
+              </div>
             </Link>
             <div className="ml-auto flex items-center gap-2 sm:gap-4">
               <Link href="/about" passHref>
@@ -99,12 +99,12 @@ export function Header() {
                 </Link>
               )}
 
-              {isAdmin && !isSuperAdmin && (
+              {isAdmin && (
                  <Link href="/admin" passHref>
-                    <div className="flex items-center gap-2 cursor-pointer text-sm font-medium text-muted-foreground hover:text-primary transition-colors pr-2">
+                    <Button variant="ghost" size="sm" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors pr-2">
                       <Shield size={18} />
                       <span className="hidden sm:inline">Admin</span>
-                    </div>
+                    </Button>
                 </Link>
               )}
               <UserNav />

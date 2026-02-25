@@ -9,11 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ShieldCheck, Megaphone, Lock, Unlock, Loader2, Save, AlertTriangle, Activity, Globe } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ShieldCheck, Megaphone, Lock, Unlock, Loader2, Save, AlertTriangle, Activity, Globe, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import Link from 'next/link';
 
 const SUPER_ADMIN_EMAIL = 'sasmithagnanodya@gmail.com';
 
@@ -98,19 +100,26 @@ export default function SuperAdminPage() {
       <Header />
       <main className="flex-1 p-6 space-y-8 max-w-4xl mx-auto w-full">
         
-        <div className="flex items-center gap-4 bg-primary/10 border border-primary/20 p-4 rounded-2xl">
-           <div className="p-3 bg-primary text-primary-foreground rounded-xl shadow-lg">
-              <ShieldCheck size={24} />
+        <div className="flex items-center justify-between gap-4 bg-primary/10 border border-primary/20 p-4 rounded-2xl">
+           <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary text-primary-foreground rounded-xl shadow-lg">
+                  <ShieldCheck size={24} />
+              </div>
+              <div>
+                  <h1 className="text-2xl font-black tracking-tight text-foreground">Command Center</h1>
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Master Identity: {user?.email}</p>
+              </div>
            </div>
-           <div>
-              <h1 className="text-2xl font-black tracking-tight">Super Admin Command Center</h1>
-              <p className="text-xs font-bold text-primary uppercase tracking-widest">Authorized Access: {user?.email}</p>
-           </div>
+           <Link href="/admin" passHref>
+              <Button variant="outline" size="sm" className="h-9 gap-2 border-primary/20 bg-background/50 font-black text-[10px] uppercase text-muted-foreground hover:text-primary transition-all">
+                <Shield size={14} /> Open Standard Admin Panel
+              </Button>
+           </Link>
         </div>
 
         <div className="grid gap-8">
           {/* Section 1: Announcement Manager */}
-          <Card className="border-primary/20 shadow-xl overflow-hidden">
+          <Card className="border-primary/20 shadow-xl overflow-hidden bg-card/50 backdrop-blur-sm">
             <CardHeader className="bg-muted/30 border-b">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -153,7 +162,7 @@ export default function SuperAdminPage() {
           </Card>
 
           {/* Section 2: Operational Status (Kill Switch) */}
-          <Card className="border-destructive/20 shadow-xl overflow-hidden">
+          <Card className="border-destructive/20 shadow-xl overflow-hidden bg-card/50 backdrop-blur-sm">
             <CardHeader className="bg-destructive/5 border-b">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -221,5 +230,3 @@ export default function SuperAdminPage() {
     </div>
   );
 }
-
-import { Input } from '@/components/ui/input';
