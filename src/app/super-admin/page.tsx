@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { ShieldCheck, Megaphone, Lock, Unlock, Loader2, Save, AlertTriangle, Activity, Globe, Shield } from 'lucide-react';
+import { ShieldCheck, Megaphone, Lock, Unlock, Loader2, Save, AlertTriangle, Activity, Globe, Shield, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -144,17 +144,22 @@ export default function SuperAdminPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-black uppercase text-muted-foreground">Message Content</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-black uppercase text-muted-foreground">Message Content</Label>
+                  <span className="text-[10px] text-primary font-bold italic flex items-center gap-1">
+                    <Sparkles size={10} /> Tip: Paste full URLs (http://...) to create clickable links.
+                  </span>
+                </div>
                 <Textarea 
                   value={announcement.message} 
                   onChange={(e) => setAnnouncement(prev => ({ ...prev, message: e.target.value }))}
-                  placeholder="Welcome to the updated Drive Care Valuation system..."
-                  className="min-h-[120px] bg-background font-medium text-sm leading-relaxed"
+                  placeholder="Example: Welcome to the new reporting cycle! 🚀 Check our updated guidelines at https://caredrive.lk/updates for technical details."
+                  className="min-h-[120px] bg-background font-medium text-sm leading-relaxed border-primary/20 focus:border-primary shadow-inner"
                 />
               </div>
             </CardContent>
             <CardFooter className="bg-muted/10 border-t py-4">
-              <Button onClick={handleSaveAnnouncement} disabled={isSaving} className="ml-auto font-black px-8">
+              <Button onClick={handleSaveAnnouncement} disabled={isSaving} className="ml-auto font-black px-8 shadow-lg hover:shadow-primary/20 transition-all">
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Sync Announcement
               </Button>

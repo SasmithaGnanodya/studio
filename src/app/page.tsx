@@ -11,7 +11,8 @@ import {
   Search, PlusCircle, Car, FileText, Shield, Filter, 
   Clock, ChevronRight, BarChart3, ShieldCheck, Zap, 
   Megaphone, X, Lock, Info, BookOpen, Fingerprint, 
-  LayoutTemplate, Database, AlertCircle, Sparkles
+  LayoutTemplate, Database, AlertCircle, Sparkles,
+  ExternalLink, FileCheck, Hash
 } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { collection, onSnapshot, orderBy, query, doc } from 'firebase/firestore';
@@ -28,11 +29,17 @@ function getIdentifiers(report: Report) {
   const engine = report.engineNumber || 'N/A';
   const chassis = report.chassisNumber || 'N/A';
   let reportNum = report.reportNumber || 'DRAFT';
-  const isIssued = /^(CDH|CDK)\d{9}$/.test(reportNum);
+  const isIssued = /^(CDH|CDK|KDH)\d{9}$/.test(reportNum);
   const rawId = (report.vehicleId || '').toUpperCase();
   const displayId = rawId.startsWith('UR-') ? 'U/R' : rawId;
 
-  return { engine, chassis, reportNum: isIssued ? reportNum : 'DRAFT', date: report.reportDate || 'N/A', displayId };
+  return { 
+    engine: String(engine).toUpperCase().trim(), 
+    chassis: String(chassis).toUpperCase().trim(), 
+    reportNum: isIssued ? reportNum : 'DRAFT', 
+    date: report.reportDate || 'N/A', 
+    displayId 
+  };
 }
 
 function getUniqueReports(reports: Report[]) {
@@ -45,6 +52,32 @@ function getUniqueReports(reports: Report[]) {
     return !isDuplicate;
   });
 }
+
+/**
+ * Transforms plain text containing URLs into a React fragment with interactive links.
+ */
+const renderLinkedText = (text: string) => {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a 
+          key={i} 
+          href={part} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="underline decoration-2 underline-offset-2 hover:text-white transition-all font-black mx-1 inline-flex items-center gap-1"
+        >
+          {part.replace(/^https?:\/\//, '')} <ExternalLink size={10} />
+        </a>
+      );
+    }
+    return part;
+  });
+};
 
 export default function LandingPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -91,10 +124,10 @@ export default function LandingPage() {
     const term = searchTerm.toUpperCase().trim();
     return uniqueReports.filter(r => {
       const ids = getIdentifiers(r);
-      if (searchCategory === 'all') return ids.displayId.includes(term) || ids.engine.toUpperCase().includes(term) || ids.chassis.toUpperCase().includes(term) || ids.reportNum.includes(term) || ids.date.includes(term);
+      if (searchCategory === 'all') return ids.displayId.includes(term) || ids.engine.includes(term) || ids.chassis.includes(term) || ids.reportNum.includes(term) || ids.date.includes(term);
       if (searchCategory === 'vehicleId') return ids.displayId.includes(term);
-      if (searchCategory === 'engineNumber') return ids.engine.toUpperCase().includes(term);
-      if (searchCategory === 'chassisNumber') return ids.chassis.toUpperCase().includes(term);
+      if (searchCategory === 'engineNumber') return ids.engine.includes(term);
+      if (searchCategory === 'chassisNumber') return ids.chassis.includes(term);
       if (searchCategory === 'reportNumber') return ids.reportNum.includes(term);
       if (searchCategory === 'reportDate') return ids.date.includes(term);
       return false;
@@ -154,13 +187,14 @@ export default function LandingPage() {
             <Megaphone className="h-5 w-5" />
             <div className="ml-3">
               <AlertTitle className="font-black text-[10px] uppercase tracking-widest mb-1">Global Broadcast</AlertTitle>
-              <AlertDescription className="text-sm font-bold text-foreground/80 pr-10">{announcement.message}</AlertDescription>
+              <AlertDescription className="text-sm font-bold text-foreground/80 pr-10 leading-relaxed">
+                {renderLinkedText(announcement.message)}
+              </AlertDescription>
             </div>
             <Button variant="ghost" size="icon" className="absolute top-2 right-2 opacity-40 hover:opacity-100" onClick={() => setShowAnnouncement(false)}><X size={16} /></Button>
           </Alert>
         )}
 
-        {/* Global Records & Stats Hub */}
         <div className="max-w-5xl mx-auto grid lg:grid-cols-3 gap-8">
           <Card className="lg:col-span-2 border-primary/10 shadow-2xl overflow-visible bg-card relative">
             <div className="absolute -top-3 -left-3 bg-primary text-primary-foreground p-2 rounded-xl shadow-lg z-10 hidden sm:block">
@@ -267,7 +301,7 @@ export default function LandingPage() {
                                 </div>
                                 <div className="flex flex-col gap-1">
                                   <span className="uppercase font-black text-[8px] flex items-center gap-1">
-                                    <Lock size={10} className="text-primary" /> Chassis No
+                                    <Hash size={10} className="text-primary" /> Chassis No
                                   </span>
                                   <span className="text-foreground font-bold truncate">{ids.chassis}</span>
                                 </div>
@@ -322,7 +356,6 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Instructions & System Guidance Section */}
         <div className="max-w-5xl mx-auto">
           <div className="bg-gradient-to-br from-primary/10 via-background to-background border border-primary/10 rounded-3xl p-8 sm:p-12 shadow-xl">
             <div className="flex flex-col md:flex-row gap-12">
@@ -425,7 +458,6 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Recent Synchronizations - Show only when not searching */}
         {!searchTerm && (
           <div className="max-w-5xl mx-auto space-y-8">
             <div className="flex items-end justify-between border-b pb-6 border-primary/20">
@@ -462,7 +494,7 @@ export default function LandingPage() {
                           </div>
                           <div>
                             <div className="uppercase font-black text-[8px] mb-1 flex items-center gap-1">
-                              <Lock size={10} className="text-primary" /> Chassis Number
+                              <Hash size={10} className="text-primary" /> Chassis Number
                             </div>
                             <div className="text-foreground truncate font-bold">{ids.chassis}</div>
                           </div>
