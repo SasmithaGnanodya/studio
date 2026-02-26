@@ -110,20 +110,6 @@ export const ReportPage = ({
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       let val = e.target.value;
-      const oldValue = field.value || "";
-      const options = field.options || [];
-
-      // Enhanced Multi-select logic for comboboxes (Suggestions)
-      // Detects if a selection from the datalist occurred by checking if newValue is an exact option match
-      // and it replaced the entire content.
-      if (field.inputType === 'combobox' && options.includes(val) && oldValue !== "" && oldValue !== val && !val.includes(oldValue)) {
-        const existingItems = oldValue.split(',').map(s => s.trim()).filter(Boolean);
-        if (!existingItems.includes(val)) {
-          val = [...existingItems, val].join(', ');
-        } else {
-          val = oldValue; // Option already present in the list
-        }
-      }
       
       const sensitivePatterns = ['engine', 'chassis', 'report', 'reg', 'ref', 'val', 'id'];
       if (sensitivePatterns.some(p => field.fieldId.toLowerCase().includes(p))) {

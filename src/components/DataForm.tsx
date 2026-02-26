@@ -70,21 +70,7 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
                       id={field.fieldId}
                       list={`list-form-${field.id}`}
                       value={data[field.fieldId] || ''}
-                      onChange={(e) => {
-                        let val = e.target.value;
-                        const oldValue = String(data[field.fieldId] || "");
-                        
-                        // Accumulate multiple choices separated by comma if an option is picked
-                        if (fieldOptions.includes(val) && oldValue !== "" && oldValue !== val && !val.includes(oldValue)) {
-                          const existingItems = oldValue.split(',').map(s => s.trim()).filter(Boolean);
-                          if (!existingItems.includes(val)) {
-                            val = [...existingItems, val].join(', ');
-                          } else {
-                            val = oldValue;
-                          }
-                        }
-                        onDataChange(field.fieldId, val);
-                      }}
+                      onChange={(e) => onDataChange(field.fieldId, e.target.value)}
                       placeholder="Type or select..."
                     />
                     <datalist id={`list-form-${field.id}`}>
