@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, use, useRef } from 'react';
@@ -11,7 +12,7 @@ import { Printer, Save, ShieldAlert, Lock, LayoutTemplate, RefreshCw, LogOut, Ch
 import { ReportPage } from '@/components/ReportPage';
 import { initialReportState, fixedLayout } from '@/lib/initialReportState';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, getDocs, collection, query, where, serverTimestamp, runTransaction, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query, where, serverTimestamp, runTransaction, setDoc, onSnapshot, limit } from 'firebase/firestore';
 import type { ImageData, Report, FieldLayout } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { numberToWords, getDayOfYear, cn } from '@/lib/utils';
@@ -440,21 +441,57 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
   const handleCloneData = async (sourceId: string) => {
     if (!firestore || !sourceId) return;
     setIsCloning(true);
+    const term = sourceId.toUpperCase().trim();
     try {
-      const snap = await getDoc(doc(firestore, 'reports', sourceId.toUpperCase().trim()));
-      if (snap.exists()) {
-        const source = snap.data() as Report;
-        const cloned = { ...source.reportData };
+      // Cascading search protocol for enhanced sensitivity
+      let sourceData: Report | null = null;
+      
+      // 1. Try Registration Number (Doc ID)
+      const directSnap = await getDoc(doc(firestore, 'reports', term));
+      if (directSnap.exists()) {
+        sourceData = directSnap.data() as Report;
+      } else {
+        // 2. Multi-field secondary scan
+        const reportsRef = collection(firestore, 'reports');
+        
+        // Check Report Number
+        const qReport = query(reportsRef, where('reportNumber', '==', term), limit(1));
+        const snapReport = await getDocs(qReport);
+        
+        if (!snapReport.empty) {
+          sourceData = snapReport.docs[0].data() as Report;
+        } else {
+          // Check Engine Number
+          const qEngine = query(reportsRef, where('engineNumber', '==', term), limit(1));
+          const snapEngine = await getDocs(qEngine);
+          
+          if (!snapEngine.empty) {
+            sourceData = snapEngine.docs[0].data() as Report;
+          } else {
+            // Check Chassis Number
+            const qChassis = query(reportsRef, where('chassisNumber', '==', term), limit(1));
+            const snapChassis = await getDocs(qChassis);
+            if (!snapChassis.empty) {
+              sourceData = snapChassis.docs[0].data() as Report;
+            }
+          }
+        }
+      }
+
+      if (sourceData) {
+        const cloned = { ...sourceData.reportData };
         const technicalIds = currentLayout.filter(f => f.fieldType === 'text' && f.label?.text && ['engine', 'chassis', 'reg', 'report', 'vin', 'serial', 'motor'].some(p => f.label.text.toLowerCase().includes(p))).map(f => f.fieldId);
         Object.keys(cloned).forEach(k => {
           const kl = k.toLowerCase();
           if (['engine', 'chassis', 'vin', 'serial', 'reportnum', 'regnumber', 'valuation', 'vehicleid', 'vehicleclass', 'image1', 'date', 'id'].some(p => kl.includes(p)) || technicalIds.includes(k)) delete cloned[k];
         });
         setReportData(prev => ({ ...prev, ...cloned, regNumber: isUnregistered ? 'U/R' : vehicleId, date: prev.date, chassisNumber: "", engineNumber: "", reportNumber: "V-PENDING", valuationCode: "V-PENDING", vehicleClass: "" }));
-        toast({ title: "Data Imported", description: `Specs from ${sourceId} loaded.` });
-        setIsCloneDialogOpen(false); setCloneSearchTerm('');
+        toast({ title: "Data Imported", description: `Specifications loaded from record match.` });
+        setIsCloneDialogOpen(false); 
+        setCloneSearchTerm('');
       } else {
-        setIsCloneDialogOpen(false); setIsCloneErrorOpen(true);
+        setIsCloneDialogOpen(false); 
+        setIsCloneErrorOpen(true);
       }
     } catch (err) {
       console.error(err);
@@ -537,14 +574,17 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                 <DialogContent className="sm:max-w-md border-2 border-primary/20 shadow-2xl">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-primary font-black">
-                      <Search className="h-5 w-5" /> Only Search Via Reg.Number.
+                      <Search className="h-5 w-5" /> Cross-Identifier Import
                     </DialogTitle>
-                    <DialogDescription>Unique IDs will be cleared. Imported specs only.</DialogDescription>
+                    <DialogDescription>Search by <strong>Registration</strong>, <strong>Report</strong>, <strong>Engine</strong>, or <strong>Chassis</strong> number. Unique IDs will be cleared upon import.</DialogDescription>
                   </DialogHeader>
                   <div className="flex items-center space-x-2 py-4">
                     <Input
-                      placeholder="e.g. WP CAA-1234" value={cloneSearchTerm} onChange={(e) => setCloneSearchTerm(e.target.value.toUpperCase())}
-                      onKeyDown={(e) => e.key === 'Enter' && handleCloneData(cloneSearchTerm)} className="h-12 text-lg font-mono tracking-widest border-primary/30"
+                      placeholder="e.g. WP CAA-1234 or CDH25056..." 
+                      value={cloneSearchTerm} 
+                      onChange={(e) => setCloneSearchTerm(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => e.key === 'Enter' && handleCloneData(cloneSearchTerm)} 
+                      className="h-12 text-lg font-mono tracking-widest border-primary/30"
                     />
                     <Button size="icon" className="h-12 w-12 shrink-0 bg-primary" onClick={() => handleCloneData(cloneSearchTerm)} disabled={!cloneSearchTerm || isCloning}>
                       {isCloning ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
@@ -557,7 +597,7 @@ export default function ReportBuilderPage({ params }: { params: Promise<{ vehicl
                 <DialogContent className="sm:max-w-md border-2 border-destructive/20 shadow-2xl">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-destructive font-black"><AlertTriangle /> Record Not Found</DialogTitle>
-                    <DialogDescription className="font-bold">Try with another Vehicle Reg.Number.</DialogDescription>
+                    <DialogDescription className="font-bold">No match found for the entered identifier. Please verify the code and try again.</DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
                     <Button variant="ghost" onClick={() => setIsCloneErrorOpen(false)}>Close</Button>
