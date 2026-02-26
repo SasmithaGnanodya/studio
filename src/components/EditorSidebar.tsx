@@ -309,7 +309,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                   </div>
                   <div className='flex items-center space-x-2'>
                       <RadioGroupItem value='combobox' id='type-combobox' />
-                      <Label htmlFor='type-combobox' className='font-bold text-xs cursor-pointer'>Suggestions</Label>
+                      <Label htmlFor='type-combobox' className='font-bold text-xs cursor-pointer'>Multi-select Suggestions</Label>
                   </div>
               </RadioGroup>
               
@@ -408,7 +408,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                   <p className="text-[9px] text-muted-foreground italic leading-tight">
                     {data.inputType === 'dropdown' 
                       ? "Values used for Valuation Code (9th digit). Example: Selecting an option with Val '1' puts '1' in the 9th position."
-                      : "Add pre-defined words or sentences that will appear as suggestions while typing."
+                      : "Add pre-defined words or sentences. In the report, selecting a suggestion will append it with a comma."
                     }
                   </p>
               </div>

@@ -1,4 +1,3 @@
-
 // src/components/DataForm.tsx
 
 import React from 'react';
@@ -43,6 +42,8 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
             fieldIdLower === 'valuationcode' ||
             fieldIdLower.includes('reportnum');
 
+          const fieldOptions = (field.fieldType === 'text' && field.value.options) ? field.value.options : [];
+
           return (
             <div key={field.id} className="space-y-2">
               <Label htmlFor={field.fieldId} className="text-sm font-medium capitalize">
@@ -58,7 +59,7 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
                        <SelectValue placeholder={`Select ${field.label.text}`} />
                      </SelectTrigger>
                      <SelectContent>
-                       {(field.value.options || []).filter(Boolean).map(option => (
+                       {fieldOptions.filter(Boolean).map(option => (
                          <SelectItem key={option} value={option}>{option}</SelectItem>
                        ))}
                      </SelectContent>
@@ -69,11 +70,25 @@ export const DataForm = ({ layout, data, onDataChange }: DataFormProps) => {
                       id={field.fieldId}
                       list={`list-form-${field.id}`}
                       value={data[field.fieldId] || ''}
-                      onChange={(e) => onDataChange(field.fieldId, e.target.value)}
+                      onChange={(e) => {
+                        let val = e.target.value;
+                        const oldValue = String(data[field.fieldId] || "");
+                        
+                        // Accumulate multiple choices separated by comma if an option is picked
+                        if (fieldOptions.includes(val) && oldValue !== "" && oldValue !== val && !val.includes(oldValue)) {
+                          const existingItems = oldValue.split(',').map(s => s.trim()).filter(Boolean);
+                          if (!existingItems.includes(val)) {
+                            val = [...existingItems, val].join(', ');
+                          } else {
+                            val = oldValue;
+                          }
+                        }
+                        onDataChange(field.fieldId, val);
+                      }}
                       placeholder="Type or select..."
                     />
                     <datalist id={`list-form-${field.id}`}>
-                      {(field.value.options || []).filter(Boolean).map(opt => (
+                      {fieldOptions.filter(Boolean).map(opt => (
                         <option key={opt} value={opt} />
                       ))}
                     </datalist>
