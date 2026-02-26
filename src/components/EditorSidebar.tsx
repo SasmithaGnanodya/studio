@@ -297,19 +297,19 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
               <RadioGroup 
                   value={data.inputType || 'text'} 
                   onValueChange={(value) => handlePartChange(part, 'inputType', value)}
-                  className='flex items-center gap-4 mt-1'
+                  className='flex flex-col gap-2 mt-1'
               >
                   <div className='flex items-center space-x-2'>
                       <RadioGroupItem value='text' id='type-text' />
-                      <Label htmlFor='type-text' className='font-bold text-xs cursor-pointer'>Text</Label>
+                      <Label htmlFor='type-text' className='font-bold text-xs cursor-pointer'>Text Box</Label>
                   </div>
                    <div className='flex items-center space-x-2'>
                       <RadioGroupItem value='dropdown' id='type-dropdown' />
-                      <Label htmlFor='type-dropdown' className='font-bold text-xs cursor-pointer'>Options</Label>
+                      <Label htmlFor='type-dropdown' className='font-bold text-xs cursor-pointer'>Dropdown (Single)</Label>
                   </div>
                   <div className='flex items-center space-x-2'>
                       <RadioGroupItem value='combobox' id='type-combobox' />
-                      <Label htmlFor='type-combobox' className='font-bold text-xs cursor-pointer'>Suggestions</Label>
+                      <Label htmlFor='type-combobox' className='font-bold text-xs cursor-pointer'>Word Bank (Multi-select)</Label>
                   </div>
               </RadioGroup>
               
@@ -336,7 +336,7 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                     {(data.options || []).map((opt, index) => (
                       <div key={index} className="flex gap-1.5 items-center">
                         <Input 
-                          placeholder={data.inputType === 'combobox' ? "Sentence..." : "Name"} 
+                          placeholder={data.inputType === 'combobox' ? "Description..." : "Option Name"} 
                           value={opt} 
                           className="h-8 text-[10px] flex-1"
                           onChange={(e) => {
@@ -397,18 +397,18 @@ export const EditorSidebar = ({ field, onUpdate, onDelete, onClose, availableFie
                       size="sm" 
                       className="w-full text-[10px] h-8 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 text-primary"
                       onClick={() => {
-                        const newOptions = [...(data.options || []), `New ${data.inputType === 'combobox' ? 'Sentence' : 'Option'} ${(data.options?.length || 0) + 1}`];
+                        const newOptions = [...(data.options || []), `New ${data.inputType === 'combobox' ? 'Word' : 'Option'} ${(data.options?.length || 0) + 1}`];
                         updateOptions(part, newOptions, data.optionWeights);
                       }}
                     >
-                      <PlusCircle className="mr-2 h-3.5 w-3.5" /> Add New Row
+                      <PlusCircle className="mr-2 h-3.5 w-3.5" /> Add New Entry
                     </Button>
                   </div>
                   
                   <p className="text-[9px] text-muted-foreground italic leading-tight">
                     {data.inputType === 'dropdown' 
                       ? "Values used for Valuation Code (9th digit). Example: Selecting an option with Val '1' puts '1' in the 9th position."
-                      : "Add pre-defined words or sentences. In the report, selecting a suggestion will fill the text box."
+                      : "In multi-select mode, clicking words in the word bank will add them to the field separated by commas."
                     }
                   </p>
               </div>

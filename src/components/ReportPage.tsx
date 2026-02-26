@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { ImageAdjustmentControl } from './ImageAdjustmentControl';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 
 export type PrintField = {
   id: string;
@@ -148,28 +150,63 @@ export const ReportPage = ({
             </SelectContent>
           </Select>
         ) : field.inputType === 'combobox' ? (
-          <>
-            <Input
-              list={`list-${field.id}`}
-              value={field.value}
-              onChange={handleInputChange}
-              onBlur={handleBlur}
-              className={cn(
-                "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary p-1 transition-all shadow-none ring-0",
-                alignmentClass
-              )}
-              style={{ 
-                fontSize: style.fontSize, 
-                color: style.color, 
-                fontWeight: style.fontWeight 
-              }}
-            />
-            <datalist id={`list-${field.id}`}>
-              {(field.options || []).filter(Boolean).map(opt => (
-                <option key={opt} value={opt} />
-              ))}
-            </datalist>
-          </>
+          <Popover>
+            <PopoverTrigger asChild>
+              <div className="w-full h-full relative cursor-pointer">
+                <Textarea
+                  value={field.value}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  className={cn(
+                    "h-full w-full bg-white/70 backdrop-blur-sm border-primary/30 focus:border-primary p-1 transition-all shadow-none ring-0 resize-none overflow-hidden min-h-0",
+                    alignmentClass
+                  )}
+                  style={{ 
+                    fontSize: style.fontSize, 
+                    color: style.color, 
+                    fontWeight: style.fontWeight 
+                  }}
+                />
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-4 shadow-2xl border-2" side="top" align="start">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <p className="text-[10px] font-black uppercase text-primary tracking-widest">Multi-Select Word Bank</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+                  {(field.options || []).filter(Boolean).map(opt => {
+                    const parts = field.value ? field.value.split(',').map(p => p.trim()).filter(Boolean) : [];
+                    const isActive = parts.includes(opt);
+                    
+                    return (
+                      <Button 
+                        key={opt} 
+                        variant={isActive ? "default" : "outline"}
+                        size="sm" 
+                        className={cn(
+                          "h-7 text-[10px] px-2 py-0 font-bold",
+                          isActive ? "bg-primary text-primary-foreground" : "border-primary/20 hover:bg-primary/5 hover:border-primary"
+                        )}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const newParts = [...parts];
+                          const index = newParts.indexOf(opt);
+                          if (index > -1) newParts.splice(index, 1);
+                          else newParts.push(opt);
+                          onValueChange?.(field.fieldId, newParts.join(', '));
+                        }}
+                      >
+                        {opt}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <p className="text-[9px] text-muted-foreground italic border-t pt-2 mt-2">Words will be added with comma separation.</p>
+              </div>
+            </PopoverContent>
+          </Popover>
         ) : isDateField ? (
           <Input
             type='date'
